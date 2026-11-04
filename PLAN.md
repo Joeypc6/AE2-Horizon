@@ -435,3 +435,52 @@ Left, not 1:1:
 - ETA checked with several CPUs on one machine, speed cards and furnaces; not with P2P between provider and machine,
   other channel modes, or modded machines.
 - Dedicated servers: Horizon doesn't build native mods for them, so "server" means a LAN host.
+
+## Round 18 (2026-11-04): the gaps Round 17 left
+
+Tested in my offscreen game; the interface and the terminal also on a LAN guest.
+
+Done and tested:
+- Storage bus on an ME Interface: with no config, the interface's whole network, both ways and through the bus'
+  filter (64 diamonds on the sub-network seen, taken and stored from the main terminal); with a config, its own
+  storage. A pattern provider beside another network's interface pushes into that network.
+- ME Interface fluids: config by bucket, stock to the mB (0.25 B tested), back to the network when lowered, four
+  buckets a slot, a bucket on the stored fluid.
+- Fluid Substitutions: the button, default on, the green cells, and the job (1000 mB of water for a water bucket).
+- Crafting patterns give back what recipes leave: cake returned its three buckets.
+- Inscriber: AE2's filters for hoppers (coal refused), Automation Access Mode, Input Slot Stack Size, the press cycle
+  and its time, plates either way up, the Name Press.
+- Fuzzy Cards at work on the export bus, level emitter and interface, with a worn tool.
+- Formation plane: pours a bucket as a source, waterlogs, filters preferred as AE2's. Empty slots show AE2's icons.
+- Items in water: all the `ae2:transform` water recipes (fluix crystals and certus tested). Pearls count in the
+  singularity blast.
+- Crafting jobs survive quitting: 200 planks, quit partway, reloaded, exactly 200 at the end.
+- Molecular assembler on its own: pattern slot, grid hoppers fill by the pattern, result pushed out, real screen.
+  Assembler times by AE2's table (10, 8, 6, 5, 4, 2 ticks), charged AE per craft. Its result unlocks a provider.
+- Wrench: sneak picks a machine up with its settings and contents, placing restores them; turns about the clicked
+  face; sets a pattern provider's push direction (with AE2's oriented model), which pushes then obey, round robin.
+- Memory card: all settings and cards, partial restore on another machine, clearing, AE2's messages.
+- Upgrade cards: sneak-use installs one with AE2's limits; portable cells, cannon and applicator take cards in the
+  workbench; Energy Cards raise capacity; taking a cell apart gives its cards back.
+- P2P: only over a running grid, even split, fluid tunnels. Growth accelerator on crops, saplings and the rest of
+  its tag. Crank on the inscriber and accelerator. Controller opens the network status. Interface priority saved.
+- Storage buses reach sky chests and tanks. Quantum link screen as the jar's. Invalid Singularity tooltip.
+
+Left from Round 17's list, still not 1:1:
+- Inscriber with separate sides: hoppers can still only take the result (and from any side); `can_take` holds a macro
+  that horizon-mixins won't patch. Hand-placed stacks aren't held to the stack size setting.
+- Water poured by a plane in the Nether evaporates silently.
+
+Open after the audit of the jar against the port (2026-11-04), by how much a player would notice:
+- Your call: a provider's machine output comes back without a return path (the CPU reaches into the machine, and into
+  a chest target). AE2 needs a hopper or pipe into the provider or an interface. Providers have no fluid return yet.
+- One part per block: no cable bus holding six parts. Parts are separate blocks, facades on cables only.
+- Light P2P (needs one block per light level) and FE P2P, Energy Acceptor FE (Horizon has no energy API).
+- P2P: no extraction through an output, no power tax, sneak on a frequency doesn't make a new one.
+- Energy cells as items keep no charge. Wireless terminals have no upgrades panel.
+- Hotkeys for the wireless terminal and portable cells. Pattern Access Terminal's style button.
+- Entropy manipulator: lighting TNT and fire, smelting drops. Fluix tools' intrinsic enchant. Dispenser behaviours.
+- Portable cell: right-clicking items into it. Cable anchor. Storage monitor with a filled bucket.
+- Applicator mouse wheel and pick colour. Tooltips of cannon, applicator, creative cell, network tool.
+- Knife takes only iron. Sky stone break speed. Lightning effect on transforming items. Provider send list.
+- Interface priority shows on the screen but only orders storage. Item tunnel holds items for outputs that refuse.

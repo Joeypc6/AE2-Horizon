@@ -190,7 +190,7 @@ MENUS = {
     "storage_bus": {"slots": 5, "data_slots": 9},
     "vibration_chamber": {"slots": 4, "data_slots": 2},
     "inscriber": {"slots": 8, "data_slots": 3, "results": [3]},
-    "molecular_assembler": {"slots": 6, "data_slots": 2},
+    "molecular_assembler": {"slots": 16, "data_slots": 2},
     "sky_chest": {"slots": 36, "data_slots": 0},
     "level_emitter": {"slots": 2, "data_slots": 5},
     "wireless_access_point": {"slots": 3, "data_slots": 2},
@@ -356,6 +356,17 @@ def device_decl(name, state):
         decl["state_properties"] = {**decl["state_properties"], "powered": {"type": "boolean"}}
         decl["default_state"] = {**decl["default_state"], "powered": "false"}
         return decl, facing_variants(look, upright=False, powered=(look, look))
+    if name == "pattern_provider":
+        # PatternProviderBlock.PUSH_DIRECTION: the plain model, or the oriented one towards the side it pushes.
+        sides = {"down": {"x": 180}, "up": {}, "north": {"x": 90}, "south": {"x": 90, "y": 180}, "west": {"x": 90, "y": 270}, "east": {"x": 90, "y": 90}}
+        decl["state_properties"] = {**decl.get("state_properties", {}), "push_direction": {"type": "enum", "values": ["all", *sides]}}
+        decl["default_state"] = {**decl.get("default_state", {}), "push_direction": "all"}
+        variants = {}
+        for facing in FACING_ROTATIONS:
+            variants[f"facing={facing},push_direction=all"] = {"model": f"{ID}:block/pattern_provider"}
+            for side, rot in sides.items():
+                variants[f"facing={facing},push_direction={side}"] = {"model": f"{ID}:block/pattern_provider_oriented", **rot}
+        return decl, {"variants": variants}
     powered = None
     if name in POWERED_LOOKS:
         decl.update(POWERED_STATE)

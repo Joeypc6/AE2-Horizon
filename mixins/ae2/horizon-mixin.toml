@@ -944,3 +944,44 @@ file = "crates/horizon-client/src/game/native_hooks.rs"
 name = "port_ae2_screen"
 source = "screen_hidden.rs"
 
+# AE2's inscriber decides what automation may put and take (its AutomationFilter and BaseFilter).
+[[injection]]
+id = "me-can-place"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Containers<'_>::can_place"
+helper = "me_can_place.rs"
+bindings = [
+  { name = "c", ty = "&Containers<'_>", value = "&*self" },
+  { name = "view", ty = "&View", value = "view" },
+  { name = "slot", ty = "usize", value = "slot" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]
+
+[[injection]]
+id = "me-add-item"
+kind = "HEAD"
+target = "horizon_client::game::machines::Game<'_>::add_item"
+helper = "me_add_item.rs"
+bindings = [
+  { name = "face", ty = "Option<Direction>", value = "face" },
+]
+
+[[injection]]
+id = "me-add-one"
+kind = "HEAD"
+target = "horizon_client::game::machines::native_items::Game<'_>::add_one_quietly"
+helper = "me_add_one.rs"
+bindings = [
+  { name = "face", ty = "Direction", value = "face" },
+]
+
+[[injection]]
+id = "me-server-stop"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_server_stopping"
+helper = "me_server_stop.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+

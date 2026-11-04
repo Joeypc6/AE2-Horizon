@@ -7,6 +7,9 @@ fn ae2_mouse_pressed(game: &crate::game::Game<'_>, screen: &crate::game::native_
         }
     }
     if !*canceled {
+        crate::game::port_ae2_me::interface_bucket_press(game, screen.mouse, button, canceled);
+    }
+    if !*canceled {
         crate::game::port_ae2_me::item_screen_click(game, screen.mouse, button, canceled);
     }
     if !*canceled {

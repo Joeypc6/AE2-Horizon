@@ -888,3 +888,73 @@ mod tests {
         assert_eq!(cpu.job().map(|j| j.time.progress()), None);
     }
 }
+
+/// What a CPU saves (`CraftingCpuLogic.writeToNBT`).
+pub struct JobSave {
+    pub craft_id: u128,
+    pub final_output: GenericStack,
+    pub remaining_amount: i64,
+    pub has_requester: bool,
+    pub player: Option<i32>,
+    pub waiting_for: Vec<(AeKey, i64)>,
+    pub tasks: Vec<(AeKey, i64)>,
+    pub time: Vec<i64>,
+}
+
+pub struct CpuSave {
+    pub job: Option<JobSave>,
+    pub inventory: Vec<(AeKey, i64)>,
+}
+
+impl ElapsedTimeTracker {
+    pub fn to_vec(&self) -> Vec<i64> {
+        vec![self.elapsed_nanos() as i64, self.started[0], self.started[1], self.completed[0], self.completed[1]]
+    }
+}
+
+impl CraftingCpu {
+    pub fn save_state(&self) -> CpuSave {
+        CpuSave {
+            job: self.job.as_ref().map(|j| JobSave {
+                craft_id: j.craft_id,
+                final_output: j.final_output.clone(),
+                remaining_amount: j.remaining_amount,
+                has_requester: j.has_requester,
+                player: j.player,
+                waiting_for: j.waiting_for.iter().map(|(k, n)| (k.clone(), n)).collect(),
+                tasks: j.tasks.iter().map(|(p, n)| (p.definition.clone(), *n)).collect(),
+                time: j.time.to_vec(),
+            }),
+            inventory: self.inventory.iter().map(|(k, n)| (k.clone(), n)).collect(),
+        }
+    }
+
+    /// Back as saved; a pattern that no longer decodes is left out, as `ExecutingCraftingJob` leaves it.
+    pub fn restore_state(&mut self, save: CpuSave, decode: &mut dyn FnMut(&AeKey) -> Option<Arc<Pattern>>) {
+        for (k, n) in &save.inventory {
+            self.inventory.add(k, *n);
+        }
+        if let Some(s) = save.job {
+            let mut waiting_for = KeyCounter::new();
+            for (k, n) in &s.waiting_for {
+                waiting_for.add(k, *n);
+            }
+            let mut time = ElapsedTimeTracker::default();
+            if let [elapsed, s0, s1, c0, c1] = s.time[..] {
+                time.elapsed_nanos = elapsed as u64;
+                time.started = [s0, s1];
+                time.completed = [c0, c1];
+            }
+            self.job = Some(CraftingJob {
+                craft_id: s.craft_id,
+                final_output: s.final_output,
+                remaining_amount: s.remaining_amount,
+                waiting_for,
+                tasks: s.tasks.iter().filter_map(|(k, n)| Some((decode(k)?, *n))).collect(),
+                time,
+                has_requester: s.has_requester,
+                player: s.player,
+            });
+        }
+    }
+}

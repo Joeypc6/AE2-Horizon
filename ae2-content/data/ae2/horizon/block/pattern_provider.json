@@ -3,5 +3,22 @@
   "properties": {
     "hardness": 2.2,
     "sounds": "minecraft:iron_block"
+  },
+  "state_properties": {
+    "push_direction": {
+      "type": "enum",
+      "values": [
+        "all",
+        "down",
+        "up",
+        "north",
+        "south",
+        "west",
+        "east"
+      ]
+    }
+  },
+  "default_state": {
+    "push_direction": "all"
   }
 }

@@ -1,31 +1,178 @@
 {
   "variants": {
-    "facing=north": {
+    "facing=north,push_direction=all": {
+      "model": "ae2:block/pattern_provider"
+    },
+    "facing=north,push_direction=down": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 180
+    },
+    "facing=north,push_direction=up": {
+      "model": "ae2:block/pattern_provider_oriented"
+    },
+    "facing=north,push_direction=north": {
       "model": "ae2:block/pattern_provider_oriented",
       "x": 90
     },
-    "facing=south": {
+    "facing=north,push_direction=south": {
       "model": "ae2:block/pattern_provider_oriented",
       "x": 90,
       "y": 180
     },
-    "facing=west": {
+    "facing=north,push_direction=west": {
       "model": "ae2:block/pattern_provider_oriented",
       "x": 90,
       "y": 270
     },
-    "facing=east": {
+    "facing=north,push_direction=east": {
       "model": "ae2:block/pattern_provider_oriented",
       "x": 90,
       "y": 90
     },
-    "facing=up": {
-      "model": "ae2:block/pattern_provider_oriented",
-      "x": 0
+    "facing=south,push_direction=all": {
+      "model": "ae2:block/pattern_provider"
     },
-    "facing=down": {
+    "facing=south,push_direction=down": {
       "model": "ae2:block/pattern_provider_oriented",
       "x": 180
+    },
+    "facing=south,push_direction=up": {
+      "model": "ae2:block/pattern_provider_oriented"
+    },
+    "facing=south,push_direction=north": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90
+    },
+    "facing=south,push_direction=south": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 180
+    },
+    "facing=south,push_direction=west": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 270
+    },
+    "facing=south,push_direction=east": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 90
+    },
+    "facing=west,push_direction=all": {
+      "model": "ae2:block/pattern_provider"
+    },
+    "facing=west,push_direction=down": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 180
+    },
+    "facing=west,push_direction=up": {
+      "model": "ae2:block/pattern_provider_oriented"
+    },
+    "facing=west,push_direction=north": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90
+    },
+    "facing=west,push_direction=south": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 180
+    },
+    "facing=west,push_direction=west": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 270
+    },
+    "facing=west,push_direction=east": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 90
+    },
+    "facing=east,push_direction=all": {
+      "model": "ae2:block/pattern_provider"
+    },
+    "facing=east,push_direction=down": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 180
+    },
+    "facing=east,push_direction=up": {
+      "model": "ae2:block/pattern_provider_oriented"
+    },
+    "facing=east,push_direction=north": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90
+    },
+    "facing=east,push_direction=south": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 180
+    },
+    "facing=east,push_direction=west": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 270
+    },
+    "facing=east,push_direction=east": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 90
+    },
+    "facing=up,push_direction=all": {
+      "model": "ae2:block/pattern_provider"
+    },
+    "facing=up,push_direction=down": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 180
+    },
+    "facing=up,push_direction=up": {
+      "model": "ae2:block/pattern_provider_oriented"
+    },
+    "facing=up,push_direction=north": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90
+    },
+    "facing=up,push_direction=south": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 180
+    },
+    "facing=up,push_direction=west": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 270
+    },
+    "facing=up,push_direction=east": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 90
+    },
+    "facing=down,push_direction=all": {
+      "model": "ae2:block/pattern_provider"
+    },
+    "facing=down,push_direction=down": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 180
+    },
+    "facing=down,push_direction=up": {
+      "model": "ae2:block/pattern_provider_oriented"
+    },
+    "facing=down,push_direction=north": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90
+    },
+    "facing=down,push_direction=south": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 180
+    },
+    "facing=down,push_direction=west": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 270
+    },
+    "facing=down,push_direction=east": {
+      "model": "ae2:block/pattern_provider_oriented",
+      "x": 90,
+      "y": 90
     }
   }
 }
