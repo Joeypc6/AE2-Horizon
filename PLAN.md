@@ -530,3 +530,57 @@ Not tested on this revision: looting on fluix tools, ETA on modded machines. FE 
 mod here makes FE, so tests set the buffers directly.
 Still open: the list at the end of Round 18, without FE, portable cell clicks, pick colour, network tool tooltip and sky
 stone break speed, which are done.
+
+## Round 20 (2026-11-05): independent audits of all four mods against their Java
+
+Three audits read the decompiled Java against the Rust and listed what was missing. What they found, and Round 19's own
+list, closed here unless noted.
+
+AE2:
+- Hoppers: under a P2P output they pull what the input faces, at the hopper's own timing, taxed; an input gives nothing.
+  Under an inscriber with separate sides, the bottom press and not the result.
+- Pattern provider send list: AE2's `adapterAcceptsAll`, what doesn't fit waits, the provider is busy, it drops on break.
+- Machine output needs a return path, as in AE2: a hopper or pipe into a provider or interface. The CPU no longer reaches
+  into the machine. `craftingCpuPullsFromMachines` in `config/ae2/common.json` turns the old way on.
+- Interface priority between interfaces on one network. Wireless terminals' upgrade panel. Cannon and applicator in
+  dispensers. Stack size on hand-placed inscriber stacks. P2P tunnels' idle power. Creative cell's real capacity.
+- Spatial cells carry block entities and mobs, with a serial (SP-0001). The Spatial Anchor force-loads its grid's chunks,
+  takes AE2's power, releases them when removed by any means, and has its overlay button (a frame, see below).
+- Cell tooltip with icons (API 68). Status lights, portable housings and the applicator's tip through item tints, written
+  into `custom_model_data`. Portable cells and memory cards take the vanilla dye recipe; a cauldron washes them.
+- 408 advancements from the jar, on 26.3's format. AE2's own five triggers go through `/advancement`.
+- Tiny TNT visible while lit. Comparators on inventories and energy cell fill. Memory card copies patterns and spends
+  blanks. Power unit toggle. Ambient particles. Portable and crafting unit disassembly with AE2's message and cards back.
+  Network status rates, drain and tooltips. Interface wrench button. Plane's 128-entity limit. 25 AE per grid node.
+- `config/ae2/common.json` and `client.json`, AE2's keys and defaults, `/ae2 reloadconfig`. Old settings migrated once.
+
+Jade: FE lines, progress, contents of mod blocks and chested mobs, locked and unlooted containers, display entities, pots
+and heads, loot table lines, accessibility master switch and `jade.access.*` wording, profile keys and presets, toasts,
+narration, camouflage (infested, trapped), harvest tool tiers and shears, comparator and sculk power, sniffer, allay,
+spawner minecart, trial spawner, wax on signs, shelves, pet armour, real armour and absorption, more `registry_name`.
+Jade's AE2 plugin: its toggles and the debug card lines.
+AE2's JEI: "+" state with marks and tooltips, machine recipes refused, Ctrl-click craft missing, encoder marks, facade
+recipes, terminal catalysts, U on a catalyst, three certus pages, API attunements, inscriber click area, wireless search sync.
+
+Not possible as a Horizon mod today, by what the API and source show:
+- One part per block. Every device here is a block with its own position, entity and menu; a cable bus would need all of
+  AE2's logic rekeyed from position to position-and-side. Large, not attempted.
+- A spatial dimension (no mod levels), so players don't enter cells: entities in the volume go into the cell's data.
+- Fluix Researcher: professions are compiled-in tables (render, brain, network ids) with no hook.
+- See-through drawing from a block entity: transparent facades step aside with a network tool in hand; the anchor's
+  overlay is a frame of rails and posts where AE2 has translucent walls.
+- Light P2P uses a light block in front of the tunnel.
+
+Jade also has its themes (the jar's seven, and packs'), the overlay's drag-to-place screen, and Home, Mod, Plugins and
+Profiles config screens with search, sliders, reset, a live preview and AE2's section. The confirm screen's crafting plan runs
+on its own thread and the job starts from that plan; a job asked for another way still plans on the server thread.
+
+Left that could still be done:
+- Jade: card layout in the config screens, arrow-key focus, mouse binds, non-English text in them, HSL theme colours.
+- AE2: `showPlacementPreview`, `NETWORK_BOOTING`, the nested P2P error, power buffers on charger, inscriber and chest.
+- `allowBlockEntities` for facades. AE2's sleeping tick rates (the port has fixed cadences).
+- JEI: the panel lists only the bare facade, which belongs to the JEI mod; `craftMissing` has no confirm screen.
+- Access point and channel drains: the access point's is charged, the channel drain only displayed.
+
+The dedicated-server engine builds with all five mods (`--server-output`). It hasn't been run: that needs the Minecraft EULA
+accepted, which is the owner's to do.

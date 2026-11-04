@@ -204,6 +204,63 @@ MENUS = {
     "energy_level_emitter": {"slots": 1, "data_slots": 2},
     "quantum_link": {"slots": 1, "data_slots": 2},
 }
+# InitItemColors, as 26.3's item tints. The status light can't be asked of the stack here, so the native mod writes what
+# BasicStorageCell.getColor and AbstractPortableCell.getColor answer into the stack's custom_model_data colours; until it does,
+# CellState.EMPTY, or ABSENT for a portable cell, which has no charge until something charges it. A portable cell's housing is dyed (default PortableCellItem's tier colour).
+WHITE_TINT = {"type": "minecraft:constant", "value": -1}
+LED_TINT = {"type": "minecraft:custom_model_data", "index": 0, "default": 65280}
+
+
+def item_model(name, model):
+    plain = {"type": "minecraft:model", "model": model}
+    if re.match(r"(item|fluid)_storage_cell_", name):
+        plain["tints"] = [WHITE_TINT, LED_TINT]
+    elif re.match(r"portable_(item|fluid)_cell_", name):
+        plain["tints"] = [WHITE_TINT, {"type": "minecraft:custom_model_data", "index": 0, "default": 0}, {"type": "minecraft:dye", "default": 14540253 if "_item_" in name else 16739638}, WHITE_TINT]
+    elif name == "memory_card":
+        plain["tints"] = [WHITE_TINT, {"type": "minecraft:dye", "default": 14540253}]
+    elif name == "color_applicator":
+        # getColorApplicatorColor: the tip in the active colour's dark, medium and light; ae2:item/color_applicator_colored.
+        colored = {
+            "type": "minecraft:model",
+            "model": f"{ID}:item/color_applicator_colored",
+            "tints": [WHITE_TINT] + [{"type": "minecraft:custom_model_data", "index": i, "default": -1} for i in range(3)],
+        }
+        return {"type": "minecraft:condition", "property": "minecraft:custom_model_data", "index": 0, "on_true": colored, "on_false": plain}
+    return plain
+
+
+def upgrade_advancement(v, has):
+    """A 1.20.1 advancement in 26.3's form. AE2's own triggers are granted by the native mod, so here they can't be earned."""
+    def ingredient(c):
+        out = dict(c)
+        if "items" in out and isinstance(out["items"], list):
+            out["items"] = out["items"] if len(out["items"]) > 1 else out["items"][0]
+        if "tag" in out:
+            out["items"] = "#" + out.pop("tag")
+        return out
+
+    for name, c in v.get("criteria", {}).items():
+        if c.get("trigger", "").startswith(f"{ID}:"):
+            v["criteria"][name] = {"trigger": "minecraft:impossible"}
+        elif c.get("trigger") == "minecraft:inventory_changed":
+            conditions = c.get("conditions", {})
+            conditions["items"] = [ingredient(i) for i in conditions.get("items", [])]
+        elif c.get("trigger") == "minecraft:recipe_unlocked":
+            recipe = c.get("conditions", {}).get("recipe", "")
+            if recipe.startswith(f"{ID}:") and f"data/{ID}/recipes/{recipe[len(ID) + 1:]}.json" not in has:
+                return None
+    display = v.get("display")
+    if display:
+        icon = display.get("icon", {})
+        if "item" in icon:
+            icon["id"] = icon.pop("item")
+        background = display.get("background")
+        if background:
+            display["background"] = background.replace("textures/", "", 1).removesuffix(".png")
+    return v
+
+
 # Parts that sit on a cable in AE2, placed here as blocks facing the player:
 # (front texture, side texture, back texture).
 # Parts that sit on a cable in AE2, placed here as blocks: AE2's part model on the block's front face, with a
@@ -1874,14 +1931,21 @@ def main(jar, out):
             model = f"{ID}:block/{name}"
         else:
             continue
-        write(f"assets/{ID}/items/{name}.json", {"model": {"type": "minecraft:model", "model": model}})
+        write(f"assets/{ID}/items/{name}.json", {"model": item_model(name, model)})
 
-    # Data: recipes, loot, tags. Worldgen (meteorites), the spatial dimension and the
-    # advancements need AE2's code.
+    # DyeableLeatherItem: portable cells take the vanilla dye recipe.
+    write("data/minecraft/tags/item/dyeable.json", {"replace": False, "values": [f"{ID}:{n}" for n in items if re.match(r"portable_(item|fluid)_cell_|memory_card$", n)]})
+    # Data: recipes, loot, tags, advancements. Worldgen (meteorites) and the spatial dimension need AE2's code.
     for n in names:
         if not n.startswith("data/") or not n.endswith(".json"):
             continue
         ns, rest = n.split("/", 2)[1:]
+        if ns == ID and rest.startswith("advancements/"):
+            v = upgrade_advancement(json.loads(read(n)), has)
+            if v is not None:
+                write(f"data/{ID}/advancement/{rest[len('advancements/'):]}", v)
+                report["advancements"] = report.get("advancements", 0) + 1
+            continue
         for old, new in RENAMED_DIRS:
             if rest.startswith(old):
                 rest = new + rest[len(old):]

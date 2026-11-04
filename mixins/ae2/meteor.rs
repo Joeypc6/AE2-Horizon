@@ -1010,12 +1010,12 @@ impl Placer<'_, '_> {
     }
 
     /// placeMeteorite: the sky stone, then the mysterious cube at the centre when this chunk holds it
-    /// (spawnPressesInMeteorites, on by default).
+    /// (AEConfig's `spawnPressesInMeteorites`).
     fn place_meteorite(&mut self) {
         self.place_sky_stone();
         let [x, y, z] = self.m.pos;
         let b = self.bounds;
-        if x >= b[0] && x <= b[3] && y >= b[1] && y <= b[4] && z >= b[2] && z <= b[5] {
+        if super::port_ae2_me::spawn_presses_in_meteorites() && x >= b[0] && x <= b[3] && y >= b[1] && y <= b[4] && z >= b[2] && z <= b[5] {
             self.put(self.m.pos, self.blocks.mysterious_cube);
         }
     }
@@ -1039,7 +1039,8 @@ impl Placer<'_, '_> {
                     {
                         if dx.abs() <= 1 && dy.abs() <= 1 && dz.abs() <= 1 {
                             if dy == -1 {
-                                let index = self.random.next_int(self.blocks.quartz.len() as i32) as usize;
+                                // getQuartzBudList: only the flawless block with AEConfig's `spawnFlawlessOnly`.
+                                let index = if super::port_ae2_me::spawn_flawless_only() { 4 + self.random.next_int(1) as usize } else { self.random.next_int(self.blocks.quartz.len() as i32) as usize };
                                 self.put([i, j, k], self.blocks.quartz[index]);
                                 if index != 0
                                     && (dx != 0 || dz != 0)

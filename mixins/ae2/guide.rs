@@ -1375,7 +1375,7 @@ pub fn key(game: &Game<'_>, key: &str, canceled: &mut bool) {
         }
         return;
     }
-    if key.ends_with(".w") || key == "w" {
+    if (key.ends_with(".w") || key == "w") && super::port_ae2_me::guide_hotkey_enabled() {
         load_index(game);
         // Only the item under the pointer (AE2: hold the key over an item).
         let item = GUIDE.with_borrow(|g| g.hovered.clone())

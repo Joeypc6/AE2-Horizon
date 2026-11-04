@@ -1,0 +1,16 @@
+{
+  "replace": false,
+  "values": [
+    "ae2:memory_card",
+    "ae2:portable_fluid_cell_16k",
+    "ae2:portable_fluid_cell_1k",
+    "ae2:portable_fluid_cell_256k",
+    "ae2:portable_fluid_cell_4k",
+    "ae2:portable_fluid_cell_64k",
+    "ae2:portable_item_cell_16k",
+    "ae2:portable_item_cell_1k",
+    "ae2:portable_item_cell_256k",
+    "ae2:portable_item_cell_4k",
+    "ae2:portable_item_cell_64k"
+  ]
+}

@@ -64,8 +64,10 @@ fn ae2_command(game: &mut crate::game::Game<'_>, command: &str, ran: &mut bool) 
     }
     // The mod's data folder and its initializer, the first time.
     crate::game::port_ae2_game::ensure_init(game);
-    // A guest's command that reached the server's dispatcher is theirs, not this client's.
-    if let Some(player) = game.native_acting_player() {
+    // A guest's `/ae2` or `/ae2debug` that reached the server's dispatcher is theirs, not this client's. The guide's are the client's.
+    if matches!(command.split_whitespace().next(), Some("ae2" | "ae2debug"))
+        && let Some(player) = game.native_acting_player()
+    {
         crate::game::port_ae2_me::perform_command(game, &player, command, ran);
         return;
     }

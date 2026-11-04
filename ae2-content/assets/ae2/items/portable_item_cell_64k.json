@@ -1,6 +1,25 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "ae2:item/portable_item_cell_64k"
+    "model": "ae2:item/portable_item_cell_64k",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": -1
+      },
+      {
+        "type": "minecraft:custom_model_data",
+        "index": 0,
+        "default": 0
+      },
+      {
+        "type": "minecraft:dye",
+        "default": 14540253
+      },
+      {
+        "type": "minecraft:constant",
+        "value": -1
+      }
+    ]
   }
 }

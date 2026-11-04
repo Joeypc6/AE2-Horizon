@@ -1146,3 +1146,111 @@ bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
   { name = "batch", ty = "&HudBatch", value = "batch" },
 ]
+
+[[injection]]
+id = "me-suck"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::suck_from_container"
+helper = "me_suck.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "above", ty = "Pos", value = "above" },
+  { name = "hopper", ty = "&View", value = "hopper" },
+]
+
+[[injection]]
+id = "me-loot-level"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::loot::item_level"
+helper = "me_loot_level.rs"
+bindings = [
+  { name = "stack", ty = "&LootStack", value = "stack" },
+  { name = "enchantment", ty = "&str", value = "enchantment" },
+]
+
+[[injection]]
+id = "me-tooltip-size"
+kind = "HEAD"
+hook = "tooltip_component"
+hook_version = 1
+helper = "me_tooltip_size.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "size", ty = "&mut Option<[f32; 2]>", value = "&mut *size" },
+]
+
+[[injection]]
+id = "me-tooltip-draw"
+kind = "HEAD"
+hook = "tooltip_component_draw"
+hook_version = 1
+helper = "me_tooltip_draw.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "origin", ty = "[f32; 2]", value = "origin" },
+]
+
+[[injection]]
+id = "me-render-bounds"
+kind = "HEAD"
+hook = "block_entity_render_bounding_box"
+hook_version = 1
+helper = "me_render_bounds.rs"
+bindings = [
+  { name = "entity", ty = "&horizon_client::containers::ModBlockEntity", value = "entity" },
+  { name = "bounds", ty = "&mut [f32; 6]", value = "&mut *bounds" },
+]
+
+# AEBaseEntityBlock.hasAnalogOutputSignal and EnergyCellBlock's: which of AE2's blocks comparators read.
+[[injection]]
+id = "me-has-analog"
+kind = "HEAD"
+hook = "has_analog_output"
+hook_version = 1
+helper = "me_has_analog.rs"
+bindings = [
+  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "output", ty = "&mut bool", value = "&mut *output" },
+]
+
+[[injection]]
+id = "me-analog-output"
+kind = "HEAD"
+hook = "analog_output"
+hook_version = 1
+helper = "me_analog_output.rs"
+bindings = [
+  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
+  { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "output", ty = "&mut i32", value = "&mut *output" },
+]
+
+# Block.animateTick of AE2's blocks (no hook for it: ClientLevel.animateTick's own step, in the client library).
+[[injection]]
+id = "me-animate"
+kind = "HEAD"
+target = "horizon_client_lib::animate_tick::do_animate_tick"
+helper = "me_animate.rs"
+bindings = [
+  { name = "engine", ty = "&mut ParticleEngine", value = "&mut *engine" },
+  { name = "ctx", ty = "&AnimateContext<'_>", value = "ctx" },
+  { name = "center", ty = "[i32; 3]", value = "center" },
+  { name = "r", ty = "i32", value = "r" },
+]
+
+[[injection]]
+id = "me-player-tick"
+kind = "HEAD"
+hook = "player_tick"
+hook_version = 1
+helper = "me_player_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
