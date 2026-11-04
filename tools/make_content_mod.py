@@ -1135,6 +1135,16 @@ AE2_FACADE_BLOCKS = ["sky_stone_block", "smooth_sky_stone_block", "sky_stone_bri
 FACE_ORDER = ("down", "up", "north", "south", "west", "east")
 
 
+def block_entity_facades_allowed():
+    """AEConfig.isBlockEntityFacadesEnabled: `facades.allowBlockEntities` in the game's config/ae2/common.json, off as in
+    AE2 and when there is no such file. Recipes and models are made here, so it takes effect when the content is made."""
+    config = Path(os.environ.get("APPDATA", "")) / "horizon" / "config" / "ae2" / "common.json"
+    try:
+        return json.loads(config.read_text(encoding="utf-8")).get("facades", {}).get("allowBlockEntities", False) is True
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
 def facades(write, read, has):
     """FacadeItem.createFacadeForItem's blocks (full cubes drawn by their model, no block entity) and FacadeRecipe
     (four cable anchors round the block, four facades): a recipe for each, the facade's item model (a plate of
@@ -1194,8 +1204,16 @@ def facades(write, read, has):
             v = v[0]
         return v.get("model")
 
-    candidates = [(b["name"].split(":", 1)) for b in blocks
-                  if "EntityBlock" not in b.get("interfaces", []) and b.get("item") == b["name"] and b["name"] != "minecraft:air"]
+    # FacadeItem.createFacadeForItem: a block with a block entity only under `allowBlockEntities`. (AE2 also wants it in
+    # its tag `ae2:whitelisted/facades`, which by default names none and which nothing here can add to: on, it's any,
+    # AE2's own devices apart. Only a plain full cube's model passes below, so chests and the like still don't.)
+    entities_allowed = block_entity_facades_allowed()
+
+    def facade_candidate(b):
+        entity = "EntityBlock" in b.get("interfaces", [])
+        return (not entity or (entities_allowed and not b["name"].startswith(f"{ID}:"))) and b.get("item") == b["name"] and b["name"] != "minecraft:air"
+
+    candidates = [(b["name"].split(":", 1)) for b in blocks if facade_candidate(b)]
     candidates += [[ID, n] for n in AE2_FACADE_BLOCKS]
     table = {}
     for ns, name in candidates:

@@ -567,20 +567,36 @@ Not possible as a Horizon mod today, by what the API and source show:
   AE2's logic rekeyed from position to position-and-side. Large, not attempted.
 - A spatial dimension (no mod levels), so players don't enter cells: entities in the volume go into the cell's data.
 - Fluix Researcher: professions are compiled-in tables (render, brain, network ids) with no hook.
-- See-through drawing from a block entity: transparent facades step aside with a network tool in hand; the anchor's
-  overlay is a frame of rails and posts where AE2 has translucent walls.
 - Light P2P uses a light block in front of the tunnel.
 
 Jade also has its themes (the jar's seven, and packs'), the overlay's drag-to-place screen, and Home, Mod, Plugins and
 Profiles config screens with search, sliders, reset, a live preview and AE2's section. The confirm screen's crafting plan runs
 on its own thread and the job starts from that plan; a job asked for another way still plans on the server thread.
 
+A correction: an earlier version of this list called see-through drawing impossible. `world_drawn` gives a mod the wgpu
+pass, so `ae2_draw.rs` draws it: the anchor's translucent walls, CABLE_VIEW's textured see-through facades with a network
+tool in hand, and the placement preview.
+
+Done after the audits, on `native-6475f62-5f9a5a693e90`: Jade's card layout, arrow-key focus, mouse binds, config text in
+other languages, HSL theme colours. AE2's `showPlacementPreview`, `NETWORK_BOOTING`, the nested P2P error (no controller),
+power buffers on charger, inscriber and chest, channel drain charged, `allowBlockEntities`. JEI's facades in the panel and
+Ctrl-"+" through the confirm dialog.
+
+Tested on that build in my offscreen game:
+- Slots, wireless panel, spatial there and back, P2P hoppers, send list, interface priority, anchor, overlay, looting, comparators,
+  memory card, disassembly, dispensers, config reload: all pass. Quartz fiber: power joined, storage apart; unjoined, no power.
+- By screenshot: translucent overlay, facade preview, placed facade, see-through with a network tool, bus preview, Jade cards.
+- Ctrl-"+" on a crafting table with no planks: the plan dialog (To Craft 4, Available 1), Start, 1 log into 4 planks.
+- Nested tunnels without a controller: the drive goes to Device Missing Channel; a single tunnel stays online.
+- 983 fps, 20.01 ticks/s, tick 1.70 ms average, P99 3.90 ms on the test world, GPU pass included. No Java comparison was run.
+
+Not confirmed by a test: `Network Booting` (too brief for a screenshot), the nested error's own text line, chest and inscriber
+buffers, `allowBlockEntities`, mouse binds, non-English config text, HSL colours.
+
 Left that could still be done:
-- Jade: card layout in the config screens, arrow-key focus, mouse binds, non-English text in them, HSL theme colours.
-- AE2: `showPlacementPreview`, `NETWORK_BOOTING`, the nested P2P error, power buffers on charger, inscriber and chest.
-- `allowBlockEntities` for facades. AE2's sleeping tick rates (the port has fixed cadences).
-- JEI: the panel lists only the bare facade, which belongs to the JEI mod; `craftMissing` has no confirm screen.
-- Access point and channel drains: the access point's is charged, the channel drain only displayed.
+- AE2's sleeping tick rates (the port has fixed cadences). `craftingCalculationTimePerTick` only reads on non-confirm jobs.
+- JEI `requestedSlots`, card icons, see-through selection shapes, more of Jade's overlay lines in other languages.
+- Nested P2P is worked out from stretches between tunnels, an approximation: this port has one node to a tunnel.
 
 The dedicated-server engine builds with all five mods (`--server-output`). It hasn't been run: that needs the Minecraft EULA
 accepted, which is the owner's to do.

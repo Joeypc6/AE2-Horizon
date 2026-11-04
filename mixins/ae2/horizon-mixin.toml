@@ -112,6 +112,13 @@ file = "crates/horizon-client/src/game.rs"
 name = "port_ae2_me"
 source = "me.rs"
 
+# AE2's translucent pass (OverlayRenderer, see-through facades, the placement preview), where the renderer runs it.
+[[module]]
+id = "draw"
+file = "crates/horizon-client-render/src/gfx/native_render.rs"
+name = "port_ae2_draw"
+source = "ae2_draw.rs"
+
 
 # M1: AE2's ME network (me.rs), on Horizon's hook points.
 
@@ -156,6 +163,7 @@ hook_version = 1
 helper = "me_submit.rs"
 bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
   { name = "block", ty = "&str", value = "block" },
   { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
   { name = "entity", ty = "&horizon_client::containers::ModBlockEntity", value = "&*entity" },
@@ -1253,4 +1261,37 @@ hook_version = 1
 helper = "me_player_tick.rs"
 bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# RenderBlockOutlineHook's BEFORE_BLOCK_OUTLINE: the placement preview, while a part or a facade is held.
+[[injection]]
+id = "me-block-highlight"
+kind = "HEAD"
+hook = "block_highlight"
+hook_version = 1
+helper = "me_block_highlight.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# OverlayManager.renderWorldLastEvent: the translucent pass (`ae2_draw.rs`), in the renderer's crate.
+[[injection]]
+id = "me-world-drawn"
+kind = "HEAD"
+hook = "world_drawn"
+hook_version = 1
+helper = "me_world_drawn.rs"
+bindings = [
+  { name = "world", ty = "&mut WorldDrawn<'_>", value = "&mut *world" },
+]
+
+[[injection]]
+id = "me-render-needs"
+kind = "HEAD"
+hook = "render_needs"
+hook_version = 1
+helper = "me_render_needs.rs"
+bindings = [
+  { name = "needs", ty = "&mut RenderNeeds", value = "&mut *needs" },
 ]

@@ -405,6 +405,12 @@ struct GridInfo {
     conflict: bool,
     /// No controller and more than 8 devices want a channel (AdHocNetworkError.TOO_MANY_CHANNELS).
     too_many: bool,
+    /// No controller and a tunnel carried by a tunnel (AdHocNetworkError.NESTED_P2P_TUNNEL).
+    nested_p2p: bool,
+    /// PathingService.repath: a block joined or left it since it was worked out (see `repath`).
+    booting: bool,
+    /// EnergyService.getChannelPowerUsage: what its channels draw, AE a tick.
+    channel_drain: f64,
     /// The channels each block carries (AE2's pathing: what a smart cable lights up).
     cable_channels: HashMap<Pos, u32>,
     /// Devices that work: they have a channel, or need none.
@@ -486,6 +492,8 @@ struct Server {
     devices: HashMap<Pos, (String, u64)>,
     grids: Vec<GridInfo>,
     grid_of: HashMap<Pos, usize>,
+    /// Blocks placed on a powered grid that `rebuild` hasn't taken in yet (see `repath`).
+    booting_new: HashSet<Pos>,
     /// Players with a terminal open, by the terminal they used.
     viewers: HashMap<u128, Pos>,
     /// What each viewer was last sent, in order, with amounts (0: craftable only): their clicks index into it.
@@ -1260,6 +1268,9 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
                 // Not from inside the block entity's own tick: the server tick flips it.
                 SERVER.with_borrow_mut(|s| s.flips.push(pos));
             }
+            if entity.id == "ae2:chest" && tick % 20 == 0 {
+                chest_buffer_tick(pos, grid, entity);
+            }
         }
         "charger" => {
             let holds = entity.items.first().and_then(|s| s.as_ref()).map_or(String::new(), |s| s.item.to_string());
@@ -1271,37 +1282,9 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
                 entity.nbt.insert(java("holds"), Tag::String(java(&holds)));
                 SERVER.with_borrow_mut(|s| s.flips.push(pos));
             }
-            // ChargerBlockEntity: a powered item takes its charge rate a tick from the network until full.
-            if let Some(Some(stack)) = entity.items.first_mut()
-                && let Some((most, rate)) = item_battery(&stack.item)
-            {
-                let have = portable_power(stack);
-                let want = (most - have).min(rate * config().charger_charge_rate);
-                if want > 0.0 && grid.is_some() && take_energy(pos, want) {
-                    set_portable_power(stack, have + want);
-                }
-            }
-            let charging = entity.items.first().and_then(|s| s.as_ref()).is_some_and(|s| charger_result(&s.item).is_some());
-            let progress = nbt_i64(&entity.nbt, "progress");
-            if charging && progress >= CHARGE_TICKS {
-                // A crank finished it.
-                if let Some(Some(stack)) = entity.items.first_mut() {
-                    stack.item = charger_result(&stack.item).unwrap_or("ae2:charged_certus_quartz_crystal").into();
-                }
-                set_nbt_i64(&mut entity.nbt, "progress", 0);
-            } else if !charging {
-                if progress != 0 {
-                    set_nbt_i64(&mut entity.nbt, "progress", 0);
-                }
-            } else if grid.is_some() && take_energy(pos, CHARGE_AE_PER_TICK) {
-                if progress + 1 >= CHARGE_TICKS {
-                    if let Some(Some(stack)) = entity.items.first_mut() {
-                        stack.item = charger_result(&stack.item).unwrap_or("ae2:charged_certus_quartz_crystal").into();
-                    }
-                    set_nbt_i64(&mut entity.nbt, "progress", 0);
-                } else {
-                    set_nbt_i64(&mut entity.nbt, "progress", progress + 1);
-                }
+            // TickRates.Charger: every ten ticks.
+            if tick % 10 == 0 {
+                charger_work(game, pos, grid.is_some(), entity);
             }
         }
         "molecular_assembler" => {
@@ -1510,9 +1493,108 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
     let _ = tick;
 }
 
-/// The charger: AE per tick and ticks to charge one certus quartz crystal (AE2's 1 600 AE a crystal).
-const CHARGE_AE_PER_TICK: f64 = 16.0;
+/// About how long the charger takes over a crystal, for what estimates a pattern's machine time (`charger_work`
+/// takes twenty ticks to fill its buffer and then has one chance in five every ten).
 const CHARGE_TICKS: i64 = 100;
+
+/// AEBasePoweredBlockEntity's stored power, saved as Java saves it. (The crank's AE of older builds, `stored`, counts
+/// until the next change.)
+fn internal_power(nbt: &Compound) -> f64 {
+    match nbt.get(&java("internalCurrentPower")) {
+        Some(Tag::Double(p)) => f64::from_bits(*p),
+        _ => nbt_i64(nbt, "stored") as f64,
+    }
+}
+
+fn set_internal_power(nbt: &mut Compound, power: f64) {
+    nbt.insert(java("internalCurrentPower"), Tag::Double(power.to_bits()));
+    nbt.remove(&java("stored"));
+}
+
+/// setInternalMaxPower in the charger's and inscriber's constructors (1600), and the chest's (500, PowerMultiplier.CONFIG).
+fn internal_max_power(block: &str) -> f64 {
+    match ae2_name(block) {
+        Some("charger" | "inscriber") => 1_600.0,
+        Some("chest") => 500.0 * config().power_usage_multiplier,
+        _ => 0.0,
+    }
+}
+
+/// EnergyService.extractAEPower with PowerMultiplier.ONE: what the grid at `pos` has, up to `ae`.
+fn grid_extract(pos: Pos, ae: f64) -> f64 {
+    SERVER.with_borrow_mut(|s| {
+        let Some(root) = s.grid_of.get(&pos).and_then(|g| s.grids.get(*g)).and_then(|g| g.nodes.iter().min().copied()) else { return 0.0 };
+        let e = s.energy.entry(root).or_insert(0.0);
+        let got = e.min(ae.max(0.0));
+        *e -= got;
+        s.energy_flow.entry(root).or_default()[1] += got;
+        got
+    })
+}
+
+/// ChargerBlockEntity.doWork: a powered item takes its charge rate from the buffer first and the network for the rest
+/// (what doesn't fit goes back in the buffer); a crystal needs a full buffer and then has one chance in five, which spends
+/// it all. Then a buffer short of full takes up to 800 AE from the network.
+fn charger_work(game: &mut Game<'_>, pos: Pos, on_grid: bool, entity: &mut ModBlockEntity) {
+    const MAX: f64 = 1_600.0;
+    let cfg = config();
+    let mut stored = internal_power(&entity.nbt);
+    let held = entity.items.first().cloned().flatten();
+    if let Some(mut stack) = held {
+        if let Some((most, rate)) = item_battery(&stack.item) {
+            let have = portable_power(&stack);
+            if have < most {
+                let charge_rate = rate * 10.0 * cfg.charger_charge_rate;
+                let from_buffer = (charge_rate * cfg.power_usage_multiplier).min(stored);
+                stored -= from_buffer;
+                let mut extracted = from_buffer / cfg.power_usage_multiplier;
+                if on_grid {
+                    extracted += grid_extract(pos, (charge_rate - extracted).min(most - have));
+                }
+                if extracted > 0.0 {
+                    stored += (have + extracted - most).max(0.0);
+                    set_portable_power(&mut stack, have + extracted);
+                    entity.items[0] = Some(stack);
+                }
+            }
+        } else if stored > MAX - 1.0
+            && let Some(charged) = charger_result(&stack.item)
+            && chance(game, 0.2)
+        {
+            stored = (stored - MAX * cfg.power_usage_multiplier).max(0.0);
+            stack.item = charged.into();
+            entity.items[0] = Some(stack);
+        }
+    }
+    if stored < MAX - 1.0 && on_grid {
+        stored += grid_extract(pos, 800.0_f64.min(MAX - stored));
+    }
+    if stored != internal_power(&entity.nbt) {
+        set_internal_power(&mut entity.nbt, stored);
+    }
+}
+
+/// ChestBlockEntity's buffer. On a network it is one of EnergyService's requesters: what's injected past the cells comes
+/// here, which a network with its stores full amounts to. Off one, or unpowered, serverTick spends its idle draw from it
+/// (`extractAEPower` with PowerMultiplier.CONFIG), a second's worth at a time here.
+fn chest_buffer_tick(pos: Pos, grid: Option<usize>, entity: &mut ModBlockEntity) {
+    let stored = internal_power(&entity.nbt);
+    let most = internal_max_power(&entity.id);
+    let powered = SERVER.with_borrow(|s| grid.and_then(|g| s.grids.get(g)).is_some_and(|g| g.online));
+    let now = if !powered {
+        (stored - node_kind(&entity.id).idle_power * 20.0 * config().power_usage_multiplier).max(0.0)
+    } else {
+        let full = SERVER.with_borrow(|s| {
+            let Some(g) = grid.and_then(|g| s.grids.get(g)) else { return false };
+            let root = g.nodes.iter().min().copied();
+            root.and_then(|r| s.energy.get(&r).copied()).unwrap_or(0.0) >= grid_capacity(g, &s.devices) - 1.0
+        });
+        if full && stored < most { stored + grid_extract(pos, most - stored) } else { stored }
+    };
+    if now != stored {
+        set_internal_power(&mut entity.nbt, now);
+    }
+}
 /// What a crystal resonance generator makes while it's on a network (AEConfig `CrystalResonanceGeneratorRate`).
 fn resonance_ae_per_tick() -> f64 {
     config().crystal_resonance_generator_rate
@@ -1809,7 +1891,7 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
     for (a, fa, out_a) in &tunnels {
         for (b, fb, out_b) in &tunnels {
             if !out_a && *out_b && fa == fb {
-                net.connect(pack(*a), pack(*b));
+                net.connect_tunnel(pack(*a), pack(*b));
             }
         }
     }
@@ -1932,7 +2014,14 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
             online: g.controller_state != ControllerState::ControllerConflict,
             conflict: g.controller_state == ControllerState::ControllerConflict,
             too_many: g.controller_state == ControllerState::NoController
+                && !g.nested_p2p
                 && g.nodes.iter().filter(|n| net.kinds().get(*n).is_some_and(|k| k.requires_channel)).count() > 8,
+            nested_p2p: g.nested_p2p,
+            booting: false,
+            // PathingService.setChannelPowerUsage: channelsByBlocks / 128. Ad hoc, what the nodes hold: their number times
+            // the channels in use. With a controller, PathingCalculation.propagateAssignments adds each node's channels
+            // and those of the connection to it.
+            channel_drain: f64::from(g.used_channels.values().sum::<u32>()) * if g.controller_state == ControllerState::ControllerOnline { 2.0 } else { 1.0 } / 128.0,
             cable_channels: g.used_channels.iter().filter_map(|(n, c)| Some((*by_id.get(n)?, *c))).collect(),
             nodes,
             active,
@@ -1987,7 +2076,7 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
         // Power: each grid pays a second of idle draw from its buffer (carried over by its lowest position); grids a
         // quartz fiber joins pay from, and fill, one store.
         let mut energy = HashMap::new();
-        let mut pooled: HashMap<usize, (bool, f64, f64, f64, Pos)> = HashMap::new();
+        let mut pooled: HashMap<usize, (bool, f64, f64, f64, Pos, f64)> = HashMap::new();
         for (i, g) in grids.iter().enumerate() {
             let Some(root) = g.nodes.iter().min().copied() else { continue };
             let creative = g.nodes.iter().any(|p| s.devices.get(p).is_some_and(|(id, _)| id == "ae2:creative_energy_cell"));
@@ -2005,21 +2094,23 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
                 })
                 .sum::<f64>()
                 + grid_energy_per_node() * g.nodes.len() as f64;
-            let e = pooled.entry(pools[i]).or_insert((false, 0.0, 0.0, 0.0, root));
+            let e = pooled.entry(pools[i]).or_insert((false, 0.0, 0.0, 0.0, root, 0.0));
             e.0 |= creative;
             e.1 += had;
             e.2 += g.idle * 20.0 * config().power_usage_multiplier;
             e.3 += cap;
             e.4 = e.4.min(root);
+            // EnergyService.onServerEndTick pays getIdlePowerUsage, the channels' too, and judges the power by drainPerTick.
+            e.5 += g.channel_drain * 20.0 * config().power_usage_multiplier;
         }
         for (i, g) in grids.iter_mut().enumerate() {
-            let Some(&(creative, had, need, cap, root)) = pooled.get(&pools[i]) else { continue };
+            let Some(&(creative, had, need, cap, root, channels)) = pooled.get(&pools[i]) else { continue };
             // AE2's grid is powered while it has stored energy for its draw: none stored is off, even drawing none.
             let powered = creative || (had > 0.0 && had >= need);
             once(&format!("power: creative {creative}, had {had}, need {need}"));
             g.online &= powered;
             if g.nodes.contains(&root) {
-                energy.insert(root, if creative { cap } else { (had - need).max(0.0).min(cap) });
+                energy.insert(root, if creative { cap } else { (had - need - channels).max(0.0).min(cap) });
             }
         }
         for g in &mut grids {
@@ -2051,7 +2142,7 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
             let Some(root) = g.nodes.iter().min().copied() else { continue };
             let [input, output, avg_input, avg_output] = s.energy_flow.get(&root).copied().unwrap_or_default();
             let step = 0.3973;
-            flow.insert(root, [0.0, 0.0, avg_input + (input / 20.0 - avg_input) * step, avg_output + (output / 20.0 + g.idle * config().power_usage_multiplier - avg_output) * step]);
+            flow.insert(root, [0.0, 0.0, avg_input + (input / 20.0 - avg_input) * step, avg_output + (output / 20.0 + (g.idle + g.channel_drain) * config().power_usage_multiplier - avg_output) * step]);
         }
         s.energy_flow = flow;
         // Which lit blocks change.
@@ -2085,6 +2176,7 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
         }
         s.grids = grids;
         s.grid_of = grid_of;
+        s.booting_new.clear();
         changes
     });
     // The lit look follows the block's own state (a block placed again starts unlit).
@@ -4631,6 +4723,8 @@ struct StatusCpu {
 
 #[derive(Default)]
 struct Client {
+    /// CraftConfirmMenu.autoCraftingQueue: what JEI's "+" asked for after the plan on screen, last first.
+    jei_craft: Vec<(String, i64)>,
     /// Where an open terminal's panel is (for clicks the screen hook doesn't see: the middle button).
     term_origin: Option<[f32; 2]>,
     /// The meteorite compass' last answer, and when it was asked (CompassManager).
@@ -7027,9 +7121,6 @@ pub fn update_tag(entity: &ModBlockEntity, tag: &mut Option<Compound>) {
     *tag = Some(out);
 }
 
-/// A crank's turn adds this much charging (ten turns charge a crystal, as AE2's crank does).
-const CRANK_TICKS: i64 = CHARGE_TICKS / 10;
-
 /// The direction a facing names.
 fn facing_dir(facing: Option<&str>) -> Pos {
     match facing {
@@ -7151,7 +7242,7 @@ fn sky_chest_submit(
 fn crank_turn(game: &mut Game<'_>, pos: Pos) {
     let facing = game.native_block_property(pos, "facing");
     let mut target = add(pos, facing_dir(facing.as_deref()).map(|v| -v));
-    // ICrankable: the inscriber and growth accelerator take 160 AE a turn; the charger its progress.
+    // ICrankable: the charger, inscriber and growth accelerator take 160 AE a turn.
     let crankable = |b: &str| matches!(b, "ae2:charger" | "ae2:inscriber" | "ae2:growth_accelerator");
     if !crankable(&block_id(game, target)) {
         let names = ["down", "up", "north", "south", "west", "east"];
@@ -7164,20 +7255,19 @@ fn crank_turn(game: &mut Game<'_>, pos: Pos) {
         let _ = name;
         game.native_set_block_property_with(pos, "facing", away, 3);
     }
-    if block_id(game, target) != "ae2:charger" {
-        let per = if block_id(game, target) == "ae2:growth_accelerator" { 160 } else { 160 };
+    if block_id(game, target) == "ae2:growth_accelerator" {
         game.native_with_mod_block_entity(target, |e| {
             let was = nbt_i64(&e.nbt, "stored");
-            set_nbt_i64(&mut e.nbt, "stored", (was + per).min(1600));
+            set_nbt_i64(&mut e.nbt, "stored", (was + 160).min(1600));
+        });
+    } else {
+        // ChargerBlockEntity's and InscriberBlockEntity's Crankable.applyTurn: injectExternalPower into their buffers.
+        game.native_with_mod_block_entity(target, |e| {
+            let was = internal_power(&e.nbt);
+            let most = internal_max_power(&e.id);
+            set_internal_power(&mut e.nbt, (was + 160.0).min(most));
         });
     }
-    game.native_with_mod_block_entity(target, |e| {
-        let charging = e.items.first().and_then(|s| s.as_ref()).is_some_and(|s| charger_result(&s.item).is_some());
-        if charging {
-            let p = nbt_i64(&e.nbt, "progress");
-            set_nbt_i64(&mut e.nbt, "progress", (p + CRANK_TICKS).min(CHARGE_TICKS));
-        }
-    });
     game.native_with_mod_block_entity(pos, |e| {
         let t = nbt_i64(&e.nbt, "turns");
         set_nbt_i64(&mut e.nbt, "turns", t + 1);
@@ -7297,6 +7387,7 @@ const CELL_LIGHTS: [u32; 5] = [0x000000, 0x00FF00, 0x00AAFF, 0xFFAA00, 0xFF0000]
 /// `native_block_entity_submit`: a drive's cells in the holes of its front, each with its status light.
 pub fn submit(
     game: &Game<'_>,
+    pos: Pos,
     block: &str,
     state: horizon_world::registry::BlockStateId,
     entity: &ModBlockEntity,
@@ -7304,12 +7395,12 @@ pub fn submit(
 ) {
     use super::native_block_entity_draw::CubeFace;
     if block == "ae2:spatial_anchor" {
-        anchor_submit(game, entity, draw);
+        anchor_submit(pos, entity);
         return;
     }
     if is_twin(block) {
         twin_submit(game, block, state, entity, draw);
-        facade_submit(game, entity, draw);
+        facade_submit(game, pos, entity, draw);
         return;
     }
     if is_paint(block) {
@@ -8935,14 +9026,16 @@ fn inscriber_tick(game: &mut Game<'_>, pos: Pos, on_grid: bool, entity: &mut Mod
         entity.data[0] = 0;
         return;
     };
-    // Each tick's progress towards 100 by Acceleration Cards, and 10 AE a point of it.
+    // Each tick's progress towards 100 by Acceleration Cards, and 10 AE a point of it: InscriberBlockEntity.tickingRequest,
+    // from its own buffer if that has it all (PowerMultiplier.CONFIG), else from the network.
     let speed = [2, 3, 5, 10, 50][cards(entity, 4, "ae2:speed_card").min(4)];
     let _ = result;
-    let need = i64::from(speed) * 10;
-    let stored = nbt_i64(&entity.nbt, "stored");
-    if stored >= need {
-        set_nbt_i64(&mut entity.nbt, "stored", stored - need);
-    } else if !on_grid || !take_energy(pos, INSCRIBE_AE_PER_TICK * f64::from(speed)) {
+    let need = INSCRIBE_AE_PER_TICK * f64::from(speed);
+    let cost = need * config().power_usage_multiplier;
+    let stored = internal_power(&entity.nbt);
+    if stored / config().power_usage_multiplier > need - 0.01 {
+        set_internal_power(&mut entity.nbt, (stored - cost).max(0.0));
+    } else if !on_grid || !take_energy(pos, need) {
         return;
     }
     entity.data[0] += speed;
@@ -11305,44 +11398,214 @@ pub fn render_bounds(entity: &ModBlockEntity, bounds: &mut [f32; 6]) {
     }
 }
 
-/// OverlayRenderer: the outline of the anchor's chunks. AE2's walls are see-through, which block entity drawing can't do,
-/// so this is the frame of them: rails around the area, posts at its corners, in AEColor.TRANSPARENT's medium variant.
-fn anchor_submit(game: &Game<'_>, entity: &ModBlockEntity, draw: &mut super::native_block_entity_draw::BlockEntityDraw) {
-    use super::native_block_entity_draw::CubeFace;
-    if nbt_i64(&entity.nbt, "overlay") == 0 {
+// ---- The translucent pass (`port_ae2_draw`, drawn from `native_world_drawn`): what goes in it.
+
+/// RenderBlockOutlineHook.renderBoxes' lines, as half their thickness in blocks (wgpu's lines are one pixel wide).
+const PREVIEW_HALF_WIDTH: f64 = 0.007;
+/// OverlayRenderType.LINE_3's, seen from further off.
+const OVERLAY_HALF_WIDTH: f64 = 0.05;
+
+/// A quad of one colour in the pass.
+fn pass_quad(kept: bool, corners: [[f64; 3]; 4], color: [u8; 4], behind: f32) {
+    horizon_client::gfx::native_render::RenderNeeds::hz_ae2_quad(kept, corners, [[0.0; 2]; 4], [-1, 0], color, behind);
+}
+
+/// A line in the pass: the four long sides of a thin box around it.
+fn pass_line(kept: bool, from: [f64; 3], to: [f64; 3], half: f64, color: [u8; 4], behind: f32) {
+    let (a, b) = (glam::DVec3::from_array(from), glam::DVec3::from_array(to));
+    let Some(along) = (b - a).try_normalize() else { return };
+    let (u, v) = along.any_orthonormal_pair();
+    let (u, v) = (u * half, v * half);
+    for (p, q) in [(u + v, v - u), (v - u, -u - v), (-u - v, u - v), (u - v, u + v)] {
+        pass_quad(kept, [(a + p).to_array(), (b + p).to_array(), (b + q).to_array(), (a + q).to_array()], color, behind);
+    }
+}
+
+thread_local! {
+    /// The anchors showing their overlay, with their chunks as `forced` holds them (OverlayManager's handlers), and
+    /// whether the walls in the pass are out of date. `anchor_submit` finds them: without one there is nothing to do.
+    static ANCHOR_OVERLAYS: RefCell<(HashMap<Pos, Vec<i32>>, bool)> = RefCell::new((HashMap::new(), false));
+}
+
+/// SpatialAnchorBlockEntity.readFromStream: `showArea` or `removeHandlers`, from what the block entity holds now. The
+/// walls are drawn by `translucent_frame`, so what this costs a frame is a lookup.
+fn anchor_submit(pos: Pos, entity: &ModBlockEntity) {
+    let forced = match entity.nbt.get(&java("forced")) {
+        Some(Tag::IntArray(v)) if nbt_i64(&entity.nbt, "overlay") != 0 => Some(v),
+        _ => None,
+    };
+    ANCHOR_OVERLAYS.with_borrow_mut(|(shown, dirty)| match forced {
+        Some(forced) if shown.get(&pos) != Some(forced) => {
+            shown.insert(pos, forced.clone());
+            *dirty = true;
+        }
+        None if shown.remove(&pos).is_some() => *dirty = true,
+        _ => {}
+    });
+}
+
+/// `frame`, before the frame is built: last frame's facades and preview go (what wants them draws them again), and
+/// OverlayManager's list follows the anchors, one broken, unloaded or turned off out of sight going too.
+pub fn translucent_frame(game: &Game<'_>) {
+    horizon_client::gfx::native_render::RenderNeeds::hz_ae2_clear(false);
+    ANCHOR_OVERLAYS.with_borrow_mut(|(shown, dirty)| {
+        if shown.is_empty() && !*dirty {
+            return;
+        }
+        let before = shown.len();
+        shown.retain(|p, _| match game.world.block_entities.get(&(p[0], p[1], p[2])) {
+            Some(horizon_client::containers::BlockEntity::Mod(e)) => e.id == "ae2:spatial_anchor" && nbt_i64(&e.nbt, "overlay") != 0,
+            _ => false,
+        });
+        if !*dirty && shown.len() == before {
+            return;
+        }
+        *dirty = false;
+        horizon_client::gfx::native_render::RenderNeeds::hz_ae2_clear(true);
+        let (y1, y2) = (f64::from(game.world.shape.min_y), f64::from(game.world.shape.max_y()));
+        for forced in shown.values() {
+            let chunks: HashSet<(i32, i32)> = forced.chunks_exact(2).map(|c| (c[0], c[1])).collect();
+            for &chunk in &chunks {
+                overlay_chunk(&chunks, chunk, y1, y2);
+            }
+        }
+    });
+}
+
+/// OverlayRenderer.addVertices: for one chunk, a wall on each side no other chunk of the area is on, its floor, and
+/// (`renderLines`) the rails along those walls and the posts where they meet. SpatialAnchorBlockEntity.getOverlayColor:
+/// half alpha over AEColor.TRANSPARENT's medium variant. OverlayRenderType doesn't depth test; this pass does.
+fn overlay_chunk(chunks: &HashSet<(i32, i32)>, (cx, cz): (i32, i32), y1: f64, y2: f64) {
+    const COLOR: [u8; 4] = [0xAE, 0xA8, 0xBD, 0x80];
+    let (x1, z1) = (f64::from(cx) * 16.0, f64::from(cz) * 16.0);
+    let (x2, z2) = (x1 + 16.0, z1 + 16.0);
+    let north = !chunks.contains(&(cx, cz - 1));
+    let south = !chunks.contains(&(cx, cz + 1));
+    let west = !chunks.contains(&(cx - 1, cz));
+    let east = !chunks.contains(&(cx + 1, cz));
+    let wall = |a: [f64; 2], b: [f64; 2]| {
+        pass_quad(true, [[a[0], y1, a[1]], [b[0], y1, b[1]], [b[0], y2, b[1]], [a[0], y2, a[1]]], COLOR, 0.0);
+        for y in [y1, y2] {
+            pass_line(true, [a[0], y, a[1]], [b[0], y, b[1]], OVERLAY_HALF_WIDTH, COLOR, 0.0);
+        }
+    };
+    if north {
+        wall([x1, z1], [x2, z1]);
+    }
+    if south {
+        wall([x2, z2], [x1, z2]);
+    }
+    if west {
+        wall([x1, z1], [x1, z2]);
+    }
+    if east {
+        wall([x2, z2], [x2, z1]);
+    }
+    for (x, z, post) in [(x1, z1, north || west), (x2, z1, north || east), (x2, z2, south || east), (x1, z2, south || west)] {
+        if post {
+            pass_line(true, [x, y1, z], [x, y2, z], OVERLAY_HALF_WIDTH, COLOR, 0.0);
+        }
+    }
+    pass_quad(true, [[x1, y1, z1], [x2, y1, z1], [x2, y1, z2], [x1, y1, z2]], COLOR, 0.0);
+}
+
+/// RenderBlockOutlineHook.replaceBlockOutline: before the outline of the block looked at, a part's or a facade's preview.
+pub fn block_highlight(game: &Game<'_>, pos: Pos) {
+    let Some(held) = game.held() else { return };
+    let item: &str = &held.item;
+    let facade = item == "ae2:facade";
+    if !facade && !is_part(item) && cable(item).is_none() {
         return;
     }
-    let (Some(Tag::IntArray(forced)), Some(Tag::IntArray(at))) = (entity.nbt.get(&java("forced")), entity.nbt.get(&java("at"))) else { return };
-    let &[ax, _, az] = at.as_slice() else { return };
-    let chunks: HashSet<(i32, i32)> = forced.chunks_exact(2).map(|c| (c[0], c[1])).collect();
-    draw.light = 0x00F0_00F0;
-    let face = || Some(CubeFace { sprite: "block/white_concrete", uv: None });
-    let mut bar = |from: [f32; 3], to: [f32; 3]| {
-        game.native_draw_cube(draw, from.map(|v| v * 16.0), to.map(|v| v * 16.0), [face(), face(), face(), face(), face(), face()], 0xAEA8BD);
+    // AEConfig.isPlacementPreviewEnabled.
+    if !config().show_placement_preview {
+        return;
+    }
+    let Some(hit) = game.pick().filter(|h| h.pos == pos) else { return };
+    if facade {
+        facade_preview(game, held, hit.pos, hit.face);
+    } else {
+        part_preview(game, item, hit.pos, hit.face);
+    }
+}
+
+/// RenderBlockOutlineHook.renderBoxes: white lines, faint where a block is in front (LINES_BEHIND_BLOCK's 0.2 to 0.6).
+fn preview_line(from: [f64; 3], to: [f64; 3]) {
+    pass_line(false, from, to, PREVIEW_HALF_WIDTH, [255, 255, 255, 153], 1.0 / 3.0);
+}
+
+/// RenderBlockOutlineHook.showPartPlacementPreview. PartPlacement.getPartPlacement is a part on a host in the block
+/// clicked or the one in front of it; a part here is a block of its own, so this is where `placed_inner` puts it:
+/// vanilla's placement cell, and the facing it gives. Its outline is the block's own for that facing.
+fn part_preview(game: &Game<'_>, item: &str, pos: Pos, face: Pos) {
+    let replaceable = |p: Pos| game.res.facts().get(game.world.block(p[0], p[1], p[2])).replaceable;
+    let on_clicked = replaceable(pos);
+    let cell = if on_clicked { pos } else { add(pos, face) };
+    if !replaceable(cell) {
+        return;
+    }
+    let toward = if on_clicked { clicked_side(game, cell, game.yaw, game.pitch) } else { Some([-face[0], -face[1], -face[2]]) };
+    let facing = if cable(item).is_some() {
+        ""
+    } else {
+        let Some(d) = toward else { return };
+        let name = ae2_name(item).unwrap_or("");
+        if is_network_block(&block_id(game, add(cell, d))) {
+            facing_name([-d[0], -d[1], -d[2]])
+        } else if name.ends_with("level_emitter") {
+            return;
+        } else if name.ends_with("_bus") || name.ends_with("_p2p_tunnel") || name.ends_with("_plane") {
+            facing_name(d)
+        } else {
+            facing_name([-d[0], -d[1], -d[2]])
+        }
     };
-    const THIN: f32 = 0.05;
-    for &(cx, cz) in &chunks {
-        let (x1, z1) = ((cx * 16 - ax) as f32, (cz * 16 - az) as f32);
-        let (x2, z2) = (x1 + 16.0, z1 + 16.0);
-        for rail in [-16.0_f32, 0.5, 16.0] {
-            if !chunks.contains(&(cx, cz - 1)) {
-                bar([x1, rail, z1 - THIN], [x2, rail + THIN, z1 + THIN]);
-            }
-            if !chunks.contains(&(cx, cz + 1)) {
-                bar([x1, rail, z2 - THIN], [x2, rail + THIN, z2 + THIN]);
-            }
-            if !chunks.contains(&(cx - 1, cz)) {
-                bar([x1 - THIN, rail, z1], [x1 + THIN, rail + THIN, z2]);
-            }
-            if !chunks.contains(&(cx + 1, cz)) {
-                bar([x2 - THIN, rail, z1], [x2 + THIN, rail + THIN, z2]);
-            }
+    thread_local! {
+        /// The state last looked up, so holding a part still parses no text a frame.
+        static STATE: RefCell<Option<(String, &'static str, horizon_world::registry::BlockStateId)>> = const { RefCell::new(None) };
+    }
+    let state = STATE.with_borrow_mut(|last| {
+        if let Some((i, f, state)) = last.as_ref()
+            && i == item
+            && *f == facing
+        {
+            return Some(*state);
         }
-        for (px, pz, open) in [(x1, z1, !chunks.contains(&(cx - 1, cz)) || !chunks.contains(&(cx, cz - 1))), (x2, z1, !chunks.contains(&(cx + 1, cz)) || !chunks.contains(&(cx, cz - 1))), (x1, z2, !chunks.contains(&(cx - 1, cz)) || !chunks.contains(&(cx, cz + 1))), (x2, z2, !chunks.contains(&(cx + 1, cz)) || !chunks.contains(&(cx, cz + 1)))] {
-            if open {
-                bar([px - THIN, -16.0, pz - THIN], [px + THIN, 16.0, pz + THIN]);
-            }
-        }
+        let text = if facing.is_empty() { item.to_owned() } else { format!("{item}[facing={facing}]") };
+        let state = horizon_client::block_sprites::parse_state(&game.pack.assets.registry, &text)?;
+        *last = Some((item.to_owned(), facing, state));
+        Some(state)
+    });
+    let Some(state) = state else { return };
+    let at = cell.map(f64::from);
+    for e in game.res.facts().get(state).outline_edges.iter() {
+        preview_line([at[0] + e[0], at[1] + e[1], at[2] + e[2]], [at[0] + e[3], at[1] + e[4], at[2] + e[5]]);
+    }
+}
+
+/// RenderBlockOutlineHook.showFacadePlacementPreview: FacadeItem.canPlaceFacade, then the plate on the side looked at.
+/// (This port's facades stand on no cable anchor, so that piece of the preview has nothing to show.)
+fn facade_preview(game: &Game<'_>, stack: &ItemStack, pos: Pos, face: Pos) {
+    if !SIDES.contains(&face) || cable(&block_id(game, pos)).is_none() {
+        return;
+    }
+    let Some(block) = facade_block(stack) else { return };
+    if facade_faces(game, &block).is_none() {
+        return;
+    }
+    let side = side_name(face);
+    if let Some(horizon_client::containers::BlockEntity::Mod(e)) = game.world.block_entities.get(&(pos[0], pos[1], pos[2]))
+        && cable_facades(&e.nbt).iter().any(|(s, _)| s == side)
+    {
+        return;
+    }
+    let (from, to) = facade_plate(side);
+    let at = pos.map(f64::from);
+    let lo: [f64; 3] = std::array::from_fn(|i| at[i] + f64::from(from[i]) / 16.0);
+    let size: [f64; 3] = std::array::from_fn(|i| f64::from(to[i] - from[i]) / 16.0);
+    for e in horizon_client::blocks::cube_edges().iter() {
+        let point = |end: usize| -> [f64; 3] { std::array::from_fn(|i| lo[i] + e[i + 3 * end] * size[i]) };
+        preview_line(point(0), point(1));
     }
 }
 
@@ -12006,9 +12269,9 @@ pub fn describe(game: &mut Game<'_>, pos: Pos) -> Vec<String> {
     let name = ae2_name(&block).unwrap_or("").to_owned();
     let mut out = Vec::new();
     let grid = SERVER.with_borrow(|s| s.grid_of.get(&pos).copied());
-    let (online, conflict, too_many, active, channels, root) = SERVER.with_borrow(|s| match grid.and_then(|g| s.grids.get(g)) {
-        Some(g) => (g.online, g.conflict, g.too_many, g.active.contains(&pos), g.cable_channels.get(&pos).copied().unwrap_or(0), g.nodes.iter().min().copied()),
-        None => (false, false, false, false, 0, None),
+    let (online, conflict, too_many, nested_p2p, booting, active, channels, root) = SERVER.with_borrow(|s| match grid.and_then(|g| s.grids.get(g)) {
+        Some(g) => (g.online, g.conflict, g.too_many, g.nested_p2p, g.booting, g.active.contains(&pos), g.cable_channels.get(&pos).copied().unwrap_or(0), g.nodes.iter().min().copied()),
+        None => (false, false, false, false, false, false, 0, None),
     });
     let part = is_part(&block) || cable(&block).is_some();
     // CrystalResonanceGeneratorProvider.
@@ -12044,6 +12307,9 @@ pub fn describe(game: &mut Game<'_>, pos: Pos) -> Vec<String> {
         {
             if conflict {
                 out.push("§cError: Controller Conflict".to_owned());
+            } else if nested_p2p {
+                // ChannelDataProvider.AD_HOC_NESTED_P2P_TUNNEL.
+                out.push("§cError: Nested P2P Tunnel".to_owned());
             } else if too_many {
                 out.push("§cError: Too Many Channels".to_owned());
             } else {
@@ -12083,7 +12349,12 @@ pub fn describe(game: &mut Game<'_>, pos: Pos) -> Vec<String> {
     if grid_block && describing("grid_node_state") {
         let powered = online || conflict;
         let needs_channel = node_kind(&block).requires_channel;
-        let state = if grid.is_none() || !powered {
+        // GridNodeState.fromNode, in its order: not powered, not booted, no channel. (A block just placed has no grid yet;
+        // it boots if the grid it joins has power.)
+        let joining = SERVER.with_borrow(|s| s.booting_new.contains(&pos));
+        let state = if joining || (powered && booting) {
+            "Network Booting"
+        } else if grid.is_none() || !powered {
             "Device Offline"
         } else if needs_channel && !active {
             "Device Missing Channel"
@@ -12158,8 +12429,7 @@ pub fn describe(game: &mut Game<'_>, pos: Pos) -> Vec<String> {
         "dense_energy_cell" => 1_600_000.0,
         "creative_energy_cell" => 9.22337203685477E14,
         "controller" => 8_000.0,
-        "charger" | "inscriber" => 1_600.0,
-        "chest" => 500.0,
+        "charger" | "inscriber" | "chest" => internal_max_power(&block),
         _ => 0.0,
     };
     if most > 0.0 {
@@ -12170,8 +12440,8 @@ pub fn describe(game: &mut Game<'_>, pos: Pos) -> Vec<String> {
                 let total = root.and_then(|r| s.energy.get(&r).copied()).unwrap_or(0.0);
                 total * most / grid_capacity(g, &s.devices).max(1.0)
             }),
-            _ if online => most,
-            _ => 0.0,
+            // AEBasePoweredBlockEntity.getAECurrentPower.
+            _ => game.native_with_mod_block_entity(pos, |e| internal_power(&e.nbt)).unwrap_or(0.0),
         };
         out.push(format!("Stored: {} / {}", format_power(current.min(most)), format_power(most)));
     }
@@ -13372,7 +13642,10 @@ fn ui_from_server(data: &[u8]) {
                 .collect();
             d.selected = picked.and_then(|p| d.cpus.iter().position(|k| k.0 == p)).map_or(-1, |i| i as i32);
         }),
-        ["started"] => CLIENT.with_borrow_mut(|c| c.dialog = None),
+        ["started"] => CLIENT.with_borrow_mut(|c| {
+            c.dialog = None;
+            jei_craft_next(c);
+        }),
         ["jobdone", id, amount] => CLIENT.with_borrow_mut(|c| c.job_toast = Some(((*id).to_owned(), amount.parse().unwrap_or(0), None))),
         ["error", ..] => CLIENT.with_borrow_mut(|c| {
             let Some(d) = c.dialog.as_mut() else { return };
@@ -13623,8 +13896,35 @@ fn settings_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut 
     true
 }
 
+/// JEI's "+" with Control (FillCraftingGridFromRecipePacket's craftMissing, CraftConfirmMenu.openWithCraftingList): the
+/// confirm screen for the first key, each key after it when the one before has started.
+pub fn jei_craft_missing(mut wanted: Vec<(String, i64)>) {
+    wanted.reverse();
+    CLIENT.with_borrow_mut(|c| {
+        c.jei_craft = wanted;
+        jei_craft_next(c);
+    });
+}
+
+fn jei_craft_next(c: &mut Client) {
+    while let Some((id, amount)) = c.jei_craft.pop() {
+        let Some(index) = c.items.iter().position(|(i, _)| *i == id) else { continue };
+        c.ui_out.push(format!("plan {index} {amount}"));
+        let mut d = Dialog::new(DialogKind::Confirm(index, id, amount), amount.to_string());
+        d.waiting = true;
+        c.dialog = Some(d);
+        return;
+    }
+}
+
+/// `enableFacadesInJEI`: the facades in JEI's ingredient list.
+pub fn facades_in_jei() -> bool {
+    config().enable_facades_in_jei
+}
+
 /// A craftable entry clicked: AE2 asks how many.
 fn ask_craft(index: usize) -> bool {
+    CLIENT.with_borrow_mut(|c| c.jei_craft.clear());
     let id = CLIENT.with_borrow(|c| c.items.get(index).map(|(id, _)| id.clone()).unwrap_or_default());
     open_dialog(DialogKind::Craft(index, id), "1".to_owned());
     true
@@ -14362,8 +14662,7 @@ fn network_status_lines(game: &Game<'_>, grid: usize) -> Option<Vec<String>> {
         let stored = s.energy.get(&root).copied().unwrap_or(0.0);
         let cap = grid_capacity(g, &s.devices);
         let [_, _, input, usage] = s.energy_flow.get(&root).copied().unwrap_or_default();
-        // PathingService: channelsByBlocks / 128.
-        let channel_power = f64::from(g.cable_channels.values().sum::<u32>()) / 128.0;
+        let channel_power = g.channel_drain;
         // MachineGroupKey: the item, and whether the machine lacks its channel.
         let mut groups: Vec<(String, bool, i64, f64, f64)> = Vec::new();
         for p in &g.nodes {
@@ -16289,11 +16588,35 @@ fn is_network_block(block: &str) -> bool {
 /// the cable's face; a bus, plane or tunnel against anything else faces into it (what it works on); emitters
 /// need a cable or network block to sit on; the crystal resonance generator points out of the clicked face.
 pub fn placed(game: &mut Game<'_>, pos: Pos) {
+    if is_network_block(&block_id(game, pos)) {
+        repath(pos);
+    }
     placed_inner(game, pos);
     cable_sides(game, pos);
     for d in SIDES {
         cable_sides(game, add(pos, d));
     }
+}
+
+/// PathingService.repath: the grids at `pos` boot again. Java's reboot is over within the end of the tick it starts
+/// (`booting` is set and cleared in one onServerEndTick), so no device ever runs a tick inactive for it. Here `rebuild`
+/// works grids out once a second: this is that wait, which Jade reads as GridNodeState.NETWORK_BOOTING, and as in Java
+/// devices go on as they were until the new paths are in (nothing stops for it, jobs included).
+fn repath(pos: Pos) {
+    SERVER.with_borrow_mut(|s| {
+        let mut powered = false;
+        for q in std::iter::once(pos).chain(SIDES.map(|d| add(pos, d))) {
+            if let Some(&g) = s.grid_of.get(&q)
+                && let Some(info) = s.grids.get_mut(g)
+            {
+                info.booting = true;
+                powered |= info.online || info.conflict;
+            }
+        }
+        if powered && !s.grid_of.contains_key(&pos) {
+            s.booting_new.insert(pos);
+        }
+    });
 }
 
 fn placed_inner(game: &mut Game<'_>, pos: Pos) {
@@ -16385,9 +16708,9 @@ fn placed_inner(game: &mut Game<'_>, pos: Pos) {
 /// part keeps its cable; a device keeps its connection), the next such facing each time.
 /// What of a machine's saved state is its settings: not what it is doing now (`exportSettings`).
 fn machine_settings(e: &ModBlockEntity) -> Compound {
-    const NOT: [&str; 22] = [
+    const NOT: [&str; 23] = [
         "look", "rs", "turn", "turns", "progress", "smash", "smash_at", "fluids", "cpu", "wire", "facades", "freq", "output", "lock_reason", "unlock_event",
-        "lock_until", "speed", "paint", "cell_id", "x", "y", "z",
+        "lock_until", "speed", "paint", "cell_id", "x", "y", "z", "internalCurrentPower",
     ];
     e.nbt.iter().filter(|(k, _)| !NOT.iter().any(|n| java(n) == **k)).map(|(k, v)| (k.clone(), v.clone())).collect()
 }
@@ -16525,7 +16848,7 @@ const FE_BUFFER: i32 = 100_000;
 
 /// `AEBasePoweredBlockEntity.getEnergyStorage`: what takes energy from outside.
 fn takes_fe(block: &str) -> bool {
-    matches!(ae2_name(block), Some("energy_acceptor" | "controller" | "charger" | "inscriber"))
+    matches!(ae2_name(block), Some("energy_acceptor" | "controller" | "charger" | "inscriber" | "chest"))
 }
 
 /// `native_block_entity_energy`: an insert-only buffer on those, and on FE tunnels.
@@ -16562,6 +16885,17 @@ fn fe_into_grid(pos: Pos, grid: Option<usize>, entity: &mut ModBlockEntity) {
         Some(Tag::Int(n)) if *n > 0 => *n,
         _ => return,
     };
+    // AEBasePoweredBlockEntity.funnelPowerIntoStorage: these keep it in their own buffers (Java's controller and acceptor
+    // override it, for the network).
+    if matches!(ae2_name(&entity.id), Some("charger" | "inscriber" | "chest")) {
+        let stored = internal_power(&entity.nbt);
+        let fe = f64::from(held).min(((internal_max_power(&entity.id) - stored).max(0.0) / ae_per_fe()).floor());
+        if fe > 0.0 {
+            set_internal_power(&mut entity.nbt, stored + fe * ae_per_fe());
+            entity.nbt.insert(java("energy"), Tag::Int(held - fe as i32));
+        }
+        return;
+    }
     let Some(g) = grid else { return };
     let moved = SERVER.with_borrow_mut(|s| {
         let info = s.grids.get(g)?;
@@ -18344,6 +18678,8 @@ struct AeConfig {
     enable_effects: bool,
     use_large_fonts: bool,
     use_colored_crafting_status: bool,
+    show_placement_preview: bool,
+    enable_facades_in_jei: bool,
     terminal_margin: i32,
     tooltip_show_cell_upgrades: bool,
     tooltip_show_cell_content: bool,
@@ -18601,6 +18937,7 @@ fn load_config() -> AeConfig {
     // In the file for compatibility, with nothing to do in this port.
     common.boolean("general", "unsupportedDeveloperTools", false, "");
     common.boolean("general", "spatialAnchorEnableRandomTicks", true, "Whether Spatial Anchors should force random chunk ticks and entity spawning.");
+    // (Read by tools/make_content_mod.py, where the facades are made: it takes effect when the content is next made.)
     common.boolean("facades", "allowBlockEntities", false, "Unsupported: Allows whitelisting block entities as facades. Could work, have render issues, or corrupt your world. USE AT YOUR OWN RISK.");
     common.int("craftingCPU", "craftingCalculationTimePerTick", 5);
     common.boolean("logging", "blockUpdateLog", false, "");
@@ -18619,11 +18956,11 @@ fn load_config() -> AeConfig {
         common.int("tickRates", &format!("{name}Max"), max);
     }
     client.boolean("client", "disableColoredCableRecipesInJEI", true, "");
-    client.boolean("client", "enableFacadesInJEI", true, "Show facades in JEI ingredient list");
+    let enable_facades_in_jei = client.boolean("client", "enableFacadesInJEI", true, "Show facades in JEI ingredient list");
     client.boolean("client", "enableFacadeRecipesInJEI", true, "Show facade recipes in JEI for supported blocks");
     client.boolean("client", "exposeInventoryToEmi", false, "Expose the full network inventory to EMI, which might cause performance problems.");
     client.boolean("client", "showDebugGuiOverlays", false, "Show debugging GUI overlays");
-    client.boolean("client", "showPlacementPreview", true, "Show a preview of part and facade placement");
+    let show_placement_preview = client.boolean("client", "showPlacementPreview", true, "Show a preview of part and facade placement");
     client.boolean("search", "searchModNameInTooltips", false, "Should the mod name be included when searching in tooltips.");
 
     let mut settings = SETTINGS_DEFAULT;
@@ -18680,6 +19017,8 @@ fn load_config() -> AeConfig {
         enable_effects: client.boolean("client", "enableEffects", true, ""),
         use_large_fonts: client.boolean("client", "useTerminalUseLargeFont", false, ""),
         use_colored_crafting_status: client.boolean("client", "useColoredCraftingStatus", true, ""),
+        show_placement_preview,
+        enable_facades_in_jei,
         terminal_margin: client.int_in("client", "terminalMargin", 25, i32::MIN, i32::MAX, "The vertical margin to apply when sizing terminals. Used to make room for centered item mod search bars"),
         tooltip_show_cell_upgrades: client.boolean("tooltips", "showCellUpgrades", true, "Show installed upgrades in the tooltips of storage cells, color applicators and matter cannons"),
         tooltip_show_cell_content: client.boolean("tooltips", "showCellContent", true, "Show a preview of the content in the tooltips of storage cells, color applicators and matter cannons"),
@@ -19377,24 +19716,94 @@ fn side_name(d: Pos) -> &'static str {
     }
 }
 
+/// A facade's plate on its side of the block, in texels: two pixels thick (FacadeBuilder, FacadePart.getBoxes).
+fn facade_plate(side: &str) -> ([f32; 3], [f32; 3]) {
+    match side {
+        "down" => ([0.0, 0.0, 0.0], [16.0, 2.0, 16.0]),
+        "up" => ([0.0, 14.0, 0.0], [16.0, 16.0, 16.0]),
+        "north" => ([0.0, 0.0, 0.0], [16.0, 16.0, 2.0]),
+        "south" => ([0.0, 0.0, 14.0], [16.0, 16.0, 16.0]),
+        "west" => ([0.0, 0.0, 0.0], [2.0, 16.0, 16.0]),
+        _ => ([14.0, 0.0, 0.0], [16.0, 16.0, 16.0]),
+    }
+}
+
+/// A facade block's face sprites in the block sprite arrays (array, layer; an array below 0 for one that isn't there),
+/// looked up once and again when the resources load (`native_block_sprites_version`).
+fn facade_sprites(game: &Game<'_>, block: &str) -> Option<[[i32; 2]; 6]> {
+    thread_local! {
+        static SPRITES: RefCell<(u64, HashMap<String, [[i32; 2]; 6]>)> = RefCell::new((u64::MAX, HashMap::new()));
+    }
+    let version = game.native_block_sprites_version();
+    SPRITES.with_borrow_mut(|(seen, table)| {
+        if *seen != version {
+            *seen = version;
+            table.clear();
+        }
+        if let Some(found) = table.get(block) {
+            return Some(*found);
+        }
+        let faces = facade_faces(game, block)?;
+        let names: [&str; 6] = std::array::from_fn(|i| faces[i].as_str());
+        let mut found = [[-1, 0]; 6];
+        for (out, sprite) in found.iter_mut().zip(game.native_texture_sprites(&names)) {
+            if let Some(sprite) = sprite {
+                *out = [sprite.array as i32, sprite.layer as i32];
+            }
+        }
+        table.insert(block.to_owned(), found);
+        Some(found)
+    })
+}
+
+/// CableRenderMode.CABLE_VIEW's facades, in the translucent pass. FacadeBuilder draws its one see-through model for all
+/// of them; these keep their block's textures, so a wall of them can still be told apart. No texture found: the tint.
+fn facade_see_through(game: &Game<'_>, pos: Pos, entity: &ModBlockEntity) {
+    const ALPHA: u8 = 0x66;
+    let at = pos.map(f64::from);
+    for (side, block) in cable_facades(&entity.nbt) {
+        let Some(sprites) = facade_sprites(game, &block) else { continue };
+        let (from, to) = facade_plate(&side);
+        let (lo, hi): ([f32; 3], [f32; 3]) = (from.map(|v| v / 16.0), to.map(|v| v / 16.0));
+        // By Direction: the two axes across the face, the axis through it and its place on that axis.
+        for (i, (a, b, c, level)) in [(0, 2, 1, lo[1]), (0, 2, 1, hi[1]), (0, 1, 2, lo[2]), (0, 1, 2, hi[2]), (2, 1, 0, lo[0]), (2, 1, 0, hi[0])].into_iter().enumerate() {
+            let mut corners = [[0.0_f64; 3]; 4];
+            let mut uv = [[0.0_f32; 2]; 4];
+            for (n, (p, q)) in [(lo[a], lo[b]), (hi[a], lo[b]), (hi[a], hi[b]), (lo[a], hi[b])].into_iter().enumerate() {
+                let mut local = [0.0_f32; 3];
+                local[a] = p;
+                local[b] = q;
+                local[c] = level;
+                corners[n] = std::array::from_fn(|k| at[k] + f64::from(local[k]));
+                let [x, y, z] = local;
+                // As a model's default UVs (for a plain block's north side, u = 1 - x, v = 1 - y).
+                uv[n] = match i {
+                    0 => [x, 1.0 - z],
+                    1 => [x, z],
+                    2 => [1.0 - x, 1.0 - y],
+                    3 => [x, 1.0 - y],
+                    4 => [z, 1.0 - y],
+                    _ => [1.0 - z, 1.0 - y],
+                };
+            }
+            let color = if sprites[i][0] < 0 { [0xAE, 0xA8, 0xBD, ALPHA] } else { [255, 255, 255, ALPHA] };
+            horizon_client::gfx::native_render::RenderNeeds::hz_ae2_quad(false, corners, uv, sprites[i], color, 0.0);
+        }
+    }
+}
+
 /// FacadeBuilder: each facade a plate two pixels thick against its side, the block's own faces on it.
-fn facade_submit(game: &Game<'_>, entity: &ModBlockEntity, draw: &mut super::native_block_entity_draw::BlockEntityDraw) {
+fn facade_submit(game: &Game<'_>, pos: Pos, entity: &ModBlockEntity, draw: &mut super::native_block_entity_draw::BlockEntityDraw) {
     use super::native_block_entity_draw::CubeFace;
-    // CableRenderMode.CABLE_VIEW: a network tool in either hand sees through facades. Block entity drawing has no alpha
-    // here, so they step aside altogether.
+    // CableRenderMode.CABLE_VIEW (AppEngBase.getCableRenderModeForPlayer): a network tool in either hand sees through
+    // facades. Block entity drawing has no alpha, so the translucent pass draws them.
     if game.held().is_some_and(|h| &*h.item == "ae2:network_tool") || game.offhand.as_ref().is_some_and(|h| &*h.item == "ae2:network_tool") {
+        facade_see_through(game, pos, entity);
         return;
     }
     for (side, block) in cable_facades(&entity.nbt) {
         let Some(faces) = facade_faces(game, &block) else { continue };
-        let (from, to) = match side.as_str() {
-            "down" => ([0.0, 0.0, 0.0], [16.0, 2.0, 16.0]),
-            "up" => ([0.0, 14.0, 0.0], [16.0, 16.0, 16.0]),
-            "north" => ([0.0, 0.0, 0.0], [16.0, 16.0, 2.0]),
-            "south" => ([0.0, 0.0, 14.0], [16.0, 16.0, 16.0]),
-            "west" => ([0.0, 0.0, 0.0], [2.0, 16.0, 16.0]),
-            _ => ([14.0, 0.0, 0.0], [16.0, 16.0, 16.0]),
-        };
+        let (from, to) = facade_plate(&side);
         // Vanilla's sprites go by their bare name in the atlas.
         let names: Vec<&str> = faces.iter().map(|f| f.strip_prefix("minecraft:").unwrap_or(f)).collect();
         let face = |i: usize| Some(CubeFace { sprite: names[i], uv: None });
@@ -19405,6 +19814,9 @@ fn facade_submit(game: &Game<'_>, entity: &ModBlockEntity, draw: &mut super::nat
 /// `native_destroy_block`: a cable broken drops its facades (FacadeContainer's drops).
 pub fn destroyed(game: &mut Game<'_>, pos: Pos) {
     let here = block_id(game, pos);
+    if is_network_block(&here) {
+        repath(pos);
+    }
     if here == "ae2:spatial_anchor" {
         anchor_release(game, pos);
     }

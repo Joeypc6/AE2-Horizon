@@ -115,6 +115,8 @@ fn ae2_frame(game: &mut crate::game::Game<'_>, elapsed: std::time::Duration) {
     // A press held back on JEI's panel: a ghost ingredient drag, or the press after all.
     crate::game::port_ae2_me::ghost_frame(game);
     crate::game::port_ae2_me::cursor_frame(game);
+    // The translucent pass: last frame's quads go, the anchors' walls follow their anchors.
+    crate::game::port_ae2_me::translucent_frame(game);
     // TODO: port it.
     let _ = (game, elapsed, &m::ID);
 }
