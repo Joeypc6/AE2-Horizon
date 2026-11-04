@@ -1,9 +1,10 @@
 {
   "template": "minecraft:beacon",
   "properties": {
-    "hardness": 2.2,
+    "hardness": 5.0,
     "light": 0,
-    "sounds": "minecraft:iron_block"
+    "sounds": "minecraft:iron_block",
+    "explosion_resistance": 150.0
   },
   "state_properties": {
     "facing": {

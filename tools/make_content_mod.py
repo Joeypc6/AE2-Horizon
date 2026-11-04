@@ -885,6 +885,68 @@ def cable_parts(kind, color, lights):
     return parts
 
 
+def whole_numbers(value):
+    """A loot table with its whole floats (`1.0`) as integers; chances and other fractions stay."""
+    if isinstance(value, dict):
+        return {k: whole_numbers(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [whole_numbers(v) for v in value]
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return value
+
+
+def modern_loot(value):
+    """A 1.20 loot table in 26.3's shape: a condition's and a function's kind under `type`, `functions` as `modifier`,
+    a tool predicate's items as one id or `#tag`."""
+    if isinstance(value, list):
+        return [modern_loot(v) for v in value]
+    if not isinstance(value, dict):
+        return value
+    out = {}
+    for k, v in value.items():
+        if k == "functions":
+            out["modifier"] = modern_loot(v)
+        elif k == "function" or (k == "condition" and isinstance(v, str)):
+            out["type"] = v
+        elif k == "predicate" and isinstance(v, dict):
+            pred = modern_loot(v)
+            if isinstance(pred.get("items"), list) and len(pred["items"]) == 1:
+                pred["items"] = pred["items"][0]
+            if "tag" in pred:
+                pred["items"] = "#" + pred.pop("tag")
+            out[k] = pred
+        else:
+            out[k] = modern_loot(v)
+    return out
+
+
+def with_strength(name, decl):
+    """AEBlocks' strength for the block: hardness and explosion resistance, as the jar's code sets them."""
+    props = decl.get("properties", {})
+    plain = name.removeprefix("hz_")
+    decorative = ("quartz_block", "quartz_bricks", "quartz_brick_", "quartz_pillar", "quartz_slab", "quartz_stairs", "quartz_wall",
+                  "cut_quartz_", "smooth_quartz_", "chiseled_quartz_", "fluix_block", "fluix_slab", "fluix_stairs", "fluix_wall")
+    if name == "sky_stone_block":
+        strength = (50.0, 150.0)
+    elif plain.startswith(("sky_stone_", "smooth_sky_stone_")):
+        if props.get("hardness") == 0.0:
+            return decl
+        strength = (5.0, 150.0)
+    elif name.endswith("_budding_quartz") or name.startswith(decorative):
+        strength = (3.0, 5.0)
+    elif name.endswith("_quartz_bud") or name == "quartz_cluster":
+        strength = (1.5, 1.5)
+    elif name in ("mysterious_cube", "not_so_mysterious_cube"):
+        strength = (10.0, 1000.0)
+    elif props.get("hardness") in (0.3, 2.2) or name in ("quartz_glass", "quartz_vibrant_glass"):
+        # AEBaseBlock.defaultProps: machines, glass, and the cable bus that cables and parts stand for.
+        strength = (2.2, 11.0)
+    else:
+        return decl
+    return {**decl, "properties": {**props, "hardness": strength[0], "explosion_resistance": strength[1]}}
+
+
 def self_drop(name):
     if name in ("energy_cell", "dense_energy_cell"):
         # The native mod drops them, with their charge.
@@ -1438,6 +1500,14 @@ def main(jar, out):
     JAR_READ = read
 
     def write(path, data):
+        if path.startswith(f"data/{ID}/horizon/block/") and isinstance(data, dict):
+            data = with_strength(path.rsplit("/", 1)[1][:-5], data)
+        if path.endswith(("/blocks/energy_cell.json", "/blocks/dense_energy_cell.json")):
+            # The native mod drops them, with their charge.
+            data = {"type": "minecraft:block", "pools": []}
+        elif "/loot_table/" in path:
+            # The jar's tables say `rolls: 1.0`; Horizon reads rolls and counts as integers.
+            data = modern_loot(whole_numbers(json.loads(data) if isinstance(data, bytes) else data))
         p = out / path
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(data if isinstance(data, bytes) else json.dumps(data, indent=2).encode())

@@ -3,9 +3,10 @@
   "connects_to": "#ae2:cable_connects_lime",
   "thickness": 10.0,
   "properties": {
-    "hardness": 0.3,
+    "hardness": 2.2,
     "sounds": "minecraft:glass",
-    "requires_tool": false
+    "requires_tool": false,
+    "explosion_resistance": 11.0
   },
   "state_properties": {
     "x_lights": {

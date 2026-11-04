@@ -2,10 +2,10 @@
   "type": "minecraft:block",
   "pools": [
     {
-      "bonus_rolls": 0.0,
+      "bonus_rolls": 0,
       "conditions": [
         {
-          "condition": "minecraft:survives_explosion"
+          "type": "minecraft:survives_explosion"
         }
       ],
       "entries": [
@@ -14,7 +14,7 @@
           "name": "ae2:quartz_stairs"
         }
       ],
-      "rolls": 1.0
+      "rolls": 1
     }
   ]
 }

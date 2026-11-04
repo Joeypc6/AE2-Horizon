@@ -1,3 +1,7 @@
 {
-  "template": "minecraft:smooth_quartz_slab"
+  "template": "minecraft:smooth_quartz_slab",
+  "properties": {
+    "hardness": 3.0,
+    "explosion_resistance": 5.0
+  }
 }

@@ -1,7 +1,8 @@
 {
   "template": "minecraft:barrel",
   "properties": {
-    "hardness": 1.5,
-    "sounds": "minecraft:amethyst_block"
+    "hardness": 3.0,
+    "sounds": "minecraft:amethyst_block",
+    "explosion_resistance": 5.0
   }
 }

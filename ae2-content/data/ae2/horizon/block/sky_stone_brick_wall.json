@@ -1,3 +1,7 @@
 {
-  "template": "minecraft:cobblestone_wall"
+  "template": "minecraft:cobblestone_wall",
+  "properties": {
+    "hardness": 5.0,
+    "explosion_resistance": 150.0
+  }
 }

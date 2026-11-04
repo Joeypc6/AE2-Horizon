@@ -1,9 +1,10 @@
 {
   "template": "minecraft:shulker_box",
   "properties": {
-    "hardness": 0.3,
+    "hardness": 2.2,
     "requires_tool": false,
-    "sounds": "minecraft:iron_block"
+    "sounds": "minecraft:iron_block",
+    "explosion_resistance": 11.0
   },
   "state_properties": {
     "powered": {

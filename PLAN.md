@@ -489,3 +489,44 @@ Open, by how much a player would notice:
 - Portable cell: right-clicking items into it. Applicator pick colour. Network tool tooltip. Matter cannon in a
   dispenser. Sky stone break speed. Provider send list. Interface priority only orders storage.
 - Inscriber separate sides: hoppers can't take presses out; hand-placed stacks ignore the stack size setting.
+
+## Round 19 (2026-11-04): all four mods on Horizon 6475f62 (API 359)
+
+Revision pins: Horizon `6475f62f3c834b7489e1816bf47f47ea5eb2b879`, hooks 359, horizon-mixins `e8cd0aa38cff...`. Each
+mod's manifest is `manifests/<mod>.json`; `native-build/<mod>` holds it and a junction to `mixins/<mod>`. Build with
+`horizon-launcher native-build "<native-build>" --allow-version-mismatch --trust-native-code`; the switch is there for
+the untouched JEI bundle, whose manifest names its own older revision.
+
+API changes taken:
+- Every injection the catalog lists now uses `hook` + `hook_version`: ae2 57 named (11 raw), ae2-jei 8 (5), jade 9 (2),
+  jade-ae2 3 (0). Raw targets stay pinned to this revision.
+- Screen hooks fire on the title screens since API 326, so they return when there's no player. `Ingredient`,
+  `PrimedTnt`, `key_pressed(key, raw)`, `NativeScreen.own_background` and the `ModBlockEntity` revision wrapper followed.
+- Energy (API 142, 307): Energy Acceptor, Controller, Charger and Inscriber take FE at 1 FE = 2 AE, FE P2P moves it,
+  powered items turn `horizon_energy` into their AE charge.
+- Slot rules (API 130, `menu_slot_rules`): AE2's RestrictedInputSlot and OutputSlot on every menu. Hoppers follow the
+  same rules through `Containers::can_place`. A card a machine doesn't take, or past its limit, goes back to the
+  player; so does what doesn't burn in a vibration chamber, because the rule hook has no fuel table.
+- 26.3 loot tables rewritten by the content generator; block hardness as the jar's.
+
+Bugs found by this round's tests:
+- A guest's `/jade` ran as the host, hiding the host's overlay; a guest's `/ae2` ran with no reply. Below a command's
+  level, or with no mod taking it, the server's dispatcher reaches the client `command` hook inside the guest's swap.
+  That hook now hands it to `perform_command` for the acting player.
+- Clicking a view cell slot threw the item on the ground: Horizon counts a click past the window as outside even on a
+  slot. `clicked_outside` now knows AE2's slots, toolbar and side panels (AEBaseScreen.hasClickedOutside).
+- After a stack went into a portable cell the cursor kept drawing it until the next click (nothing was duplicated).
+
+Tested on the build from these sources unless noted, in my offscreen game:
+- 30 slot rule checks by real clicks, shift-clicks and hoppers. FE: 50 000 FE into 100 000 AE; staff 1 000 FE into
+  2 000 AE. FE P2P moved 30 000 FE to the acceptor; the charge didn't reach the cell behind it in that test.
+- Water transforms, fuzzy cards, sub-network take and store, fluid substitution (exactly 1000 mB, no buckets), cake's
+  buckets, a job quit at 188 of 256 planks that finished at exactly 256, applicator wheel and pick colour.
+- LAN guest: terminal, wireless terminal, JEI recipe window, Jade on AE2 blocks, `/jade` on their own overlay only, `/ae2`
+  refused at level 2. Title screens: keys and clicks, no panic.
+- 20.00 ticks/s, tick 1.86 ms average, P99 3.20 ms, 280 fps on the test world. No Java comparison was run.
+
+Not tested on this revision: looting on fluix tools, ETA on modded machines. FE into a real FE source's cable: no other
+mod here makes FE, so tests set the buffers directly.
+Still open: the list at the end of Round 18, without FE, portable cell clicks, pick colour, network tool tooltip and sky
+stone break speed, which are done.

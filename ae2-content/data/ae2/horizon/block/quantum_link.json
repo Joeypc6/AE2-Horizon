@@ -3,6 +3,7 @@
   "properties": {
     "hardness": 2.2,
     "sounds": "minecraft:iron_block",
+    "explosion_resistance": 11.0,
     "light": 0
   },
   "state_properties": {

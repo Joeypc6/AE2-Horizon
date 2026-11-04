@@ -2,7 +2,8 @@
   "template": "minecraft:shulker_box",
   "properties": {
     "hardness": 2.2,
-    "sounds": "minecraft:glass"
+    "sounds": "minecraft:glass",
+    "explosion_resistance": 11.0
   },
   "shapes": {
     "property": "facing",

@@ -503,6 +503,8 @@ struct Server {
     hotkeys: HashMap<u128, (String, u64)>,
     /// Applicator colour steps from the wheel: forward or back.
     wheels: HashMap<u128, bool>,
+    /// A slot right-clicked with a portable cell on one side of it.
+    cell_stacks: HashMap<u128, i32>,
     /// Energy cells placed with a charge, until their network is known.
     pending_power: Vec<(Pos, f64)>,
     item_ops: Vec<(u128, String)>,
@@ -596,6 +598,28 @@ fn slot_icon(block: &str, i: usize) -> Option<[f32; 2]> {
     })
 }
 
+/// A right press on an inventory slot, with a portable cell on one side and a stack on the other.
+pub fn portable_stack_press(game: &Game<'_>, rect: [f32; 4], mouse: [f32; 2], button: i32, canceled: &mut bool) {
+    if button != 1 || overlay_shown() {
+        return;
+    }
+    let Some(carried) = game.carried.as_ref() else { return };
+    let hit = (0..36).find(|&i| {
+        let (x, y) = game.slot_position(i);
+        let [px, py] = [mouse[0] - rect[0] - x, mouse[1] - rect[1] - y];
+        (0.0..16.0).contains(&px) && (0.0..16.0).contains(&py)
+    });
+    let Some(i) = hit else { return };
+    let Some(there) = game.inventory.get(i).cloned().flatten() else { return };
+    let (a, b) = (portable_type(&carried.item).is_some(), portable_type(&there.item).is_some());
+    if a == b {
+        return;
+    }
+    CLIENT.with_borrow_mut(|c| c.ui_out.push(format!("cellstack {i}")));
+    *canceled = true;
+    press_taken();
+}
+
 /// A left press on an interface's stored fluid with a bucket in hand: into or out of the fluid, not the item slot
 /// that lies under it (AEBaseMenu's FILL_ITEM and EMPTY_ITEM).
 pub fn interface_bucket_press(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
@@ -670,13 +694,20 @@ fn tidy_upgrades(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
     if entity.items.len() < own + n {
         entity.items.resize(own + n, None);
     }
+    // Upgrades.getMaxInstallable: how many of a card this machine takes.
+    let name = canon(&entity.id);
+    let name = name.trim_start_matches("ae2:").to_owned();
+    let takes = |card: &str| ae2_name(card).and_then(|c| UPGRADES.iter().find(|u| u.0 == c && u.3.contains(&name.as_str()))).map_or(0, |u| u.2 as usize);
     let mut spare: Vec<ItemStack> = Vec::new();
     for i in own..own + n {
-        let Some(st) = entity.items[i].as_mut() else { continue };
-        let is_card = ae2_name(&st.item).is_some_and(|c| c.ends_with("_card") && c != "memory_card");
-        if !is_card {
+        let Some(st) = entity.items[i].as_ref() else { continue };
+        let item = st.item.clone();
+        if entity.items[own..i].iter().flatten().filter(|s| s.item == item).count() >= takes(&item) {
             spare.push(entity.items[i].take().unwrap());
-        } else if st.count > 1 {
+            continue;
+        }
+        let Some(st) = entity.items[i].as_mut() else { continue };
+        if st.count > 1 {
             let mut rest = st.clone();
             rest.count -= 1;
             st.count = 1;
@@ -688,8 +719,7 @@ fn tidy_upgrades(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
     }
     let mut back = Vec::new();
     for mut st in spare {
-        let is_card = ae2_name(&st.item).is_some_and(|c| c.ends_with("_card") && c != "memory_card");
-        while is_card && st.count > 0 {
+        while st.count > 0 && entity.items[own..own + n].iter().flatten().filter(|s| s.item == st.item).count() < takes(&st.item) {
             let Some(free) = (own..own + n).find(|&i| entity.items[i].is_none()) else { break };
             let mut one = st.clone();
             one.count = 1;
@@ -700,6 +730,11 @@ fn tidy_upgrades(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
             back.push(st);
         }
     }
+    give_back(game, pos, back);
+}
+
+/// To the player nearest the block, or on the ground above it.
+fn give_back(game: &mut Game<'_>, pos: Pos, back: Vec<ItemStack>) {
     let at = [pos[0] as f64 + 0.5, pos[1] as f64 + 0.5, pos[2] as f64 + 0.5];
     let nearest = game
         .native_server_players()
@@ -710,15 +745,12 @@ fn tidy_upgrades(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
         })
         .map(|p| p.uuid);
     for st in back {
-        match nearest {
-            Some(uuid) => {
-                let _ = game.native_give_stack(uuid, st);
-            }
-            None => {
-                if let Some(free) = (own..own + n).find(|&i| entity.items[i].is_none()) {
-                    entity.items[free] = Some(st);
-                }
-            }
+        let left = match nearest {
+            Some(uuid) => game.native_give_stack(uuid, st),
+            None => Some(st),
+        };
+        if let Some(left) = left {
+            game.spawn_item(left, [at[0], at[1] + 0.5, at[2]], [0.0, 0.0, 0.0], 10);
         }
     }
 }
@@ -857,6 +889,7 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
         }
         (s.tick, s.grid_of.get(&pos).copied())
     });
+    fe_into_grid(pos, grid, entity);
     let active = grid.is_some_and(|g| SERVER.with_borrow(|s| s.grids.get(g).is_some_and(|g| g.online && g.active.contains(&pos))));
     tidy_upgrades(game, pos, entity);
     match ae2_name(&entity.id).unwrap_or("") {
@@ -1323,6 +1356,11 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
             }
         }
         "vibration_chamber" => {
+            // RestrictedInputSlot's FUEL: what doesn't burn goes back.
+            if let Some(st) = entity.items.first().cloned().flatten().filter(|s| fuel_ticks(game, &s.item).is_none()) {
+                entity.items[0] = None;
+                give_back(game, pos, vec![st]);
+            }
             // VibrationChamberBlockEntity.tickingRequest: fuel burns faster while the network takes all it makes, and
             // slower as it fills. Energy Cards make more of each fuel tick, Acceleration Cards raise the top speed.
             // (Kept in thousandths: block entity data is whole numbers.)
@@ -2225,7 +2263,7 @@ fn storage_open(game: &mut Game<'_>, grid: usize, own: &mut Option<(Pos, &mut Mo
         let target_block = block_id(game, *target);
         let interface = canon(&target_block) == "ae2:interface";
         // AE2's own blocks are storage to a bus when they expose some: not a cable, a drive or a terminal.
-        if !interface && is_network_block(&target_block) {
+        if !interface && is_network_block(&target_block) && p2p_output_source(game, *target).is_none() {
             continue;
         }
         let face = face_toward(*target, *bus);
@@ -3131,6 +3169,82 @@ pub fn hotkey(game: &Game<'_>, name: &str) {
     }
 }
 
+/// The cursor as the server left it (`cursor` on `NET_UI`).
+pub fn cursor_frame(game: &mut Game<'_>) {
+    let Some((n, item)) = CLIENT.with_borrow_mut(|c| c.cursor_back.take()) else { return };
+    game.carried = match game.carried.take() {
+        _ if n == 0 => None,
+        Some(s) if *s.item == *item => Some(ItemStack { count: n, ..s }),
+        _ => Some(ItemStack::new(&item, n)),
+    };
+}
+
+/// `tryInsertFromPlayerOwnedItem`: into the cell, on its own power, what the other stack holds: a bucket's fluid into a
+/// fluid cell (the bucket stays, empty), otherwise the stack itself. What doesn't fit stays where it was.
+fn cell_store(game: &Game<'_>, cell: &mut ItemStack, other: &mut Option<ItemStack>) {
+    let Some(ty) = portable_type(&cell.item) else { return };
+    let Some(st) = other.as_ref() else { return };
+    let mut inv = BasicCellInventory::new(ty, &cell_config(cell), cell_fuzzy(cell), cell_upgrades(cell), &read_cell(cell));
+    let power = portable_power(cell);
+    let fluid = bucket_fluid(&st.item).filter(|_| st.count == 1 && ty.key_type == super::port_ae2_core::KeyType::Fluids);
+    let stored = if let Some(fluid) = fluid {
+        let key = AeKey::fluid(&fluid, "");
+        let n = if power >= 1000.0 && inv.insert(&key, 1000, Actionable::Simulate) == 1000 { inv.insert(&key, 1000, Actionable::Modulate) } else { 0 };
+        if n == 1000 {
+            *other = Some(ItemStack::new("minecraft:bucket", 1));
+        }
+        n
+    } else {
+        let key = key_of(game, st);
+        let n = inv.insert(&key, i64::from(st.count).min(power.floor() as i64), Actionable::Modulate);
+        if n > 0 {
+            let left = st.count - n as u32;
+            *other = (left > 0).then(|| ItemStack { count: left, ..st.clone() });
+        }
+        n
+    };
+    if stored > 0 {
+        if let Some(contents) = inv.persist() {
+            write_cell(cell, &contents);
+        }
+        set_portable_power(cell, power - stored as f64);
+    }
+}
+
+fn portable_stack(game: &mut Game<'_>, slot: i32) {
+    let Some(player) = game.native_acting_player() else { return };
+    if SERVER.with_borrow(|s| s.cell_stacks.get(&player.uuid).copied()) != Some(slot) {
+        return;
+    }
+    SERVER.with_borrow_mut(|s| s.cell_stacks.remove(&player.uuid));
+    let there = game.native_carried_stack(slot).map(|s| s.clone());
+    let carried = game.carried.clone();
+    match (carried, there) {
+        (Some(mut cell), there @ Some(_)) if portable_type(&cell.item).is_some() => {
+            let mut other = there;
+            cell_store(game, &mut cell, &mut other);
+            game.carried = Some(cell);
+            if let Some(s) = game.native_carried_stack(slot) {
+                match other {
+                    Some(o) => *s = o,
+                    None => s.count = 0,
+                }
+            }
+        }
+        (other @ Some(_), Some(mut cell)) if portable_type(&cell.item).is_some() => {
+            let mut other = other;
+            cell_store(game, &mut cell, &mut other);
+            let left = other.as_ref().map_or("cursor 0 -".to_owned(), |s| format!("cursor {} {}", s.count, s.item));
+            let _ = game.native_net_send_to_player(player.uuid, NET_UI, left.as_bytes());
+            game.carried = other;
+            if let Some(s) = game.native_carried_stack(slot) {
+                *s = cell;
+            }
+        }
+        _ => {}
+    }
+}
+
 /// `InventoryHotkeyAction`, at the inventory tick that has the player's state: true when this slot's item opened.
 fn hotkey_slot(game: &mut Game<'_>, slot: i32) {
     let Some(player) = game.native_acting_player() else { return };
@@ -3206,6 +3320,8 @@ pub fn inventory_tick(game: &mut Game<'_>, slot: i32) {
     }
     hotkey_slot(game, slot);
     applicator_wheel(game, slot);
+    portable_stack(game, slot);
+    item_fe_tick(game, slot);
     inventory_tick_rest(game, slot);
 }
 
@@ -4278,6 +4394,8 @@ struct Client {
     toolbelt: Vec<(String, i64)>,
     toolbelt_at: Option<[f32; 2]>,
     toolbelt_presses: Vec<i32>,
+    /// What the server left on the cursor, after a stack went into a portable cell.
+    cursor_back: Option<(u32, String)>,
     press_taken: bool,
     toolbelt_right: f32,
     type_filter: u8,
@@ -4409,6 +4527,14 @@ pub fn from_server(channel: &str, data: &[u8]) {
         return;
     }
     if channel == NET_UI {
+        if let Some(rest) = data.strip_prefix(b"cursor ") {
+            let rest = String::from_utf8_lossy(rest);
+            if let Some((n, item)) = rest.split_once(' ') {
+                let back = (n.parse().unwrap_or(0), item.to_owned());
+                CLIENT.with_borrow_mut(|c| c.cursor_back = Some(back));
+            }
+            return;
+        }
         ui_from_server(data);
         return;
     }
@@ -4546,6 +4672,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 117.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         Some("vibration_chamber") => Some(NativeScreen {
             width: 176.0 + UPGRADE_PANEL,
@@ -4554,6 +4681,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 84.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         Some("chest") => Some(NativeScreen {
             width: 176.0,
@@ -4562,6 +4690,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 84.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         Some("crafting_terminal") => {
             // The terminal's head and three rows, then the crafting grid and its result, then the inventory.
@@ -4573,7 +4702,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             slots.extend((0..9).map(|i| Some([CRAFT_GRID[0] + (i % 3) as f32 * 18.0, CRAFT_GRID[1] + extra + (i / 3) as f32 * 18.0])));
             slots.push(Some([CRAFT_RESULT[0], CRAFT_RESULT[1] + extra]));
             slots.extend(upgrade_panel(195.0, VIEW_CELLS));
-            Some(NativeScreen { width: 176.0, height: 241.0 + extra, slots, inventory_y: 159.0 + extra, inventory_x: 8.0, own_labels: true })
+            Some(NativeScreen { width: 176.0, height: 241.0 + extra, slots, inventory_y: 159.0 + extra, inventory_x: 8.0, own_labels: true, own_background: false })
         }
         Some("pattern_encoding_terminal") => {
             // As many terminal rows as fit the window (AE2's terminal style: header, rows, bottom), the rest below.
@@ -4588,7 +4717,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
                 .into_iter()
                 .chain(upgrade_panel(195.0, VIEW_CELLS))
                 .collect();
-            Some(NativeScreen { width: 195.0, height: 249.0 + extra, slots, inventory_y: 167.0 + extra, inventory_x: 8.0, own_labels: true })
+            Some(NativeScreen { width: 195.0, height: 249.0 + extra, slots, inventory_y: 167.0 + extra, inventory_x: 8.0, own_labels: true, own_background: false })
         }
         // AE2's screens/terminals/pattern_access_terminal.json over patternaccessterminal.png: six rows of name
         // bars and slots, the scroll bar at 175, the inventory from y 140.
@@ -4600,6 +4729,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 115.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         // AE2's screens/cell_workbench.json: the cell at 152, 8, its config (7 rows of 9) from 8, 29; the cell's
         // upgrades in the panel beside it.
@@ -4610,6 +4740,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 169.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         // AE2's screens/energy_level_emitter.json: the amount box at 23, 42.
         Some("energy_level_emitter") => Some(NativeScreen {
@@ -4619,6 +4750,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 102.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         // AE2's screens/qnb.json: the singularity at 80, 37 over chest.png.
         Some("quantum_link") => Some(NativeScreen {
@@ -4628,6 +4760,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 84.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         // AE2's screens/spatial_anchor.json: no inventory, its statistics.
         Some("spatial_anchor") => Some(NativeScreen {
@@ -4637,6 +4770,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: HIDDEN_SLOT[1],
             inventory_x: HIDDEN_SLOT[0],
             own_labels: true,
+            own_background: false,
         }),
         // The info screens: AE2's lines for the block, and the formation plane's filter row.
         Some(n) if is_info_block(n) => Some(NativeScreen {
@@ -4646,6 +4780,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 84.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         // AE2's screens/spatial_io_port.json: input at 52, 48, output at 113, 48.
         Some("spatial_io_port") => Some(NativeScreen {
@@ -4655,6 +4790,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 115.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         // AE2's screens/wireless_access_point.json: boosters at 80, 47; the link panel's in and out at the right.
         Some("wireless_access_point") => Some(NativeScreen {
@@ -4665,6 +4801,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 84.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         // AE2's screens/level_emitter.json: the config item at 137, 40, the amount box at 23, 42.
         Some("level_emitter") => Some(NativeScreen {
@@ -4674,6 +4811,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 102.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         // AE2's screens/interface.json: config ghosts at y 53, storage slots at y 71.
         Some("interface") => Some(NativeScreen {
@@ -4683,6 +4821,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 123.0,
             inventory_x: 8.0,
             own_labels: true,
+            own_background: false,
         }),
         // AE2's screens/io_port.json: two columns of input at 19, output at 122, the mode button between.
         Some("io_port") => Some(NativeScreen {
@@ -4696,6 +4835,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 84.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         Some("pattern_access_terminal") => {
             // PatternAccessTermScreen.init: the style's share of the rows the window has room for.
@@ -4709,6 +4849,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
                 inventory_y: 32.0 + 18.0 * rows as f32,
                 inventory_x: 8.0,
                 own_labels: true,
+                own_background: false,
             })
         }
         // CraftingCPUScreen has no slots of its own or the player's: `status_draw` is all of it.
@@ -4719,6 +4860,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: HIDDEN_SLOT[1],
             inventory_x: HIDDEN_SLOT[0],
             own_labels: true,
+            own_background: false,
         }),
         // AE2's screens/sky_chest.json: four rows of nine at (8, 24), the inventory 82 above the bottom.
         Some("sky_stone_chest" | "smooth_sky_stone_chest") => Some(NativeScreen {
@@ -4728,6 +4870,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 113.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         Some("molecular_assembler") => Some(NativeScreen {
             // The upgrade panel beside it is part of the screen (its clicks are the screen's, as AE2's).
@@ -4741,6 +4884,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 116.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         Some("controller") => Some(NativeScreen {
             width: 176.0,
@@ -4749,6 +4893,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 84.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         Some("inscriber") => Some(NativeScreen {
             width: 176.0 + UPGRADE_PANEL,
@@ -4757,6 +4902,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 94.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         // AE2's screens/io_bus.json and storage_bus.json over storagebus.png: config cells from 8, 29.
         Some("import_bus" | "export_bus" | "storage_bus" | "formation_plane") => Some(NativeScreen {
@@ -4766,6 +4912,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 169.0,
             inventory_x: 8.0,
             own_labels: false,
+            own_background: false,
         }),
         Some("pattern_provider") => Some(NativeScreen {
             width: 176.0,
@@ -4777,6 +4924,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_y: 131.0,
             inventory_x: 8.0,
             own_labels: true,
+            own_background: false,
         }),
         Some("terminal") => {
             // AE2's texture: a 17-pixel head, 18-pixel rows, then 95 pixels from the last row's foot down.
@@ -4792,6 +4940,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
                 inventory_y: 86.0 + extra,
                 inventory_x: 8.0,
                 own_labels: true,
+                own_background: false,
             })
         }
         _ => return,
@@ -7130,7 +7279,8 @@ fn crafting_terminal_tick(game: &mut Game<'_>, grid: Option<usize>, entity: &mut
     if entity.items[CT_RESULT].as_ref().map(|s| (&s.item, s.count)) != result.as_ref().map(|s| (&s.item, s.count)) {
         entity.items[CT_RESULT] = result.clone();
     }
-    set_nbt_i64(&mut entity.nbt, "shown", i64::from(entity.items[CT_RESULT].is_some()));
+    let shown = i64::from(entity.items[CT_RESULT].is_some());
+    set_nbt_i64(&mut entity.nbt, "shown", shown);
 }
 
 /// The crafting terminal's grid and result slots (slot 0 is its insert slot).
@@ -7279,7 +7429,7 @@ fn assembler_plan(game: &Game<'_>, stack: &ItemStack) -> Option<AssemblerPlan> {
             let mut set = HashSet::new();
             set.insert(c.item.to_string());
             if let Some(i) = placement.as_ref().and_then(|p| p.ingredients.iter().find(|i| i.test(c))) {
-                set.extend(i.1.iter().map(|s| s.to_string()));
+                set.extend(i.order.iter().map(|s| s.to_string()));
             }
             set
         })
@@ -7466,7 +7616,7 @@ fn encoder_button(game: &mut Game<'_>, entity: &mut ModBlockEntity, id: i32) {
         if let Some(placement) = found.and_then(|name| game.res.recipes().placement(&name)) {
             for (key, _) in &inputs {
                 let probe = stack_of(key, 1);
-                let list = placement.ingredients.iter().find(|i| i.test(&probe)).map_or_else(Vec::new, |i| i.1.clone());
+                let list = placement.ingredients.iter().find(|i| i.test(&probe)).map_or_else(Vec::new, |i| i.order.clone());
                 alternatives.push(list.join("|"));
             }
         }
@@ -8201,7 +8351,7 @@ fn inscriber_recipes(game: &Game<'_>) -> Vec<InscriberRecipe> {
         .iter()
         .filter_map(|r| {
             let json = &*r.json;
-            let ing = |slot: &str| json.get("ingredients")?.get(slot).and_then(|v| game.native_recipe_ingredient(v)).map(|i| i.0);
+            let ing = |slot: &str| json.get("ingredients")?.get(slot).and_then(|v| game.native_recipe_ingredient(v)).map(|i| i.items);
             Some(InscriberRecipe {
                 top: ing("top"),
                 middle: ing("middle")?,
@@ -8357,6 +8507,16 @@ fn inscriber_side_slot(face: horizon_core::geometry::Direction) -> usize {
     }
 }
 
+/// What a hopper or pipe may put in a machine's restricted input (None: the container's own answer).
+pub fn automation_can_place(block: &str, slot: usize, item: &str) -> Option<bool> {
+    match (ae2_name(block)?, slot) {
+        ("io_port", 0..=5) => Some(cell_type(item).is_some() || is_creative_cell(item)),
+        ("spatial_io_port", 0) => Some(ae2_name(item).is_some_and(|n| n.starts_with("spatial_storage_cell_"))),
+        ("quantum_link", _) => Some(item == "ae2:quantum_entangled_singularity"),
+        _ => None,
+    }
+}
+
 /// `AutomationFilter.allowInsert` and `BaseFilter.allowInsert`, for a hopper or pipe.
 pub fn inscriber_can_place(entity: &ModBlockEntity, slot: usize, item: &str) -> bool {
     // The result and the cards take nothing, nor does anything go in while the press is shut.
@@ -8438,6 +8598,9 @@ pub fn dispense(game: &mut Game<'_>, pos: Pos, facing: horizon_core::geometry::D
                     on_ground: false,
                     owner: None,
                     guest: None,
+                    join: Default::default(),
+                    no_gravity: false,
+                    power: 4.0,
                 })
             });
             let mut rest = stack.clone();
@@ -8656,6 +8819,12 @@ fn tooltip_inner(stack: &ItemStack, lines: &mut Vec<(horizon_client::text::Text,
             && let Some(first) = lines.first_mut()
         {
             first.0 = horizon_client::text::Text::legacy(&format!("{} - {}", first.0.plain(), item_words(&block)));
+        }
+        return;
+    }
+    if &*stack.item == "ae2:network_tool" {
+        for (id, n) in toolbox_of(stack).into_iter().filter(|(_, n)| *n > 0) {
+            lines.push(line(format!("§7{n} x {}", item_words(&id))));
         }
         return;
     }
@@ -9838,6 +10007,7 @@ fn p2p_input_tick(game: &mut Game<'_>, pos: Pos, kind: &str, freq: i64, tick: u6
                     part.count = give;
                     let back = put_in_container(game, target, part).map_or(0, |l| l.count);
                     stack.count -= give - back;
+                    take_energy(pos, f64::from(give - back) * 0.05);
                 }
             }
             if stack.count == 0 {
@@ -9846,6 +10016,28 @@ fn p2p_input_tick(game: &mut Game<'_>, pos: Pos, kind: &str, freq: i64, tick: u6
             if let Some(slot) = entity.items.first_mut() {
                 *slot = Some(stack);
             }
+        }
+        // FEP2PTunnelPart.InputEnergyStorage: an even share to each, what one refuses on to the next.
+        "ae2:fe_p2p_tunnel" => {
+            let mut held = match entity.nbt.get(&java("energy")) {
+                Some(Tag::Int(n)) if *n > 0 => *n,
+                _ => return,
+            };
+            let share = held / outputs.len().max(1) as i32;
+            for round in [share, held] {
+                for out in &outputs {
+                    if held == 0 || round == 0 {
+                        break;
+                    }
+                    let facing = game.native_block_property(*out, "facing");
+                    let target = add(*out, facing_dir(facing.as_deref()));
+                    let give = round.min(held);
+                    let moved = game.native_energy_insert(target, face_toward(target, *out), give, false);
+                    held -= moved;
+                    take_energy(pos, f64::from(moved) * 0.05 * AE_PER_FE);
+                }
+            }
+            entity.nbt.insert(java("energy"), Tag::Int(held));
         }
         "ae2:fluid_p2p_tunnel" => {
             // What came into the input's tank, on through each output's face.
@@ -9862,6 +10054,7 @@ fn p2p_input_tick(game: &mut Game<'_>, pos: Pos, kind: &str, freq: i64, tick: u6
                     let give = round.min(amount);
                     let refused = game.native_fluid_insert(target, face_toward(target, *out), &fluid, give);
                     amount -= give - refused;
+                    take_energy(pos, f64::from(give - refused) / 125.0 * 0.05);
                 }
             }
             set_interface_tanks(&mut entity.nbt, &[(if amount > 0 { Some(fluid) } else { None }, amount)]);
@@ -10353,6 +10546,29 @@ fn applicator_color(stack: &ItemStack) -> Option<&'static str> {
 /// ColorApplicatorItem.cycleColors: the next paint it holds, by colour.
 fn cycle_applicator(stack: &mut ItemStack) {
     cycle_applicator_by(stack, false);
+}
+
+/// `native_player_pick_item`: with an applicator in either hand, picking a coloured cable selects its colour.
+pub fn pick_item(game: &mut Game<'_>, pos: Pos, from_entity: bool, cancel: &mut bool) {
+    if from_entity {
+        return;
+    }
+    let block = block_id(game, pos);
+    let Some((color, _)) = cable(&block).map(|(c, d)| (c.to_owned(), d)) else { return };
+    let slot = if game.held().is_some_and(|h| &*h.item == "ae2:color_applicator") {
+        game.selected as i32
+    } else if game.offhand.as_ref().is_some_and(|h| &*h.item == "ae2:color_applicator") {
+        -106
+    } else {
+        return;
+    };
+    *cancel = true;
+    let Some(stack) = game.native_carried_stack(slot) else { return };
+    let contents = read_cell(stack);
+    let paint = contents.keys.iter().zip(&contents.amounts).find(|(k, n)| **n > 0 && paint_color(k.id()).is_some_and(|c| c == color)).map(|(k, _)| k.id().to_owned());
+    if let Some(paint) = paint {
+        set_custom(stack, "ae2:color_item", Tag::String(java(&paint)));
+    }
 }
 
 /// `native_wheel`: sneaking with an applicator, the wheel picks its colour instead of the hotbar slot.
@@ -12655,6 +12871,11 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
             let tick = SERVER.with_borrow(|s| s.tick);
             SERVER.with_borrow_mut(|s| s.hotkeys.insert(player, ((*name).to_owned(), tick)));
         }
+        ["cellstack", slot] => {
+            if let Ok(slot) = slot.parse::<i32>() {
+                SERVER.with_borrow_mut(|s| s.cell_stacks.insert(player, slot));
+            }
+        }
         ["wheel", dir] => {
             SERVER.with_borrow_mut(|s| s.wheels.insert(player, *dir == "down"));
         }
@@ -13428,7 +13649,8 @@ fn workbench_tick(entity: &mut ModBlockEntity) {
             }
             entity.items[0] = Some(cell);
             set_nbt_i64(&mut entity.nbt, "had", 1);
-            entity.nbt.insert(java("cards"), Tag::String(java(&wb_cards(entity).join(","))));
+            let cards = wb_cards(entity).join(",");
+            entity.nbt.insert(java("cards"), Tag::String(java(&cards)));
         }
         (true, None) => {
             // The cards went with the cell, unless they changed since they were last put on it.
@@ -13617,7 +13839,7 @@ fn transform_recipes(game: &Game<'_>, tick: u64) -> std::rc::Rc<Vec<TransformRec
                 let json = &*r.json;
                 let circumstance = json.get("circumstance")?;
                 let fluid = (circumstance.get("type")?.as_str()? == "fluid").then(|| circumstance.get("tag").and_then(|t| t.as_str()).unwrap_or("").to_owned());
-                let ingredients = json.get("ingredients")?.as_array()?.iter().filter_map(|v| game.native_recipe_ingredient(v).map(|i| i.0)).collect();
+                let ingredients = json.get("ingredients")?.as_array()?.iter().filter_map(|v| game.native_recipe_ingredient(v).map(|i| i.items)).collect();
                 Some(TransformRecipe { fluid, ingredients, result: game.native_recipe_result(json.get("result")?)? })
             })
             .collect();
@@ -13868,6 +14090,13 @@ fn face_index(face: horizon_core::geometry::Direction) -> usize {
 fn sided(game: &Game<'_>, target: Pos, face: horizon_core::geometry::Direction) -> Option<Sided> {
     use horizon_core::geometry::Direction;
     let block = block_id(game, target);
+    if block == "ae2:item_p2p_tunnel"
+        && let Some(input) = p2p_output_source(game, target)
+    {
+        let facing = game.native_block_property(input, "facing");
+        let front = add(input, facing_dir(facing.as_deref()));
+        return sided(game, front, face_toward(front, input));
+    }
     let len_at = |p: Pos| game.world.block_entities.get(&(p[0], p[1], p[2])).map(|be| be.slots().len());
     let n = len_at(target)?;
     let mut parts = vec![(target, n)];
@@ -14179,7 +14408,7 @@ fn run_buses(game: &mut Game<'_>) {
     for (grid, bus, target, import) in buses {
         let target_block = block_id(game, target);
         // AE2's own blocks: only an interface's storage is a container to a bus.
-        if target_block.starts_with("ae2:") && canon(&target_block) != "ae2:interface" && !ae2_machine(&target_block) {
+        if target_block.starts_with("ae2:") && canon(&target_block) != "ae2:interface" && !ae2_machine(&target_block) && p2p_output_source(game, target).is_none() {
             continue;
         }
         if !bus_enabled(game, bus) {
@@ -14883,6 +15112,22 @@ fn p2p_input(game: &Game<'_>, block: &str, pos: Pos) -> bool {
         }
 }
 
+/// The input of the output tunnel at `pos`, on the same running network.
+fn p2p_output_source(game: &Game<'_>, pos: Pos) -> Option<Pos> {
+    let e = match game.world.block_entities.get(&(pos[0], pos[1], pos[2])) {
+        Some(horizon_client::containers::BlockEntity::Mod(e)) => e,
+        _ => return None,
+    };
+    if nbt_i64(&e.nbt, "output") == 0 {
+        return None;
+    }
+    let freq = nbt_i64(&e.nbt, "freq");
+    SERVER.with_borrow(|s| {
+        let g = s.grid_of.get(&pos)?;
+        s.p2p.iter().find(|(q, (f, out, k, _))| *f == freq && !*out && *k == e.id && s.grid_of.get(*q) == Some(g)).map(|(q, _)| *q)
+    })
+}
+
 /// What a provider's target really is: through a tunnel, the machine the tunnel's first output faces.
 fn through_p2p(game: &Game<'_>, q: Pos) -> Pos {
     let block = block_id(game, q);
@@ -14901,6 +15146,85 @@ fn through_p2p(game: &Game<'_>, q: Pos) -> Pos {
             add(out, facing_dir(facing.as_deref()))
         }
         None => q,
+    }
+}
+
+/// PowerUnits.TR: AE to one unit of energy from outside (AEConfig.DEFAULT_TR_EXCHANGE).
+const AE_PER_FE: f64 = 2.0;
+const FE_BUFFER: i32 = 100_000;
+
+/// `AEBasePoweredBlockEntity.getEnergyStorage`: what takes energy from outside.
+fn takes_fe(block: &str) -> bool {
+    matches!(ae2_name(block), Some("energy_acceptor" | "controller" | "charger" | "inscriber"))
+}
+
+/// `native_block_entity_energy`: an insert-only buffer on those, and on FE tunnels.
+pub fn block_entity_energy(block: &str, energy: &mut Option<horizon_client::containers::ModEnergyBuffer>) {
+    if takes_fe(block) || block == "ae2:fe_p2p_tunnel" {
+        *energy = Some(horizon_client::containers::ModEnergyBuffer {
+            capacity: FE_BUFFER,
+            max_insert: FE_BUFFER,
+            max_extract: 0,
+            insert_faces: [true; 6],
+            extract_faces: [false; 6],
+        });
+    }
+}
+
+/// `native_item_energy_buffer`: IAEItemPowerStorage through PoweredItemCapabilities.
+pub fn item_energy_buffer(item: &str, buffer: &mut Option<super::native_item_energy::ItemEnergyBuffer>) {
+    if let Some((most, rate)) = item_battery(item) {
+        *buffer = Some(super::native_item_energy::ItemEnergyBuffer {
+            capacity: (most / AE_PER_FE).min(f64::from(i32::MAX)) as i32,
+            max_insert: (rate / AE_PER_FE).max(1.0) as i32,
+            // Only this mod draws it, into the AE charge (an item's energy is AE2's own to spend).
+            max_extract: i32::MAX,
+        });
+    }
+}
+
+/// `funnelPowerIntoStorage`: the buffer into the network, as far as it has room.
+fn fe_into_grid(pos: Pos, grid: Option<usize>, entity: &mut ModBlockEntity) {
+    if !takes_fe(&entity.id) {
+        return;
+    }
+    let held = match entity.nbt.get(&java("energy")) {
+        Some(Tag::Int(n)) if *n > 0 => *n,
+        _ => return,
+    };
+    let Some(g) = grid else { return };
+    let moved = SERVER.with_borrow_mut(|s| {
+        let info = s.grids.get(g)?;
+        let cap = grid_capacity(info, &s.devices);
+        let root = info.nodes.iter().min().copied()?;
+        let e = s.energy.entry(root).or_insert(0.0);
+        let fe = (f64::from(held)).min(((cap - *e).max(0.0) / AE_PER_FE).floor());
+        *e += fe * AE_PER_FE;
+        Some(fe as i32)
+    });
+    let _ = pos;
+    if let Some(moved) = moved.filter(|m| *m > 0) {
+        entity.nbt.insert(java("energy"), Tag::Int(held - moved));
+    }
+}
+
+/// A powered item's energy from outside (`horizon_energy`) into its AE charge, each tick it's carried.
+fn item_fe_tick(game: &mut Game<'_>, slot: i32) {
+    let Some(stack) = game.native_carried_stack(slot).map(|s| s.clone()) else { return };
+    if item_battery(&stack.item).is_none() {
+        return;
+    }
+    let Some(have) = game.native_item_energy(&stack).filter(|e| e.amount > 0) else { return };
+    let Some(most) = battery_max(&stack) else { return };
+    let room = ((most - portable_power(&stack)).max(0.0) / AE_PER_FE).floor() as i32;
+    let Some((taken, mut left)) = game.native_item_energy_extract(&stack, have.amount.min(room)) else { return };
+    if taken <= 0 {
+        return;
+    }
+    let power = portable_power(&left) + f64::from(taken) * AE_PER_FE;
+    set_custom(&mut left, "internalCurrentPower", Tag::Double(power.to_bits()));
+    if let Some(s) = game.native_carried_stack(slot) {
+        *s = left;
     }
 }
 
@@ -16371,6 +16695,9 @@ fn tiny_tnt_tick(game: &mut Game<'_>) {
                 on_ground: false,
                 owner: None,
                 guest: None,
+                join: Default::default(),
+                no_gravity: false,
+                power: 4.0,
             })
         });
         game.audio.play("minecraft:entity.tnt.primed", Some([at.x, at.y, at.z]), 1.0, 1.0);
@@ -16381,7 +16708,7 @@ fn tiny_tnt_tick(game: &mut Game<'_>) {
     }
     let mut keep = Vec::new();
     for mut t in lit.drain(..) {
-        let _ = t.tick(&game.world, game.collision, &game.pack.assets, game.res.facts());
+        let _ = t.tick(&game.world, game.collision, &game.pack.assets, game.res.facts(), &game.res.motion().fluids, Some(game.border.geometry()));
         let at = [t.position.x, t.position.y, t.position.z];
         let cell = [at[0].floor() as i32, at[1].floor() as i32, at[2].floor() as i32];
         if block_id(game, cell) == "minecraft:water" {
@@ -17786,6 +18113,22 @@ thread_local! {
     static GHOST_DRAG: RefCell<GhostDrag> = RefCell::default();
     /// The AE2 screen last drawn, its window's top left and when.
     static GHOST_SCREEN: RefCell<Option<(String, [f32; 2], std::time::Instant)>> = const { RefCell::new(None) };
+}
+
+/// AEBaseScreen.hasClickedOutside: the widgets beyond the window (the toolbar, the side panels and their slots) aren't
+/// outside it, so what's carried isn't thrown.
+pub fn clicked_widget(game: &Game<'_>, batch: &HudBatch) -> bool {
+    let Some((block, [ox, oy])) = ghost_screen() else { return false };
+    if ae2_name(&block).is_none() {
+        return false;
+    }
+    let (x, y) = game.cursor;
+    if game.slot_at(batch, x, y).is_some() {
+        return true;
+    }
+    let [x, y] = [x - ox, y - oy];
+    let (width, height) = (game.native_screen_width().unwrap_or(176.0), game.native_screen_height().unwrap_or(166.0));
+    (0.0..height).contains(&y) && ((-24.0..0.0).contains(&x) || (width..width + 56.0).contains(&x))
 }
 
 fn ghost_seen(block: &str, origin: [f32; 2]) {

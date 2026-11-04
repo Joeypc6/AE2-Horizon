@@ -436,7 +436,7 @@ fn slot(line: &mut Line, x: f32, y: f32) {
 
 /// The ids of an ingredient as a recipe's JSON names it (an item, a tag, a list), the first one shown.
 fn ingredient_ids(game: &Game<'_>, v: &serde_json::Value) -> Vec<String> {
-    horizon_client::crafting::Ingredient::parse(v, game.res.items()).map(|i| i.1).unwrap_or_default()
+    horizon_client::crafting::Ingredient::parse(v, game.res.items()).map(|i| i.order).unwrap_or_default()
 }
 
 fn result_of(v: &serde_json::Value) -> Option<(String, i64)> {

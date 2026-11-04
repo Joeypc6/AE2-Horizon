@@ -1,3 +1,7 @@
 {
-  "template": "minecraft:medium_amethyst_bud"
+  "template": "minecraft:medium_amethyst_bud",
+  "properties": {
+    "hardness": 1.5,
+    "explosion_resistance": 1.5
+  }
 }

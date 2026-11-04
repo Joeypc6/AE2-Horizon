@@ -2,10 +2,11 @@
   "template": "minecraft:skeleton_skull",
   "item": false,
   "properties": {
-    "hardness": 0.3,
+    "hardness": 2.2,
     "sounds": "minecraft:glass",
     "requires_tool": false,
-    "light": 0
+    "light": 0,
+    "explosion_resistance": 11.0
   },
   "shapes": {
     "property": "rotation",

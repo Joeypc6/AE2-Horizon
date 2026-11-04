@@ -2,7 +2,8 @@
   "template": "minecraft:barrel",
   "properties": {
     "hardness": 2.2,
-    "sounds": "minecraft:iron_block"
+    "sounds": "minecraft:iron_block",
+    "explosion_resistance": 11.0
   },
   "state_properties": {
     "powered": {
