@@ -19,10 +19,14 @@
     },
     "update": {
       "type": "boolean"
+    },
+    "powered": {
+      "type": "boolean"
     }
   },
   "default_state": {
     "facing": "north",
-    "update": "false"
+    "update": "false",
+    "powered": "false"
   }
 }

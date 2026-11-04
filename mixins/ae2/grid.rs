@@ -381,6 +381,29 @@ impl MeStorage for BasicCellInventory {
     }
 }
 
+/// CraftingServiceStorage: what enters a network that a crafting CPU waits for goes to the CPU. Entering storage is
+/// noted here, and the CPUs take it from there on their next tick.
+#[derive(Default)]
+pub struct CpuWatch {
+    pub keys: Vec<AeKey>,
+    pub log: Vec<(usize, AeKey, i64)>,
+    pub grid: usize,
+    /// The CPUs' own storing, which isn't for them to take back.
+    pub quiet: bool,
+}
+
+impl CpuWatch {
+    fn note(&mut self, what: &AeKey, amount: i64) {
+        if !self.quiet && self.keys.contains(what) {
+            self.log.push((self.grid, what.clone(), amount));
+        }
+    }
+}
+
+thread_local! {
+    pub static CPU_WATCH: std::cell::RefCell<CpuWatch> = std::cell::RefCell::new(CpuWatch::default());
+}
+
 /// `NetworkStorage`: the network's storages by priority, highest first for inserts and lowest
 /// first for extracts. AE2 walks every storage for each operation; with thousands of cells that walk is the
 /// whole cost, so this one keeps an index of which storages hold each key (built on first use, kept up as items
@@ -515,6 +538,14 @@ impl<S: MeStorage> NetworkStorage<S> {
     /// `insert`: the storages already holding it (or partitioned to it) first, highest priority first, then
     /// the rest in priority order.
     pub fn insert(&mut self, what: &AeKey, amount: i64, mode: Actionable) -> i64 {
+        let done = self.insert_stored(what, amount, mode);
+        if done > 0 && mode == Actionable::Modulate {
+            CPU_WATCH.with_borrow_mut(|w| w.note(what, done));
+        }
+        done
+    }
+
+    fn insert_stored(&mut self, what: &AeKey, amount: i64, mode: Actionable) -> i64 {
         self.ensure_index();
         let mut remaining = amount;
         let mut tried = Vec::new();

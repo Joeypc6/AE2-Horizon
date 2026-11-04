@@ -609,6 +609,16 @@ impl CraftingCpu {
         format!("tasks {tasks:?} held {held:?} owed {owed:?}")
     }
 
+    /// The patterns the job has yet to run.
+    pub fn task_patterns(&self) -> Vec<Arc<Pattern>> {
+        self.job.as_ref().map_or(Vec::new(), |j| j.tasks.iter().filter(|(_, n)| *n > 0).map(|(p, _)| p.clone()).collect())
+    }
+
+    /// What the job waits for now.
+    pub fn waiting_keys(&self) -> Vec<AeKey> {
+        self.job.as_ref().map_or(Vec::new(), |j| j.waiting_for.iter().filter(|(_, n)| *n > 0).map(|(k, _)| k.clone()).collect())
+    }
+
     pub fn has_job(&self) -> bool {
         self.job.is_some()
     }

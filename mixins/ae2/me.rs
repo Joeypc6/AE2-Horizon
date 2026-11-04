@@ -459,6 +459,18 @@ struct Server {
     mounted: HashMap<Pos, MountedStorage>,
     /// Each machine a processing pattern uses: when something last came out, and its ticks an output as measured.
     machine_times: HashMap<Pos, (u64, f64)>,
+    /// What each CPU's requested job makes, for the toast when it's done.
+    request_items: HashMap<Pos, (String, i64)>,
+    /// Who turned off Notify about finished crafting jobs.
+    no_notify: HashSet<u128>,
+    /// The toolbelt each viewer's client has, what its clicks have yet to write on the tool, and the tick each was
+    /// last looked at.
+    toolbelt_sent: HashMap<u128, String>,
+    toolbelt_writes: HashMap<u128, String>,
+    toolbelt_flush: HashSet<u128>,
+    toolbelt_seen: HashMap<u128, u64>,
+    /// The "+" on a crafting terminal: a player, the terminal, the grid cell and what may fill it from their inventory.
+    terminal_fills: Vec<(u128, Pos, usize, Vec<String>)>,
     /// Each molecular assembler's cycle: its cards, its last push and its ticks a craft as measured.
     assembler_cycles: HashMap<Pos, (usize, u64, f64)>,
     /// Each busy CPU's last forecast: at which tick, the ticks left then, the ticks a second.
@@ -487,7 +499,7 @@ fn shows_power(block: &str) -> bool {
     (is_part(block) && !block.ends_with("level_emitter"))
         || matches!(
             ae2_name(block),
-            Some("controller" | "chest" | "growth_accelerator" | "crafting_accelerator" | "1k_crafting_storage" | "4k_crafting_storage"
+            Some("controller" | "chest" | "growth_accelerator" | "molecular_assembler" | "crafting_monitor" | "crafting_accelerator" | "1k_crafting_storage" | "4k_crafting_storage"
                 | "16k_crafting_storage" | "64k_crafting_storage" | "256k_crafting_storage")
         )
 }
@@ -520,10 +532,12 @@ pub fn block_entity_ticks(block: &str, ticks: &mut bool) {
 fn upgrade_slots(block: &str) -> usize {
     match ae2_name(block) {
         Some("io_port") => 3,
-        Some("inscriber") => 3,
+        Some("inscriber") => 4,
         Some("molecular_assembler") => 5,
-        Some("import_bus" | "export_bus") => 4,
+        Some("import_bus" | "export_bus") => 5,
+        Some("vibration_chamber") => 3,
         Some("storage_bus" | "formation_plane") => 5,
+        Some("interface" | "level_emitter") => 1,
         _ => 0,
     }
 }
@@ -535,6 +549,9 @@ fn own_slots(block: &str) -> usize {
         Some("molecular_assembler") => 1,
         Some("import_bus" | "export_bus" | "storage_bus") => 0,
         Some("io_port") => 12,
+        Some("vibration_chamber") => 1,
+        Some("interface") => 9,
+        Some("level_emitter") => 1,
         _ => 0,
     }
 }
@@ -626,8 +643,13 @@ pub fn block_entity_container(block: &str, out: &mut Option<ModContainer>) {
         Some("drive") => Some(container(10, Some("ae2:drive"), false)),
         Some("controller") => Some(container(1, Some("ae2:controller"), false)),
         // AE2's interface: its storage slots, open to hoppers and pipes (what it stocks, others can take).
-        Some("interface") => Some(container(9, Some("ae2:interface"), true)),
-        Some("level_emitter") => Some(container(1, Some("ae2:level_emitter"), false)),
+        // (Hoppers reach the nine storage slots, not the card.)
+        Some("interface") => {
+            let mut c = container(9, Some("ae2:interface"), true);
+            c.slots = 10;
+            Some(c)
+        }
+        Some("level_emitter") => Some(container(2, Some("ae2:level_emitter"), false)),
         Some("energy_level_emitter") => Some(container(1, Some("ae2:energy_level_emitter"), false)),
         Some("cell_workbench") => Some(container(1 + WB_UPGRADES, Some("ae2:cell_workbench"), false)),
         Some("quantum_link") => Some(container(1, Some("ae2:quantum_link"), true)),
@@ -675,7 +697,12 @@ pub fn block_entity_container(block: &str, out: &mut Option<ModContainer>) {
         }),
         Some("import_bus" | "export_bus") => Some(container(upgrade_slots(block), Some("ae2:io_bus"), false)),
         Some("storage_bus" | "formation_plane") => Some(container(upgrade_slots(block), Some("ae2:storage_bus"), false)),
-        Some("vibration_chamber") => Some(container(1, Some("ae2:vibration_chamber"), true)),
+        // (Hoppers feed the fuel slot, not the cards.)
+        Some("vibration_chamber") => {
+            let mut c = container(1, Some("ae2:vibration_chamber"), true);
+            c.slots = 4;
+            Some(c)
+        }
         // AE2's charger has no screen: items go in by hand or by hopper.
         Some("charger") => Some(container(1, None, true)),
         // The inscriber: top press, middle, bottom press, output; hoppers fill the three and take the output.
@@ -760,6 +787,7 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
         "pattern_access_terminal" => {
             entity.data.resize(4, 0);
             entity.data[0] = i32::from(active);
+            entity.data[1] = nbt_i64(&entity.nbt, "show") as i32;
         }
         n if n.ends_with("_p2p_tunnel") => {
             let kind = entity.id.clone();
@@ -807,7 +835,7 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
                 set_nbt_i64(&mut entity.nbt, "rs", i64::from(signal));
             }
             if signal && !was && active && let Some(g) = grid {
-                spatial_swap(game, g, entity);
+                spatial_swap(game, g, pos, entity);
             }
         }
         "wireless_access_point" => {
@@ -830,7 +858,7 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
             }
         }
         "level_emitter" => {
-            entity.data.resize(2, 0);
+            entity.data.resize(5, 0);
             entity.data[0] = i32::from(active);
             if tick % 10 == 0 {
                 let level = nbt_i64(&entity.nbt, "level");
@@ -838,13 +866,40 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
                 let on = active
                     && match (grid, config) {
                         (Some(g), Some((id, _))) => {
-                            let key = key_of(game, &ItemStack::new(&id, 1));
-                            with_storage(game, g, None, |st| st.contents().get(&key)) >= level.max(1)
+                            let key = ghost_key(game, &id);
+                            // StorageLevelEmitterPart.updateReportingValue: with a Fuzzy Card, all that matches.
+                            let fuzzy = (cards(entity, 1, "ae2:fuzzy_card") > 0).then(|| fuzzy_mode_of(entity));
+                            let held = match fuzzy {
+                                Some(mode) => with_storage(game, g, None, |st| st.contents().find_fuzzy(&key, mode)).iter().map(|(_, n)| *n).sum(),
+                                None => with_storage(game, g, None, |st| st.contents().get(&key)),
+                            };
+                            held >= level.max(1)
                         }
                         _ => false,
                     };
                 // AE2's redstone mode: emit at or above the level, or below it.
                 let on = if nbt_i64(&entity.nbt, "below") != 0 { active && !on } else { on };
+                // With a Crafting Card: on while a CPU waits for the item (any item with none configured).
+                let carded = cards(entity, 1, "ae2:crafting_card") > 0;
+                let on = if carded {
+                    let wanted = ghosts_of(entity).into_iter().next().flatten().map(|(id, _)| ghost_key(game, &id));
+                    active
+                        && SERVER.with_borrow(|s| {
+                            grid.and_then(|g| s.grids.get(g)).is_some_and(|g| {
+                                g.cpus.iter().any(|(c, _, _)| {
+                                    s.cpus.get(c).is_some_and(|cpu| match &wanted {
+                                        Some(key) => cpu.waiting_for(key) > 0,
+                                        None => cpu.has_job(),
+                                    })
+                                })
+                            })
+                        })
+                } else {
+                    on
+                };
+                entity.data[2] = i32::from(carded);
+                entity.data[4] = if cards(entity, 1, "ae2:fuzzy_card") > 0 { nbt_i64(&entity.nbt, "fuzzy") as i32 } else { -1 };
+                entity.data[3] = nbt_i64(&entity.nbt, "craft_redstone") as i32;
                 entity.data[1] = i32::from(on);
                 // Lit as the block shows it too (a block placed again where a lit one stood starts unlit).
                 let was = SERVER.with_borrow(|s| s.lit_emitters.contains(&pos)) && game.native_block_property(pos, "powered").as_deref() == Some("true");
@@ -861,8 +916,9 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
             }
         }
         "interface" => {
-            entity.data.resize(1, 0);
+            entity.data.resize(2, 0);
             entity.data[0] = i32::from(active);
+            entity.data[1] = if cards(entity, 9, "ae2:fuzzy_card") > 0 { nbt_i64(&entity.nbt, "fuzzy") as i32 } else { -1 };
             if active && let Some(g) = grid {
                 interface_tick(game, g, entity);
             }
@@ -955,6 +1011,7 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
             entity.data.resize(4, 0);
             entity.data[0] = i32::from(active);
             entity.data[1] = nbt_i64(&entity.nbt, "mode") as i32;
+            entity.data[2] = nbt_i64(&entity.nbt, "substitute") as i32;
         }
         "drive" | "chest" => {
             // Clients draw the cells from the update tag, sent when the block changes: flip the barrel's
@@ -1031,6 +1088,9 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
             };
             if look != old {
                 entity.nbt.insert(java("look"), Tag::String(java(&look)));
+                // MolecularAssemblerBlockEntity's speed by its cards: the sparks' number.
+                let speed = [10, 13, 17, 20, 25, 50][cards(entity, 1, "ae2:speed_card").min(5)];
+                set_nbt_i64(&mut entity.nbt, "speed", speed);
                 SERVER.with_borrow_mut(|s| s.flips.push(pos));
             }
         }
@@ -1047,6 +1107,20 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
             }
         }
         _ if is_crafting(&entity.id) => {
+            // CraftingCPUCluster.updateOutput: a monitor shows its CPU's job and how many are left.
+            if entity.id == "ae2:crafting_monitor" {
+                let job = SERVER.with_borrow(|s| {
+                    let info = grid.and_then(|g| s.grids.get(g))?;
+                    let job = s.cpus.get(info.cpu_of.get(&pos)?)?.job()?;
+                    (job.remaining_amount > 0).then(|| (wire_id(&job.final_output.what), key_amount(&wire_id(&job.final_output.what), job.remaining_amount, super::port_ae2_core::AmountFormat::Slot)))
+                });
+                let (show, text) = job.unwrap_or_default();
+                if show != nbt_string(&entity.nbt, "show") || text != nbt_string(&entity.nbt, "text") {
+                    entity.nbt.insert(java("show"), Tag::String(java(&show)));
+                    entity.nbt.insert(java("text"), Tag::String(java(&text)));
+                    game.native_block_entity_sync(pos);
+                }
+            }
             // The CPU status screen: formed, its cluster's storage (kB) and co-processors, busy, progress (per
             // mille), items left, then the grid's CPUs and how many are busy.
             entity.data.resize(8, 0);
@@ -1121,23 +1195,48 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
             }
         }
         "vibration_chamber" => {
-            let burn = nbt_i64(&entity.nbt, "burn");
-            if burn > 0 {
-                set_nbt_i64(&mut entity.nbt, "burn", burn - 1);
-                add_energy(pos, 5.0);
-            } else if let Some(fuel) = entity.items.first_mut().and_then(|s| s.as_mut())
-                && let Some(ticks) = fuel_ticks(game, &fuel.item)
-                && grid.is_some()
-            {
-                fuel.count -= 1;
-                if fuel.count == 0 {
-                    entity.items[0] = None;
+            // VibrationChamberBlockEntity.tickingRequest: fuel burns faster while the network takes all it makes, and
+            // slower as it fills. Energy Cards make more of each fuel tick, Acceleration Cards raise the top speed.
+            // (Kept in thousandths: block entity data is whole numbers.)
+            let per_fuel_tick = 5.0 * (1.0 + cards(entity, 1, "ae2:energy_card") as f64 / 2.0);
+            let top = (40.0 + 40.0 * cards(entity, 1, "ae2:speed_card") as f64 / 2.0) / per_fuel_tick;
+            let least = 4.0 / per_fuel_tick;
+            let mut left = nbt_i64(&entity.nbt, "burn") as f64 / if nbt_i64(&entity.nbt, "burn_v2") != 0 { 1000.0 } else { 1.0 };
+            set_nbt_i64(&mut entity.nbt, "burn_v2", 1);
+            let mut rate = match nbt_i64(&entity.nbt, "burn_rate") {
+                0 => 5.0 / per_fuel_tick,
+                r => r as f64 / 1000.0,
+            };
+            if left <= 0.0 {
+                if let Some(fuel) = entity.items.first_mut().and_then(|s| s.as_mut())
+                    && let Some(ticks) = fuel_ticks(game, &fuel.item)
+                    && grid.is_some()
+                {
+                    fuel.count -= 1;
+                    if fuel.count == 0 {
+                        entity.items[0] = None;
+                    }
+                    left = ticks as f64;
+                    set_nbt_i64(&mut entity.nbt, "burn_total", ticks);
+                } else {
+                    rate = 5.0 / per_fuel_tick;
                 }
-                set_nbt_i64(&mut entity.nbt, "burn", ticks);
-                set_nbt_i64(&mut entity.nbt, "burn_total", ticks);
+            } else {
+                let used = rate.min(left);
+                left -= used;
+                let step = (top - least) / 100.0;
+                let room = SERVER.with_borrow(|s| {
+                    grid.and_then(|g| s.grids.get(g)).and_then(|g| g.nodes.iter().min().copied().map(|root| grid_capacity(g, &s.devices) - s.energy.get(&root).copied().unwrap_or(0.0))).unwrap_or(0.0)
+                });
+                let made = used * per_fuel_tick;
+                add_energy(pos, made);
+                rate += if room < made { -step } else { step };
+                rate = rate.clamp(least, top);
             }
+            set_nbt_i64(&mut entity.nbt, "burn", (left * 1000.0) as i64);
+            set_nbt_i64(&mut entity.nbt, "burn_rate", (rate * 1000.0) as i64);
             // The burn time left and the fuel's whole burn time, scaled to fit the 16-bit data slots alike.
-            let (left, total) = (nbt_i64(&entity.nbt, "burn"), nbt_i64(&entity.nbt, "burn_total").max(1));
+            let (left, total) = (nbt_i64(&entity.nbt, "burn") / 1000, nbt_i64(&entity.nbt, "burn_total").max(1));
             let scale = (total / i64::from(i16::MAX) + 1).max(1);
             entity.data.resize(2, 0);
             entity.data[0] = (left / scale) as i32;
@@ -1521,6 +1620,8 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
             cpus.push((key, bytes, accel));
             cpu_of.extend(cluster.iter().map(|p| (*p, key)));
         }
+        // The status screen's "CPU #n" stays the same CPU however the clusters were found.
+        cpus.sort_by_key(|c| c.0);
         let info = GridInfo {
             online: g.controller_state != ControllerState::ControllerConflict,
             conflict: g.controller_state == ControllerState::ControllerConflict,
@@ -1646,7 +1747,9 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
             s.powered.insert(*p, on);
             // A part's ring: powered (AE2's isPowered) and its channel (isActive) apart.
             let powered = grid_of.get(p).is_some_and(|&g| grids[g].online);
-            changes.push((*p, on, powered));
+            // (MolecularAssemblerBlockEntity.isPowered: power alone, whatever its channel.)
+            let lit = on || (ae2_name(name) == Some("molecular_assembler") && powered);
+            changes.push((*p, lit, powered));
         }
         s.powered.retain(|p, _| blocks.contains_key(p));
         // CPUs follow their grids: made, resized, or turned off (a job stays until its blocks are back).
@@ -1812,6 +1915,7 @@ fn with_storage<R>(
     mut own: Option<(Pos, &mut ModBlockEntity)>,
     f: impl FnOnce(&mut NetworkStorage<Box<dyn super::port_ae2_grid::MeStorage>>) -> R,
 ) -> R {
+    super::port_ae2_grid::CPU_WATCH.with_borrow_mut(|w| w.grid = grid);
     let holders = SERVER.with_borrow(|s| s.grids.get(grid).filter(|g| g.online).map(|g| g.storage.clone()).unwrap_or_default());
     let buses = SERVER.with_borrow(|s| s.grids.get(grid).filter(|g| g.online).map(|g| g.storage_buses.clone()).unwrap_or_default());
     // The cells there now: where, which type, and the id and version written on each (only these are read).
@@ -1953,7 +2057,10 @@ fn with_storage<R>(
             0 => i32::MIN,
             p => p,
         };
-        mounted.storage.mount_volatile(id, priority, Box::new(Formation { open, placed: None, blocks: block_names(game), filter }) as Box<dyn super::port_ae2_grid::MeStorage>);
+        let drop_items = game.native_with_mod_block_entity(planes[i].0, |e| nbt_i64(&e.nbt, "drop_items") != 0).unwrap_or(false);
+        let lo = [f64::from(target[0]) - 1.0, f64::from(target[1]) - 1.0, f64::from(target[2]) - 1.0];
+        let can_throw = game.native_item_entities(&dim, lo, [lo[0] + 3.0, lo[1] + 3.0, lo[2] + 3.0]).len() < 128;
+        mounted.storage.mount_volatile(id, priority, Box::new(Formation { open, placed: None, blocks: block_names(game), filter, drop_items, can_throw, thrown: Vec::new() }) as Box<dyn super::port_ae2_grid::MeStorage>);
         formations.push((id, *target));
     }
     // Creative cells (CreativeCellInventory): what their partition names, without end; mounted fresh each time.
@@ -1986,6 +2093,10 @@ fn with_storage<R>(
         {
             let dim = game.dim.id().to_owned();
             game.native_set_block(&dim, target, state, 3);
+        }
+        for (key, n) in std::mem::take(&mut plane.thrown) {
+            let at = [f64::from(target[0]) + 0.5, f64::from(target[1]) + 0.5, f64::from(target[2]) + 0.5];
+            game.spawn_item(stack_of(&key, n as u32), at, [0.0, 0.0, 0.0], 10);
         }
     }
     for (id, view) in externals {
@@ -2094,6 +2205,15 @@ pub fn right_click(game: &mut Game<'_>, pos: Pos, face: Pos, canceled: &mut bool
         *canceled = true;
         return;
     }
+    // AbstractCraftingUnitBlock.use: only a formed, active cluster opens its screen.
+    if is_crafting(&block)
+        && !sneaking(game)
+        && !(FORMED.with_borrow(|f| f.contains(&pos)) && SERVER.with_borrow(|s| s.grid_of.get(&pos).and_then(|g| s.grids.get(*g)).is_some_and(|g| g.online && g.cpu_of.contains_key(&pos))))
+    {
+        *canceled = true;
+        place_held_against(game, pos, face);
+        return;
+    }
     if monitor_click(game, pos) {
         *canceled = true;
         return;
@@ -2179,9 +2299,10 @@ pub fn right_click(game: &mut Game<'_>, pos: Pos, face: Pos, canceled: &mut bool
         }
         return;
     }
-    if !matches!(canon(&block).as_str(), "ae2:terminal" | "ae2:crafting_terminal" | "ae2:molecular_assembler" | "ae2:pattern_encoding_terminal" | "ae2:pattern_access_terminal" | "ae2:interface" | "ae2:level_emitter"
+    if !matches!(canon(&block).as_str(), "ae2:spatial_io_port" | "ae2:terminal" | "ae2:crafting_terminal" | "ae2:molecular_assembler" | "ae2:pattern_encoding_terminal" | "ae2:pattern_access_terminal" | "ae2:interface" | "ae2:level_emitter"
         | "ae2:energy_level_emitter" | "ae2:drive" | "ae2:chest" | "ae2:storage_bus" | "ae2:import_bus" | "ae2:export_bus" | "ae2:formation_plane" | "ae2:cell_workbench" | "ae2:condenser" | "ae2:quantum_link")
         && !ae2_name(&block).is_some_and(is_info_block)
+        && !is_crafting(&block)
     {
         return;
     }
@@ -2206,7 +2327,7 @@ fn terminal_items(game: &mut Game<'_>, grid: usize) -> Vec<(AeKey, i64)> {
         s.grids.get(grid).map_or(Vec::new(), |g| g.patterns.iter().flat_map(|(_, p)| p.outputs.iter().map(|o| o.what.clone())).collect())
     });
     let mut seen: HashSet<AeKey> = items.iter().map(|(k, _)| k.clone()).collect();
-    for key in craftable {
+    for key in craftable.into_iter().chain(emitable_keys(game, grid)) {
         if seen.insert(key.clone()) {
             items.push((key, 0));
         }
@@ -2236,9 +2357,39 @@ fn stream_terminals(game: &mut Game<'_>) {
         } else {
             if let Some(g) = grid {
                 extras.push_str(&crafting_status(game, g));
+                // A crafting block's own screen shows its cluster's CPU.
+                if is_crafting(&block)
+                    && let Some(i) = SERVER.with_borrow(|s| {
+                        let info = s.grids.get(g)?;
+                        let key = info.cpu_of.get(&pos)?;
+                        info.cpus.iter().position(|c| c.0 == *key)
+                    })
+                {
+                    extras.push_str(&format!("#B {i}\n"));
+                }
+            }
+            if block == "ae2:spatial_io_port"
+                && let Some(g) = grid
+            {
+                let (stored, cap) = SERVER.with_borrow(|s| {
+                    s.grids.get(g).map_or((0.0, 0.0), |info| {
+                        let root = info.nodes.iter().min().copied();
+                        (root.and_then(|r| s.energy.get(&r).copied()).unwrap_or(0.0), grid_capacity(info, &s.devices))
+                    })
+                });
+                extras.push_str(&format!("#d Stored Power: {} AE\n#d Max Power: {} AE\n", readable_number::format_i64(stored as i64, 6), readable_number::format_i64(cap as i64, 6)));
+                if let Some((lo, hi)) = spatial_region(game, g) {
+                    let (required, efficiency) = spatial_power(game, g, lo, hi);
+                    extras.push_str(&format!("#d Required Power: {} AE\n#d Efficiency: {:.2}%\n", readable_number::format_i64(required as i64, 6), efficiency * 100.0));
+                }
             }
             if has_priority(&block) || canon(&block) == "ae2:pattern_provider" {
                 extras.push_str(&format!("#p {}\n", priority_of(game, pos)));
+            }
+            if block == "ae2:storage_bus"
+                && let Some(target) = SERVER.with_borrow(|s| s.grids.iter().find_map(|g| g.storage_buses.iter().find(|(b, _)| *b == pos).map(|(_, t)| *t)))
+            {
+                extras.push_str(&format!("#t {}\n", block_id(game, target)));
             }
             if block == "ae2:condenser" {
                 let v = game.native_with_mod_block_entity(pos, |e| {
@@ -2278,11 +2429,12 @@ fn stream_terminals(game: &mut Game<'_>) {
                 let (ghost, level) = game
                     .native_with_mod_block_entity(pos, |e| (ghosts_of(e).into_iter().next().flatten(), nbt_i64(&e.nbt, "level")))
                     .unwrap_or_default();
+                let text = ghost.as_ref().map_or(level.to_string(), |(id, _)| amount_text(id, level));
                 match ghost {
                     Some((id, n)) => extras.push_str(&format!("#g {id} {n}\n")),
                     None => extras.push_str("#g minecraft:air 0\n"),
                 }
-                extras.push_str(&format!("#l {level}\n"));
+                extras.push_str(&format!("#l {text}\n"));
             }
             if ae2_name(&block).is_some_and(is_info_block) {
                 for line in describe(game, pos) {
@@ -2300,7 +2452,7 @@ fn stream_terminals(game: &mut Game<'_>) {
             }
             if block == "ae2:pattern_encoding_terminal" {
                 let (ghosts, mode, pick) = game
-                    .native_with_mod_block_entity(pos, |e| (ghosts_of(e), nbt_i64(&e.nbt, "mode"), nbt_i64(&e.nbt, "stonecut")))
+                    .native_with_mod_block_entity(pos, |e| (enc_ghosts(e), nbt_i64(&e.nbt, "mode"), nbt_i64(&e.nbt, "stonecut")))
                     .unwrap_or_default();
                 let preview = match mode {
                     0 => craft_preview(game, &ghosts),
@@ -2340,7 +2492,8 @@ fn stream_terminals(game: &mut Game<'_>) {
             continue;
         }
         if block == "ae2:pattern_access_terminal" {
-            stream_providers(game, uuid, grid.filter(|_| online));
+            let show = game.native_with_mod_block_entity(pos, |e| nbt_i64(&e.nbt, "show")).unwrap_or(0);
+            stream_providers(game, uuid, grid.filter(|_| online), show);
             continue;
         }
         // Only terminals (and wireless terminals, through their access point) list the network's items.
@@ -2451,7 +2604,7 @@ fn provider_target(game: &Game<'_>, pos: Pos) -> String {
 
 /// AE2's pattern access terminal (`PatternAccessTermMenu`): every pattern provider of the grid, grouped by what
 /// it works for, each slot's pattern shown as what it makes. Sent whole (in pieces) when it changes.
-fn stream_providers(game: &mut Game<'_>, uuid: u128, grid: Option<usize>) {
+fn stream_providers(game: &mut Game<'_>, uuid: u128, grid: Option<usize>, show: i64) {
     let mut providers: Vec<(String, Pos, Vec<String>)> = Vec::new();
     if let Some(g) = grid {
         let nodes: Vec<Pos> = SERVER.with_borrow(|s| s.grids.get(g).map(|g| g.nodes.iter().copied().collect()).unwrap_or_default());
@@ -2459,15 +2612,19 @@ fn stream_providers(game: &mut Game<'_>, uuid: u128, grid: Option<usize>) {
             if canon(&block_id(game, p)) != "ae2:pattern_provider" {
                 continue;
             }
-            // Settings.PATTERN_ACCESS_TERMINAL: NO hides it.
-            if game.native_with_mod_block_entity(p, |e| nbt_i64(&e.nbt, "hide")).unwrap_or(0) != 0 {
+            // Settings.PATTERN_ACCESS_TERMINAL: NO hides it, unless the terminal shows them all.
+            if show != 2 && game.native_with_mod_block_entity(p, |e| nbt_i64(&e.nbt, "hide")).unwrap_or(0) != 0 {
                 continue;
             }
             let items = game.native_with_mod_block_entity(p, |e| e.items.clone()).unwrap_or_default();
+            // ShowPatternProviders.NOT_FULL.
+            if show == 1 && (0..9).all(|i| items.get(i).is_some_and(Option::is_some)) {
+                continue;
+            }
             let slots: Vec<String> = (0..9)
                 .map(|i| match items.get(i).cloned().flatten() {
                     Some(stack) => decode_pattern(game, &stack)
-                        .map(|pat| pat.primary_output().what.id().to_owned())
+                        .map(|pat| wire_id(&pat.primary_output().what))
                         .unwrap_or_else(|| stack.item.to_string()),
                     None => "-".to_owned(),
                 })
@@ -2718,6 +2875,25 @@ fn deliver_gives(game: &mut Game<'_>) {
 fn inventory_tick_rest(game: &mut Game<'_>, slot: i32) {
     item_screen_tick(game, slot);
     let Some(player) = game.native_acting_player() else { return };
+    toolbelt_stream(game, player.uuid);
+    // The "+" on a crafting terminal: what the network hadn't, from this player's inventory.
+    let fills: Vec<(Pos, usize, Vec<String>)> = SERVER.with_borrow_mut(|s| {
+        let (mine, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut s.terminal_fills).into_iter().partition(|f| f.0 == player.uuid);
+        s.terminal_fills = rest;
+        mine.into_iter().map(|(_, p, c, ids)| (p, c, ids)).collect()
+    });
+    for (pos, c, ids) in fills {
+        for id in &ids {
+            if game.native_take_items(id, 1) == 1 {
+                game.native_with_mod_block_entity(pos, |e| {
+                    if let Some(cell) = e.items.get_mut(CT_GRID.start + c) {
+                        *cell = Some(ItemStack::new(id, 1));
+                    }
+                });
+                break;
+            }
+        }
+    }
     compass_tick(game, slot, player.uuid, player.yaw, player.position);
     // The terminal's own slot (only filled slots tick): the grid's clicks, with the inventory to hand.
     if SERVER.with_borrow(|s| s.wcraft_slot.get(&player.uuid) == Some(&slot)) {
@@ -2773,11 +2949,34 @@ fn interface_tick(game: &mut Game<'_>, grid: usize, entity: &mut ModBlockEntity)
             let now = entity.items[i].as_ref().filter(|s| *s.item == *id).map_or(0, |s| i64::from(s.count));
             if now < n && entity.items[i].as_ref().is_none_or(|s| *s.item == *id) {
                 let key = key_of(game, &ItemStack::new(&id, 1));
-                let got = with_storage(game, grid, None, |s| s.extract(&key, n - now, Actionable::Modulate));
+                // InterfaceLogic: with a Fuzzy Card, what matches the config in the set way, when the slot is free for it.
+                let fuzzy = if cards(entity, 9, "ae2:fuzzy_card") > 0 && now == 0 {
+                    let mode = fuzzy_mode_of(entity);
+                    with_storage(game, grid, None, |s| s.contents().find_fuzzy(&key, mode)).into_iter().find(|(_, c)| *c > 0).map(|(k, _)| k)
+                } else {
+                    None
+                };
+                let take = fuzzy.unwrap_or_else(|| key.clone());
+                let got = with_storage(game, grid, None, |s| s.extract(&take, n - now, Actionable::Modulate));
                 if got > 0 {
                     match entity.items[i].as_mut() {
                         Some(slot) => slot.count += got as u32,
-                        None => entity.items[i] = Some(stack_of(&key, got as u32)),
+                        None => entity.items[i] = Some(stack_of(&take, got as u32)),
+                    }
+                }
+                // InterfaceLogic.handleCrafting: with a Crafting Card, what the network hasn't is asked for (once a
+                // second, and not while a job already makes it). It comes here through the network.
+                if now + got < n && cards(entity, 9, "ae2:crafting_card") > 0 && SERVER.with_borrow(|s| s.tick % 20 == 0) {
+                    let (busy, craftable) = SERVER.with_borrow(|s| {
+                        s.grids.get(grid).map_or((true, false), |g| {
+                            (
+                                g.cpus.iter().any(|(c, _, _)| s.cpus.get(c).and_then(|cpu| cpu.job()).is_some_and(|j| j.final_output.what == key)),
+                                g.patterns.iter().any(|(_, p)| p.outputs.iter().any(|o| o.what == key)),
+                            )
+                        })
+                    });
+                    if craftable && !busy {
+                        request_craft(game, grid, 0, &key, n - now - got);
                     }
                 }
             }
@@ -2909,6 +3108,10 @@ pub fn wireless_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
     let craft = CLIENT.with_borrow(|c| c.wireless_craft);
     CLIENT.with_borrow_mut(|c| c.rows = rows);
     let [ox, oy] = wireless_origin(game);
+    if overlay_shown() {
+        CLIENT.with_borrow_mut(|c| c.status_host = if craft { "ae2:wireless_crafting_terminal" } else { "ae2:wireless_terminal" }.to_owned());
+        return;
+    }
     screen_draw(game, if craft { "ae2:crafting_terminal" } else { "ae2:terminal" }, &[1], batch, [ox, oy]);
     // The player's inventory: three rows, then the hotbar.
     let inv_y = oy + inv_top;
@@ -3157,7 +3360,22 @@ fn job_seconds_left(game: &Game<'_>, grid: usize, cpu: Pos) -> f64 {
 /// far along it is and the time left, one `#j` line each.
 fn crafting_status(game: &Game<'_>, grid: usize) -> String {
     let keys: Vec<Pos> = SERVER.with_borrow(|s| s.grids.get(grid).map(|g| g.cpus.iter().map(|(k, _, _)| *k).collect()).unwrap_or_default());
-    let lefts: Vec<(Pos, f64)> = keys.iter().filter(|k| SERVER.with_borrow(|s| s.cpus.get(*k).is_some_and(|c| c.job().is_some()))).map(|k| (*k, job_seconds_left(game, grid, *k))).collect();
+    let modes: Vec<(Pos, i64)> = keys.iter().map(|k| (*k, provider_nbt(game, *k, "cpu_mode"))).collect();
+    let mut lefts: Vec<(Pos, f64)> = keys.iter().filter(|k| SERVER.with_borrow(|s| s.cpus.get(*k).is_some_and(|c| c.job().is_some()))).map(|k| (*k, job_seconds_left(game, grid, *k))).collect();
+    // CPUs run in order, and the first with work for a machine keeps it busy: a later job on the same patterns waits
+    // for the earlier one to finish first.
+    SERVER.with_borrow(|s| {
+        let tasks: Vec<Vec<Arc<Pattern>>> = lefts.iter().map(|(k, _)| s.cpus.get(k).map_or(Vec::new(), |c| c.task_patterns())).collect();
+        for later in 1..lefts.len() {
+            let wait = (0..later)
+                .filter(|&first| tasks[first].iter().any(|p| tasks[later].contains(p)) && lefts[first].1 >= 0.0)
+                .map(|first| lefts[first].1)
+                .fold(0.0, f64::max);
+            if lefts[later].1 >= 0.0 {
+                lefts[later].1 += wait;
+            }
+        }
+    });
     SERVER.with_borrow(|s| {
         let Some(g) = s.grids.get(grid) else { return String::new() };
         let mut out = String::new();
@@ -3172,6 +3390,26 @@ fn crafting_status(game: &Game<'_>, grid: usize) -> String {
                 (progress * 100.0) as i64,
                 left.round() as i64
             ));
+        }
+        // CraftingStatusMenu's CPU list, and each busy one's CraftingStatus entries: stored, active, scheduled.
+        for (i, (key, bytes, accel)) in g.cpus.iter().enumerate() {
+            let cpu = s.cpus.get(key);
+            let job = cpu.and_then(|c| c.job());
+            let item = job.map_or("-".to_owned(), |j| wire_id(&j.final_output.what));
+            let amount = job.map_or(0, |j| j.final_output.amount);
+            let permille = job.map_or(0, |j| (j.time.progress() * 1000.0) as i64);
+            let elapsed = job.map_or(0, |j| (j.time.elapsed_nanos() / 1_000_000_000) as i64);
+            let cant = cpu.is_some_and(|c| c.cant_store_items());
+            let left = lefts.iter().find(|(k, _)| k == key).map_or(-1.0, |l| l.1);
+            let mode = modes.iter().find(|(k, _)| k == key).map_or(0, |m| m.1);
+            out.push_str(&format!("#C {i} {bytes} {accel} {mode} {item} {amount} {permille} {} {elapsed} {}\n", left.round() as i64, u8::from(cant)));
+            if let Some(c) = cpu.filter(|c| c.has_job()) {
+                let mut all = super::port_ae2_core::KeyCounter::new();
+                c.all_items(&mut all);
+                for (k, _) in all.iter().take(90) {
+                    out.push_str(&format!("#E {i} {} {} {} {}\n", wire_id(k), c.stored(k), c.waiting_for(k), c.pending_outputs(k)));
+                }
+            }
         }
         out
     })
@@ -3192,6 +3430,10 @@ const CREATIVE_DUPLICATE: i32 = 7;
 /// `native_menu_button_v2` on a terminal: put the cursor's stack in, or take an item out to the cursor (or
 /// with shift, to the inventory).
 pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, id: i32, carried: &mut Option<ItemStack>) {
+    if (TOOLBELT..TOOLBELT + 18).contains(&id) {
+        toolbelt_click(game, pos, ((id - TOOLBELT) >> 1) as usize, id & 1 != 0, carried);
+        return;
+    }
     // CraftingTermMenu.clearCraftingGrid / clearToPlayerInventory: the grid (slots 1 to 9) to the network, or to
     // the player's inventory (what doesn't fit there goes to the network).
     if entity.id == "ae2:crafting_terminal" && (id == CT_STASH || id == CT_STASH_PLAYER) {
@@ -3212,6 +3454,27 @@ pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, i
         }
         return;
     }
+    if entity.id == "ae2:interface" && id == EMIT_FUZZY {
+        let m = nbt_i64(&entity.nbt, "fuzzy");
+        set_nbt_i64(&mut entity.nbt, "fuzzy", (m + 1) % 5);
+        return;
+    }
+    if entity.id == "ae2:level_emitter" && id == EMIT_FUZZY {
+        let m = nbt_i64(&entity.nbt, "fuzzy");
+        set_nbt_i64(&mut entity.nbt, "fuzzy", (m + 1) % 5);
+        return;
+    }
+    if entity.id == "ae2:inscriber" && id == INSCRIBER_EXPORT {
+        let b = nbt_i64(&entity.nbt, "auto_export");
+        set_nbt_i64(&mut entity.nbt, "auto_export", 1 - b);
+        return;
+    }
+    if entity.id == "ae2:level_emitter" && id == EMIT_MODE && cards(entity, 1, "ae2:crafting_card") > 0 {
+        // Settings.CRAFT_VIA_REDSTONE takes the redstone mode's place.
+        let b = nbt_i64(&entity.nbt, "craft_redstone");
+        set_nbt_i64(&mut entity.nbt, "craft_redstone", 1 - b);
+        return;
+    }
     if matches!(entity.id.as_str(), "ae2:level_emitter" | "ae2:energy_level_emitter") && id == EMIT_MODE {
         let b = nbt_i64(&entity.nbt, "below");
         set_nbt_i64(&mut entity.nbt, "below", 1 - b);
@@ -3219,8 +3482,8 @@ pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, i
     }
     if entity.id == "ae2:level_emitter" {
         if id >= GHOST {
-            // A copy of what the cursor holds (one), or cleared.
-            ghost_click(entity, 0, false, carried.as_ref());
+            // A copy of what the cursor holds (one), or cleared; right with a filled bucket, the fluid.
+            ghost_click(entity, 0, id & RIGHT != 0, carried.as_ref());
         }
         return;
     }
@@ -3252,6 +3515,46 @@ pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, i
         } else if id == BUS_SCHEDULE {
             let m = nbt_i64(&entity.nbt, "schedule");
             set_nbt_i64(&mut entity.nbt, "schedule", (m + 1) % 3);
+        } else if id == BUS_CRAFT_ONLY {
+            let m = nbt_i64(&entity.nbt, "craft_only");
+            set_nbt_i64(&mut entity.nbt, "craft_only", 1 - m);
+        } else if id == BUS_FUZZY {
+            let m = nbt_i64(&entity.nbt, "fuzzy");
+            set_nbt_i64(&mut entity.nbt, "fuzzy", (m + 1) % 5);
+        } else if id == BUS_REPORT {
+            let m = nbt_i64(&entity.nbt, "report_all");
+            set_nbt_i64(&mut entity.nbt, "report_all", 1 - m);
+        } else if id == BUS_EXTRACT_FILTER {
+            let m = nbt_i64(&entity.nbt, "no_extract_filter");
+            set_nbt_i64(&mut entity.nbt, "no_extract_filter", 1 - m);
+        } else if id == BUS_ACCESS {
+            let m = nbt_i64(&entity.nbt, "access");
+            set_nbt_i64(&mut entity.nbt, "access", (m + 1) % 3);
+        } else if id == BUS_PLACE {
+            let m = nbt_i64(&entity.nbt, "drop_items");
+            set_nbt_i64(&mut entity.nbt, "drop_items", 1 - m);
+        } else if id == BUS_CLEAR {
+            set_ghosts(entity, &[]);
+        } else if id == BUS_PARTITION {
+            // StorageBusPart's partition: what the container holds now.
+            let target = SERVER.with_borrow(|s| s.grids.iter().find_map(|g| g.storage_buses.iter().find(|(b, _)| *b == pos).map(|(_, t)| *t)));
+            if let Some(target) = target {
+                let face = face_toward(target, pos);
+                let mut ids: Vec<String> = Vec::new();
+                if let Some(view) = sided(game, target, face) {
+                    for st in sided_slots(game, &view).iter().flatten() {
+                        if !ids.contains(&st.item.to_string()) {
+                            ids.push(st.item.to_string());
+                        }
+                    }
+                } else if let Some(tanks) = game.native_fluid_tanks(&game.dim.id().to_owned(), target, face) {
+                    for fluid in tanks.into_iter().filter_map(|t| t.fluid) {
+                        ids.push(format!("~{fluid}"));
+                    }
+                }
+                let cells: Vec<Option<(String, i64)>> = ids.into_iter().take(bus_slots(entity)).map(|id| Some((id, 1))).collect();
+                set_ghosts(entity, &cells);
+            }
         }
         return;
     }
@@ -3283,7 +3586,10 @@ pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, i
         return;
     }
     if entity.id == "ae2:pattern_access_terminal" {
-        if id >= PROVIDER_SLOT {
+        if id == PAT_SHOW {
+            let m = nbt_i64(&entity.nbt, "show");
+            set_nbt_i64(&mut entity.nbt, "show", (m + 1) % 3);
+        } else if id >= PROVIDER_SLOT {
             let n = (id - PROVIDER_SLOT) >> 2;
             provider_click(game, pos, (n / 9) as usize, (n % 9) as usize, id & SHIFT != 0, carried);
         }
@@ -3296,6 +3602,23 @@ pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, i
         }
         if id >= STONECUT_PICK {
             set_nbt_i64(&mut entity.nbt, "stonecut", i64::from(id - STONECUT_PICK));
+            return;
+        }
+        if id == ENC_SUBSTITUTE {
+            let on = nbt_i64(&entity.nbt, "substitute");
+            set_nbt_i64(&mut entity.nbt, "substitute", 1 - on);
+            return;
+        }
+        if id == ENC_CYCLE {
+            // cycleProcessingOutput: the next set output becomes the primary one.
+            let mut cells = enc_ghosts(entity);
+            let set: Vec<(String, i64)> = (0..27).filter_map(|j| cells[enc_output(j)].clone()).collect();
+            if set.len() > 1 {
+                for j in 0..27 {
+                    cells[enc_output(j)] = set.get((j + 1) % set.len()).filter(|_| j < set.len()).cloned();
+                }
+                set_ghosts(entity, &cells);
+            }
             return;
         }
         if id < 8 {
@@ -3455,6 +3778,21 @@ fn terminal_action(game: &mut Game<'_>, grid: usize, uuid: u128, index: usize, a
 // ---------------------------------------------------------------------------------------------------------
 // Client: AE2's screens.
 
+/// CraftingStatusMenu.CraftingCpuListEntry.
+#[derive(Clone, Default)]
+struct StatusCpu {
+    bytes: i64,
+    accel: i64,
+    mode: i64,
+    /// The job's item ("-" idle), its amount and progress (per mille), the seconds it has run and has left.
+    item: String,
+    amount: i64,
+    permille: i64,
+    elapsed: i64,
+    secs: i64,
+    cant_store: bool,
+}
+
 #[derive(Default)]
 struct Client {
     /// Where an open terminal's panel is (for clicks the screen hook doesn't see: the middle button).
@@ -3502,6 +3840,43 @@ struct Client {
     /// The grid's crafting jobs (item, left, percent, seconds left; -1 unknown), and whether the terminal shows
     /// them instead of its items (AE2's crafting status button).
     jobs: Vec<(String, i64, i64, i64)>,
+    /// The crafting status screen: each CPU (storage, co-processors, mode, item, percent, seconds), its entries (the
+    /// CPU's index, item, stored, active, scheduled), the selected CPU and the table's scroll.
+    status_cpus: Vec<StatusCpu>,
+    /// The status screen is a crafting block's own (CraftingCPUScreen: that CPU only, with its mode button), the
+    /// terminal it goes back to, the CPU list's scroll, the pointer, and the scroll bar being dragged.
+    status_block: bool,
+    status_host: String,
+    status_list_scroll: usize,
+    status_mouse: [f32; 2],
+    scroll_drag: u8,
+    gui_size_seen: (f32, f32),
+    /// The terminal toolbar's settings beyond sort and view: type filter (all, items, fluids), descending, and
+    /// TerminalStyle (small, medium, tall, full), with the screen to lay out again after a new style.
+    /// What the open storage bus faces.
+    bus_target: String,
+    /// The processing panel's rows scrolled by (0 to 24).
+    enc_scroll: usize,
+    /// What the search reads: each listed item's name, its tags and its tooltip (these two only once asked for).
+    search_names: HashMap<String, String>,
+    search_tags: HashMap<String, Vec<String>>,
+    search_tips: HashMap<String, String>,
+    /// The toast of a finished job: its item, amount and when it first showed.
+    job_toast: Option<(String, i64, Option<std::time::Instant>)>,
+    /// The Upgrade Toolbelt under the upgrades: the network tool's nine stacks (none without a tool), where its panel
+    /// is on screen, and its presses waiting to go to the server as menu buttons.
+    toolbelt: Vec<(String, i64)>,
+    toolbelt_at: Option<[f32; 2]>,
+    toolbelt_presses: Vec<i32>,
+    press_taken: bool,
+    toolbelt_right: f32,
+    type_filter: u8,
+    sort_desc: bool,
+    term_style: u8,
+    relayout: bool,
+    status_entries: Vec<(usize, String, i64, i64, i64)>,
+    status_cpu: usize,
+    status_scroll: usize,
     show_jobs: bool,
     /// The terminal's search box (AE2's: words of the item's name, `@mod` for its mod) and whether it has the keys.
     search: String,
@@ -3528,7 +3903,13 @@ struct Client {
     knife_focus: bool,
     /// AE2's terminal settings, shown over the grid, and whether they were read from their file.
     settings_open: bool,
-    settings: [bool; 3],
+    settings: [bool; 9],
+    /// Pinned at the top of the grid: what the player has auto-crafted (Pin auto-crafted items).
+    pinned: Vec<String>,
+    /// A crafting terminal is open (Clear crafting grid on close), and the search as JEI last had it from here.
+    crafting_term_open: bool,
+    term_open: bool,
+    synced_search: String,
     settings_loaded: bool,
     /// The encoder's mode (0 crafting, 1 processing, 2 smithing, 3 stonecutting) and what its stonecutter offers.
     encoder_mode: i32,
@@ -3547,6 +3928,15 @@ const TERM_GRID: [f32; 2] = [8.0, 18.0];
 const HIDDEN_SLOT: [f32; 2] = [-10_000.0, -10_000.0];
 
 /// The terminal's rows: as many as fit the window, as AE2's tall terminal (between 3 and 12).
+/// TerminalStyle.getRows: a quarter of the rows that fit for each step (this port never shows fewer than its three).
+fn style_rows(possible: usize) -> usize {
+    let style = CLIENT.with_borrow_mut(|c| {
+        settings(c);
+        c.term_style
+    });
+    (possible * (usize::from(style) + 1) / 4).max(3)
+}
+
 fn term_rows() -> usize {
     CLIENT.with_borrow(|c| c.rows.max(3))
 }
@@ -3566,8 +3956,9 @@ pub fn from_server(channel: &str, data: &[u8]) {
                     if !s[1] {
                         c.search.clear();
                     }
-                    c.search_focus = s[0];
+                    c.search_focus = s[0] && !s[6];
                     c.view.take();
+                    c.ui_out.push(format!("notify {}", u8::from(s[4])));
                     continue;
                 }
                 let f: Vec<&str> = l.split(' ').collect();
@@ -3640,6 +4031,8 @@ pub fn from_server(channel: &str, data: &[u8]) {
     let mut ghosts = Vec::new();
     let mut preview = None;
     let mut jobs = Vec::new();
+    let mut status_cpus = Vec::new();
+    let mut status_entries = Vec::new();
     for l in text.lines() {
         let parse = |rest: &str| -> Option<(String, i64)> {
             let (id, amount) = rest.split_once(' ')?;
@@ -3670,6 +4063,32 @@ pub fn from_server(channel: &str, data: &[u8]) {
         } else if let Some(rest) = l.strip_prefix("#s ") {
             let p = rest.trim().parse().unwrap_or(0);
             CLIENT.with_borrow_mut(|c| c.stonecut_pick = p);
+        } else if let Some(rest) = l.strip_prefix("#C ") {
+            let f: Vec<&str> = rest.split(' ').collect();
+            if let [_, bytes, accel, mode, item, amount, permille, secs, elapsed, cant] = f.as_slice() {
+                status_cpus.push(StatusCpu {
+                    bytes: bytes.parse().unwrap_or(0),
+                    accel: accel.parse().unwrap_or(0),
+                    mode: mode.parse().unwrap_or(0),
+                    item: (*item).to_owned(),
+                    amount: amount.parse().unwrap_or(0),
+                    permille: permille.parse().unwrap_or(0),
+                    elapsed: elapsed.parse().unwrap_or(0),
+                    secs: secs.parse().unwrap_or(-1),
+                    cant_store: *cant == "1",
+                });
+            }
+        } else if let Some(rest) = l.strip_prefix("#t ") {
+            let target = rest.trim().to_owned();
+            CLIENT.with_borrow_mut(|c| c.bus_target = target);
+        } else if let Some(rest) = l.strip_prefix("#B ") {
+            let cpu = rest.trim().parse().unwrap_or(0);
+            CLIENT.with_borrow_mut(|c| c.status_cpu = cpu);
+        } else if let Some(rest) = l.strip_prefix("#E ") {
+            let f: Vec<&str> = rest.split(' ').collect();
+            if let [cpu, id, stored, active, pending] = f.as_slice() {
+                status_entries.push((cpu.parse().unwrap_or(0), (*id).to_owned(), stored.parse().unwrap_or(0), active.parse().unwrap_or(0), pending.parse().unwrap_or(0)));
+            }
         } else if let Some(rest) = l.strip_prefix("#j ") {
             let f: Vec<&str> = rest.split(' ').collect();
             if let [id, left, pct, secs] = f.as_slice() {
@@ -3693,6 +4112,8 @@ pub fn from_server(channel: &str, data: &[u8]) {
         c.ghosts = ghosts;
         c.preview = preview;
         c.jobs = jobs;
+        c.status_cpus = status_cpus;
+        c.status_entries = status_entries;
     });
 }
 
@@ -3708,7 +4129,15 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_x: 8.0,
             own_labels: false,
         }),
-        Some("chest") | Some("vibration_chamber") => Some(NativeScreen {
+        Some("vibration_chamber") => Some(NativeScreen {
+            width: 176.0 + UPGRADE_PANEL,
+            height: 166.0,
+            slots: std::iter::once(Some([80.0, 37.0])).chain(upgrade_panel(176.0, 3)).collect(),
+            inventory_y: 84.0,
+            inventory_x: 8.0,
+            own_labels: false,
+        }),
+        Some("chest") => Some(NativeScreen {
             width: 176.0,
             height: 166.0,
             slots: vec![Some([80.0, 37.0])],
@@ -3719,7 +4148,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
         Some("crafting_terminal") => {
             // The terminal's head and three rows, then the crafting grid and its result, then the inventory.
             let (_, gui_h) = game.gui_size();
-            let rows = (((gui_h - 241.0 + 54.0 - 20.0) / 18.0).floor() as usize).clamp(3, 10);
+            let rows = style_rows(((gui_h - 241.0 + 54.0 - 20.0) / 18.0).floor() as usize).clamp(3, 10);
             CLIENT.with_borrow_mut(|c| c.rows = rows);
             let extra = 18.0 * (rows - 3) as f32;
             let mut slots: Vec<Option<[f32; 2]>> = vec![Some(HIDDEN_SLOT)];
@@ -3731,7 +4160,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
         Some("pattern_encoding_terminal") => {
             // As many terminal rows as fit the window (AE2's terminal style: header, rows, bottom), the rest below.
             let (_, gui_h) = game.gui_size();
-            let rows = (((gui_h - 249.0 + 54.0 - 20.0) / 18.0).floor() as usize).clamp(3, 10);
+            let rows = style_rows(((gui_h - 249.0 + 54.0 - 20.0) / 18.0).floor() as usize).clamp(3, 10);
             let extra = 18.0 * (rows - 3) as f32;
             CLIENT.with_borrow_mut(|c| {
                 c.rows = rows;
@@ -3821,18 +4250,18 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
         }),
         // AE2's screens/level_emitter.json: the config item at 137, 40, the amount box at 23, 42.
         Some("level_emitter") => Some(NativeScreen {
-            width: 176.0,
+            width: 176.0 + UPGRADE_PANEL,
             height: 184.0,
-            slots: vec![Some(HIDDEN_SLOT)],
+            slots: std::iter::once(Some(HIDDEN_SLOT)).chain(upgrade_panel(176.0, 1)).collect(),
             inventory_y: 102.0,
             inventory_x: 8.0,
             own_labels: false,
         }),
         // AE2's screens/interface.json: config ghosts at y 53, storage slots at y 71.
         Some("interface") => Some(NativeScreen {
-            width: 176.0,
+            width: 176.0 + UPGRADE_PANEL,
             height: 205.0,
-            slots: (0..9).map(|i| Some([8.0 + 18.0 * i as f32, 71.0])).collect(),
+            slots: (0..9).map(|i| Some([8.0 + 18.0 * i as f32, 71.0])).chain(upgrade_panel(176.0, 1)).collect(),
             inventory_y: 123.0,
             inventory_x: 8.0,
             own_labels: true,
@@ -3858,13 +4287,14 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_x: 8.0,
             own_labels: true,
         }),
+        // CraftingCPUScreen has no slots of its own or the player's: `status_draw` is all of it.
         Some(_) if is_crafting(block) => Some(NativeScreen {
-            width: 176.0,
-            height: 166.0,
+            width: 2.0,
+            height: 2.0,
             slots: vec![Some(HIDDEN_SLOT)],
-            inventory_y: 84.0,
-            inventory_x: 8.0,
-            own_labels: false,
+            inventory_y: HIDDEN_SLOT[1],
+            inventory_x: HIDDEN_SLOT[0],
+            own_labels: true,
         }),
         // AE2's screens/sky_chest.json: four rows of nine at (8, 24), the inventory 82 above the bottom.
         Some("sky_stone_chest" | "smooth_sky_stone_chest") => Some(NativeScreen {
@@ -3895,7 +4325,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
         Some("inscriber") => Some(NativeScreen {
             width: 176.0 + UPGRADE_PANEL,
             height: 176.0,
-            slots: [Some([45.0, 16.0]), Some([63.0, 39.0]), Some([45.0, 62.0]), Some([113.0, 40.0])].into_iter().chain(upgrade_panel(176.0, 3)).collect(),
+            slots: [Some([45.0, 16.0]), Some([63.0, 39.0]), Some([45.0, 62.0]), Some([113.0, 40.0])].into_iter().chain(upgrade_panel(176.0, 4)).collect(),
             inventory_y: 94.0,
             inventory_x: 8.0,
             own_labels: false,
@@ -3923,7 +4353,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
         Some("terminal") => {
             // AE2's texture: a 17-pixel head, 18-pixel rows, then 95 pixels from the last row's foot down.
             let (_, gui_h) = game.gui_size();
-            let rows = (((gui_h - 17.0 - 95.0 - 20.0) / 18.0).floor() as usize).clamp(3, 12);
+            let rows = style_rows(((gui_h - 17.0 - 95.0 - 20.0) / 18.0).floor() as usize).clamp(3, 12);
             CLIENT.with_borrow_mut(|c| c.rows = rows);
             let extra = 18.0 * (rows - 3) as f32;
             Some(NativeScreen {
@@ -3948,11 +4378,63 @@ fn upgrade_panel(width: f32, n: usize) -> impl Iterator<Item = Option<[f32; 2]>>
     (0..n).map(move |i| Some([width + 2.0 + 8.0, 8.0 + 18.0 * i as f32]))
 }
 
+/// ToolboxPanel (screens/common/toolbox.json): where the network tool's nine stacks go, 90 up from the screen's foot
+/// beside it. Drawn over everything once the frame is done (`toolbelt_draw`).
+fn draw_toolbelt(game: &Game<'_>, _batch: &mut HudBatch, ox: f32, oy: f32, width: f32) {
+    let shown = CLIENT.with_borrow(|c| !c.toolbelt.is_empty());
+    let at = game.native_screen_height().filter(|_| shown).map(|height| [ox + width + 2.0, oy + height - 90.0]);
+    CLIENT.with_borrow_mut(|c| {
+        c.toolbelt_at = at;
+        c.toolbelt_right = width + 2.0 + 68.0;
+    });
+}
+
+fn toolbelt_draw(game: &Game<'_>, batch: &mut HudBatch) {
+    let (at, stacks) = CLIENT.with_borrow(|c| (c.toolbelt_at, c.toolbelt.clone()));
+    let Some([x, y]) = at.filter(|_| !overlay_shown()) else { return };
+    game.native_sprite(batch, "ae2:gui/extra_panels", [60.0, 60.0, 68.0, 68.0], [x, y, 68.0, 68.0]);
+    for (i, (id, n)) in stacks.iter().enumerate().take(9) {
+        if id.is_empty() || *n <= 0 {
+            continue;
+        }
+        let (sx, sy) = (x + 8.0 + 18.0 * (i % 3) as f32, y + 8.0 + 18.0 * (i / 3) as f32);
+        game.native_item(batch, id, [sx, sy], 16.0);
+        if *n > 1 {
+            let label = n.to_string();
+            let w = game.native_text_width(&label);
+            game.native_text(batch, &label, [sx + 17.0 - w, sy + 9.0], 0xFFFFFF, true);
+        }
+    }
+}
+
+/// The toolbelt's tooltip: the stack under the pointer, or ToolboxPanel.getTooltip.
+fn toolbelt_tooltip(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
+    let (at, stacks) = CLIENT.with_borrow(|c| (c.toolbelt_at, c.toolbelt.clone()));
+    let Some([x, y]) = at.filter(|_| !overlay_shown()) else { return };
+    if mouse[0] < x || mouse[0] >= x + 68.0 || mouse[1] < y || mouse[1] >= y + 68.0 {
+        return;
+    }
+    let cell = toolbelt_cell([mouse[0] - x, mouse[1] - y]);
+    let legacy = |l: &str| (horizon_client::text::Text::legacy(l), u32::MAX);
+    let lines = match cell.and_then(|c| stacks.get(c)).filter(|s| s.1 > 0) {
+        Some((id, _)) => vec![legacy(&key_words(game, id))],
+        None => vec![legacy("Network Tool"), legacy("§7Upgrade Toolbelt")],
+    };
+    game.draw_tooltip_lines(batch, &lines, mouse[0], mouse[1]);
+}
+
+/// The toolbelt's slot at `at`, from the panel's corner.
+fn toolbelt_cell(at: [f32; 2]) -> Option<usize> {
+    let (cx, cy) = ((at[0] - 8.0) / 18.0, (at[1] - 8.0) / 18.0);
+    ((0.0..3.0).contains(&cx) && (0.0..3.0).contains(&cy)).then(|| cy as usize * 3 + cx as usize)
+}
+
 /// AE2's upgrade panel (extra_panels.png): a framed slot per upgrade, stacked, beside the screen.
 fn draw_upgrade_panel(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32, width: f32, height: f32, n: usize) {
     if n == 0 {
         return;
     }
+    draw_toolbelt(game, batch, ox, oy, width);
     let x = ox + width + 2.0;
     // The frame's top, a middle per slot, its plain middle down to the screen's foot (the screen's rectangle takes
     // the panel in), its bottom; each slot's well from the panel's art.
@@ -3977,11 +4459,20 @@ pub fn screen_draw(game: &Game<'_>, block: &str, data: &[i32], batch: &mut HudBa
         c.term_origin = matches!(ae2_name(block), Some("terminal" | "crafting_terminal" | "pattern_encoding_terminal")).then_some(origin);
     });
     ghost_seen(block, origin);
+    CLIENT.with_borrow_mut(|c| c.toolbelt_at = None);
+    if overlay_shown() {
+        if matches!(ae2_name(block), Some("terminal" | "crafting_terminal" | "pattern_encoding_terminal")) {
+            CLIENT.with_borrow_mut(|c| c.status_host = block.to_owned());
+        }
+        return;
+    }
     let [ox, oy] = origin;
     let height = match ae2_name(block) {
         Some("inscriber") => 176.0,
         Some("io_port") => 166.0,
         Some("molecular_assembler") => 197.0,
+        Some("interface") => 205.0,
+        Some("level_emitter") => 184.0,
         Some("import_bus" | "export_bus" | "storage_bus" | "formation_plane") => 251.0,
         _ => 166.0,
     };
@@ -4114,19 +4605,41 @@ pub fn screen_draw(game: &Game<'_>, block: &str, data: &[i32], batch: &mut HudBa
             let clear = ENC_CLEAR[usize::from(mode == 1)];
             draw_button_hover(game, batch, [ox + clear[0], oy + clear[1], 9.0, 9.0], "", [ox, top]);
             game.native_text(batch, "x", [ox + clear[0] + 2.0, oy + clear[1] - 0.5], 0xFFFFFF, false);
+            if mode == 0 {
+                draw_button_hover(game, batch, [ox + ENC_SUBSTITUTE_AT[0], oy + ENC_SUBSTITUTE_AT[1], 9.0, 9.0], "", [ox, top]);
+                let icon = if data.get(2).copied().unwrap_or(0) != 0 { [64.0, 48.0] } else { [112.0, 48.0] };
+                game.native_sprite(batch, "ae2:gui/states", [icon[0], icon[1], 16.0, 16.0], [ox + ENC_SUBSTITUTE_AT[0] + 0.5, oy + ENC_SUBSTITUTE_AT[1] + 0.5, 8.0, 8.0]);
+            }
+            if mode == 1 {
+                // Scrollbar.SMALL over the panel's scroll track.
+                let (scroll, drag, mouse_y) = CLIENT.with_borrow(|c| (c.enc_scroll, c.scroll_drag, c.mouse[1]));
+                let scroll = if drag == 5 {
+                    let row = scrollbar_row(mouse_y - (oy - top), 92.0, 52.0, 24);
+                    CLIENT.with_borrow_mut(|c| c.enc_scroll = row);
+                    row
+                } else {
+                    scroll
+                };
+                let y = oy + 92.0 + (37.0 * scroll as f32 / 24.0).floor();
+                game.native_sprite(batch, "ae2:gui/pattern_modes", [242.0, 0.0, 7.0, 15.0], [ox + 17.0, y, 7.0, 15.0]);
+            }
+            if mode == 1 && CLIENT.with_borrow(|c| encoder_outputs(c)) > 1 {
+                draw_button_hover(game, batch, [ox + ENC_CYCLE_AT[0], oy + ENC_CYCLE_AT[1], 9.0, 9.0], "", [ox, top]);
+                game.native_sprite(batch, "ae2:gui/states", [0.0, 240.0, 16.0, 16.0], [ox + ENC_CYCLE_AT[0] + 0.5, oy + ENC_CYCLE_AT[1] + 0.5, 8.0, 8.0]);
+            }
             draw_button_hover(game, batch, [ox + ENC_ENCODE[0], oy + ENC_ENCODE[1], 16.0, 16.0], "", [ox, top]);
             game.native_text(batch, "↓", [ox + ENC_ENCODE[0] + 5.0, oy + ENC_ENCODE[1] + 4.0], 0xFFFFFF, true);
             CLIENT.with_borrow(|c| {
                 let cells = mode_cells(mode);
-                for (i, ghost) in c.ghosts.iter().enumerate().take(cells) {
-                    let (id, n) = ghost;
+                for i in 0..cells {
+                    let Some((id, n)) = c.ghosts.get(enc_visible(i, mode, c.enc_scroll)) else { continue };
                     if id == "minecraft:air" || id.is_empty() {
                         continue;
                     }
                     let [x, y] = ghost_cell_mode(i, mode);
-                    game.native_item(batch, id, [ox + x, oy + y], 16.0);
+                    draw_key(game, batch, id, [ox + x, oy + y], 16.0);
                     if *n > 1 {
-                        let label = n.to_string();
+                        let label = if id.starts_with('~') { key_amount(id, *n, super::port_ae2_core::AmountFormat::Slot) } else { n.to_string() };
                         let w = game.native_text_width(&label);
                         game.native_text(batch, &label, [ox + x + 17.0 - w, oy + y + 9.0], 0xFFFFFF, true);
                     }
@@ -4206,45 +4719,25 @@ pub fn screen_draw(game: &Game<'_>, block: &str, data: &[i32], batch: &mut HudBa
                     }
                 }
             });
-            // AE2's vertical toolbar: the redstone mode (with a redstone card), the export bus' scheduling.
-            if d(1) >= 0 {
-                draw_button_hover(game, batch, [ox + TOOLBAR[1][0], oy + TOOLBAR[1][1], 18.0, 18.0], "", [ox, oy]);
-                let icon = ["minecraft:redstone_torch", "minecraft:lever", "minecraft:repeater"][d(1).clamp(0, 2) as usize];
-                game.native_item(batch, icon, [ox + TOOLBAR[1][0] + 1.0, oy + TOOLBAR[1][1] + 1.0], 16.0);
+            // The left toolbar, and what the storage bus is attached to.
+            let (first, buttons) = bus_buttons(block, &d);
+            for (n, (_, icon, _, _)) in buttons.iter().enumerate() {
+                let at = bar_place(first + n);
+                draw_state_button(game, batch, [ox + at[0], oy + at[1]], *icon);
             }
-            if name == "export_bus" {
-                draw_button_hover(game, batch, [ox + TOOLBAR[2][0], oy + TOOLBAR[2][1], 18.0, 18.0], "", [ox, oy]);
-                let icon = ["minecraft:arrow", "minecraft:clock", "minecraft:spider_eye"][d(2).clamp(0, 2) as usize];
-                game.native_item(batch, icon, [ox + TOOLBAR[2][0] + 1.0, oy + TOOLBAR[2][1] + 1.0], 16.0);
-            }
-            if d(3) != 0 {
-                game.native_text(batch, "§4Inverted: all but these", [ox + 60.0, oy + 18.0], 0x404040, false);
+            if name == "storage_bus" {
+                let target = CLIENT.with_borrow(|c| c.bus_target.clone());
+                let text = if target.is_empty() || target == "minecraft:air" { "Unattached".to_owned() } else { format!("Attached to: {}", key_words(game, &target)) };
+                let start = batch.vertices.len();
+                game.native_text(batch, &text, [ox + 10.0, oy + 17.0], TEXT, false);
+                batch.scale_since(start, ox + 10.0, oy + 17.0, 0.6, 0.6);
             }
         }
         Some(_) if is_crafting(block) => {
-            let d = |i: usize| data.get(i).copied().unwrap_or(0);
-            let lines = if d(0) == 0 {
-                vec!["§4Not formed".to_owned(), "Crafting blocks must fill a cuboid".to_owned(), "with at least one crafting storage.".to_owned()]
-            } else if d(0) == 2 {
-                vec![format!("Storage: {} kB", d(1)), format!("Co-processors: {}", d(2)), "§4Device Offline".to_owned(), "No power: connect it to a powered network.".to_owned()]
-            } else {
-                let mut l = vec![format!("Storage: {} kB", d(1)), format!("Co-processors: {}", d(2))];
-                l.push(format!("CPUs on network: {} ({} busy)", d(6), d(7)));
-                if d(3) != 0 {
-                    l.push(format!("Crafting: {:.1}%", d(4) as f32 / 10.0));
-                    l.push(format!("Items left: {}", d(5)));
-                } else {
-                    l.push("§2Idle".to_owned());
-                }
-                l
-            };
-            for (i, line) in lines.iter().enumerate() {
-                game.native_text(batch, line, [ox + 8.0, oy + 20.0 + 11.0 * i as f32], 0x404040, false);
-            }
-            if d(3) != 0 {
-                game.native_fill(batch, [ox + 8.0, oy + 68.0, 160.0, 5.0], 0xFF555555);
-                game.native_fill(batch, [ox + 8.0, oy + 68.0, 160.0 * d(4) as f32 / 1000.0, 5.0], 0xFF55FF55);
-            }
+            CLIENT.with_borrow_mut(|c| {
+                c.show_jobs = true;
+                c.status_block = true;
+            });
         }
         Some(n) if is_info_block(n) => {
             let lines = CLIENT.with_borrow(|c| c.info.clone());
@@ -4257,9 +4750,13 @@ pub fn screen_draw(game: &Game<'_>, block: &str, data: &[i32], batch: &mut HudBa
         Some("spatial_io_port") => {
             game.native_sprite(batch, "ae2:gui/spatialio", [0.0, 0.0, 176.0, 197.0], [ox, oy, 176.0, 197.0]);
             let s = [data.get(1).copied().unwrap_or(0), data.get(2).copied().unwrap_or(0), data.get(3).copied().unwrap_or(0)];
-            let size = if s[0] > 0 { format!("Volume: {} x {} x {}", s[0], s[1], s[2]) } else { "§4No pylon frame".to_owned() };
-            game.native_text(batch, &size, [ox + 13.0, oy + 93.0], 0x404040, false);
-            game.native_text(batch, "Pulse with redstone to swap", [ox + 13.0, oy + 21.0], 0x404040, false);
+            // SpatialIOPortScreen.drawFG.
+            let size = if s[0] > 0 { format!("SCS Size: {}x{}x{}", s[0], s[1], s[2]) } else { "SCS Size: Invalid".to_owned() };
+            game.native_text(batch, &size, [ox + 13.0, oy + 83.0], 0x404040, false);
+            let info = CLIENT.with_borrow(|c| c.info.clone());
+            for (i, line) in info.iter().take(4).enumerate() {
+                game.native_text(batch, line, [ox + 13.0, oy + 21.0 + 10.0 * i as f32], 0x404040, false);
+            }
         }
         Some("wireless_access_point") => {
             game.native_sprite(batch, "ae2:gui/wireless_access_point", [0.0, 0.0, 176.0, 166.0], [ox, oy, 176.0, 166.0]);
@@ -4276,15 +4773,26 @@ pub fn screen_draw(game: &Game<'_>, block: &str, data: &[i32], batch: &mut HudBa
         Some("level_emitter") => {
             game.native_sprite(batch, "ae2:gui/level_emitter", [0.0, 0.0, 176.0, 184.0], [ox, oy, 176.0, 184.0]);
             draw_level_widget(game, batch, ox, oy, 103.0);
+            // With a Crafting Card the crafting mode's button replaces the redstone mode's.
+            if data.get(2).copied().unwrap_or(0) != 0 {
+                let icon = if data.get(3).copied().unwrap_or(0) != 0 { [48.0, 144.0] } else { [16.0, 144.0] };
+                draw_state_button(game, batch, [ox + TOOLBAR[0][0], oy + TOOLBAR[0][1]], icon);
+            }
+            if let Some(mode) = data.get(4).copied().filter(|m| *m >= 0) {
+                draw_state_button(game, batch, [ox + TOOLBAR[1][0], oy + TOOLBAR[1][1]], FUZZY_BUTTON[mode.clamp(0, 4) as usize].0);
+            }
             let config = CLIENT.with_borrow(|c| c.ghosts.first().cloned());
             draw_slot(game, batch, ox + 137.0, oy + 40.0);
             if let Some((id, _)) = config.filter(|(id, _)| !id.is_empty() && id != "minecraft:air") {
-                game.native_item(batch, &id, [ox + 137.0, oy + 40.0], 16.0);
+                draw_key(game, batch, &id, [ox + 137.0, oy + 40.0], 16.0);
             }
 
         }
         Some("interface") => {
             game.native_sprite(batch, "ae2:gui/interface", [0.0, 0.0, 176.0, 205.0], [ox, oy, 176.0, 205.0]);
+            if let Some(mode) = data.get(1).copied().filter(|m| *m >= 0) {
+                draw_state_button(game, batch, [ox + TOOLBAR[0][0], oy + TOOLBAR[0][1]], FUZZY_BUTTON[mode.clamp(0, 4) as usize].0);
+            }
             game.native_text(batch, "ME Interface", [ox + 8.0, oy + 6.0], 0x404040, false);
             game.native_text(batch, "Config", [ox + 8.0, oy + 24.0], 0x404040, false);
             game.native_text(batch, "Stored Items", [ox + 8.0, oy + 91.0], 0x404040, false);
@@ -4332,6 +4840,7 @@ pub fn screen_draw(game: &Game<'_>, block: &str, data: &[i32], batch: &mut HudBa
                 game.native_text(batch, "Network offline", [ox + 8.0, oy + 30.0], 0xFF5555, true);
                 return;
             }
+            draw_state_button(game, batch, [ox + TOOLBAR[0][0], oy + TOOLBAR[0][1]], PAT_BUTTON[data.get(1).copied().unwrap_or(0).clamp(0, 2) as usize].0);
             let rows = CLIENT.with_borrow(provider_rows_shown);
             let scroll = CLIENT.with_borrow(|c| c.scroll).min(rows.len().saturating_sub(6));
             for (r, row) in rows.iter().skip(scroll).take(6).enumerate() {
@@ -4345,7 +4854,7 @@ pub fn screen_draw(game: &Game<'_>, block: &str, data: &[i32], batch: &mut HudBa
                         game.native_sprite(batch, "ae2:gui/patternaccessterminal", [0.0, 35.0, 195.0, 18.0], [ox, y, 195.0, 18.0]);
                         for (i, id) in slots.iter().enumerate().take(9) {
                             if !id.is_empty() {
-                                game.native_item(batch, id, [ox + 8.0 + 18.0 * i as f32, y + 1.0], 16.0);
+                                draw_key(game, batch, id, [ox + 8.0 + 18.0 * i as f32, y + 1.0], 16.0);
                             }
                         }
                     }
@@ -4402,6 +4911,8 @@ pub fn screen_draw(game: &Game<'_>, block: &str, data: &[i32], batch: &mut HudBa
         }
         Some("inscriber") => {
             game.native_sprite(batch, "ae2:gui/inscriber", [0.0, 0.0, 176.0, 176.0], [ox, oy, 176.0, 176.0]);
+            let exporting = data.get(2).copied().unwrap_or(0) != 0;
+            draw_state_button(game, batch, [ox + TOOLBAR[0][0], oy + TOOLBAR[0][1]], if exporting { [128.0, 96.0] } else { [112.0, 96.0] });
             // The progress bar fills downwards (AE2's sprite under the panel, 6 by 18).
             let (done, total) = (data.first().copied().unwrap_or(0), data.get(1).copied().unwrap_or(0).max(1));
             let h = 18.0 * done.clamp(0, total) as f32 / total as f32;
@@ -4452,15 +4963,31 @@ enum ProviderRow {
 /// The pattern access terminal's rows the search keeps (a group whose name has the words, with its providers).
 fn provider_rows_shown(c: &Client) -> Vec<ProviderRow> {
     let words: Vec<String> = c.search.to_lowercase().split_whitespace().map(str::to_owned).collect();
+    if words.is_empty() {
+        return c.provider_rows.clone();
+    }
+    let hits = |text: &str| words.iter().all(|w| text.contains(w.as_str()));
     let mut out = Vec::new();
-    let mut keep = true;
+    let mut group: Option<&ProviderRow> = None;
+    let mut name_hit = false;
+    let mut group_shown = false;
     for row in &c.provider_rows {
-        if let ProviderRow::Group(name, _) = row {
-            let n = name.to_lowercase();
-            keep = words.iter().all(|w| n.contains(w.as_str()));
-        }
-        if keep {
-            out.push(row.clone());
+        match row {
+            ProviderRow::Group(name, _) => {
+                group = Some(row);
+                name_hit = hits(&name.to_lowercase());
+                group_shown = false;
+            }
+            ProviderRow::Slots(_, slots) => {
+                let slot_hit = slots.iter().any(|id| !id.is_empty() && hits(&item_words(id).to_lowercase()));
+                if name_hit || slot_hit {
+                    if !group_shown && let Some(g) = group {
+                        out.push(g.clone());
+                        group_shown = true;
+                    }
+                    out.push(row.clone());
+                }
+            }
         }
     }
     out
@@ -4477,13 +5004,26 @@ fn visible(c: &Client) -> std::rc::Rc<Vec<usize>> {
 }
 
 fn make_visible(c: &Client) -> Vec<usize> {
-    let words: Vec<String> = c.search.to_lowercase().split_whitespace().map(str::to_owned).collect();
+    // RepoSearch.fromString: `|` between alternatives, spaces between what each needs; @mod, #tooltip, $tag, *id, or
+    // the name.
+    let query = c.search.to_lowercase();
     let keeps = |id: &str| {
-        let name = item_words(id).to_lowercase();
-        let ns = id.split_once(':').map_or("minecraft", |(n, _)| n);
-        words.iter().all(|w| match w.strip_prefix('@') {
-            Some(m) => ns.starts_with(m),
-            None => name.contains(w.as_str()) || id.contains(w.as_str()),
+        let bare = id.trim_start_matches('~');
+        let ns = bare.split_once(':').map_or("minecraft", |(n, _)| n);
+        query.split('|').any(|part| {
+            part.split_whitespace().all(|w| {
+                if let Some(m) = w.strip_prefix('@') {
+                    ns.contains(m)
+                } else if let Some(t) = w.strip_prefix('#') {
+                    c.search_tips.get(id).is_some_and(|tips| tips.contains(t))
+                } else if let Some(t) = w.strip_prefix('$') {
+                    c.search_tags.get(bare).is_some_and(|tags| tags.iter().any(|tag| tag.contains(t)))
+                } else if let Some(t) = w.strip_prefix('*') {
+                    bare.contains(t)
+                } else {
+                    c.search_names.get(id).map_or_else(|| item_words(bare).to_lowercase().contains(w), |name| name.contains(w))
+                }
+            })
         })
     };
     let mut out: Vec<usize> = (0..c.items.len())
@@ -4493,54 +5033,178 @@ fn make_visible(c: &Client) -> Vec<usize> {
                 1 => *n > 0,
                 2 => *n == 0,
                 _ => true,
+            } && match c.type_filter {
+                1 => !id.starts_with('~'),
+                2 => id.starts_with('~'),
+                _ => true,
             }
         })
         .collect();
+    // SortOrder: name, amount, mod, by SortDir.
     match c.sort {
-        // Most first, the craftable ones (0) last, as AE2's amount order.
-        0 => out.sort_by(|&a, &b| c.items[b].1.cmp(&c.items[a].1).then_with(|| c.items[a].0.cmp(&c.items[b].0))),
-        1 => out.sort_by_key(|&i| item_words(&c.items[i].0)),
-        2 => out.sort_by_key(|&i| (c.items[i].0.split_once(':').map_or(String::new(), |(n, _)| n.to_owned()), item_words(&c.items[i].0))),
-        _ => {}
+        1 => out.sort_by(|&a, &b| c.items[a].1.cmp(&c.items[b].1).then_with(|| c.items[a].0.cmp(&c.items[b].0))),
+        2 => out.sort_by_key(|&i| (c.items[i].0.trim_start_matches('~').split_once(':').map_or(String::new(), |(n, _)| n.to_owned()), item_words(c.items[i].0.trim_start_matches('~')))),
+        _ => out.sort_by_key(|&i| item_words(c.items[i].0.trim_start_matches('~'))),
+    }
+    if c.sort_desc {
+        out.reverse();
+    }
+    // Pin auto-crafted items: those first, in the order they were asked for.
+    if !c.pinned.is_empty() {
+        out.sort_by_key(|&i| c.pinned.iter().position(|p| *p == c.items[i].0).unwrap_or(usize::MAX));
     }
     out
 }
 
-/// The terminals' left toolbar (AE2's): sort order, view, crafting status. Outside the panel, at its left.
-const TOOLBAR: [[f32; 2]; 3] = [[-20.0, 8.0], [-20.0, 28.0], [-20.0, 48.0]];
+/// MEStorageScreen's left toolbar (VerticalButtonBar: 16 pixels, 4 between): sort by, view, type filter, sort order,
+/// terminal settings, terminal style.
+const TOOLBAR: [[f32; 2]; 6] = [[-20.0, 8.0], [-20.0, 28.0], [-20.0, 48.0], [-20.0, 68.0], [-20.0, 88.0], [-20.0, 108.0]];
+/// The crafting status tab (screens/terminals/base_terminal.json).
+const STATUS_TAB: [f32; 4] = [170.0, -4.0, 25.0, 22.0];
+
+/// SettingToggleButton's icons and words for the toolbar, as they stand now.
+fn toolbar_entries(c: &Client) -> [([f32; 2], &'static str, &'static str); 6] {
+    [
+        (
+            [[0.0, 64.0], [16.0, 64.0], [96.0, 64.0]][usize::from(c.sort.min(2))],
+            "Sort By",
+            ["Item name", "Number of items", "Mod"][usize::from(c.sort.min(2))],
+        ),
+        (
+            [[32.0, 16.0], [0.0, 16.0], [48.0, 16.0]][usize::from(c.view_mode.min(2))],
+            "View",
+            ["Stored / Craftable", "Stored Items", "Craftable"][usize::from(c.view_mode.min(2))],
+        ),
+        (
+            [[160.0, 16.0], [128.0, 16.0], [144.0, 16.0]][usize::from(c.type_filter.min(2))],
+            "Filter Types",
+            ["Show All", "Show Items only", "Show Fluids only"][usize::from(c.type_filter.min(2))],
+        ),
+        (if c.sort_desc { [16.0, 48.0] } else { [0.0, 48.0] }, "Sort Order", if c.sort_desc { "Descending" } else { "Ascending" }),
+        ([32.0, 64.0], "Terminal Settings", ""),
+        (
+            [[0.0, 208.0], [16.0, 208.0], [32.0, 208.0], [48.0, 208.0]][usize::from(c.term_style.min(3))],
+            "Terminal Style",
+            ["Small Centered Terminal", "Medium Centered Terminal", "Tall Centered Terminal", "Full-Height Terminal"][usize::from(c.term_style.min(3))],
+        ),
+    ]
+}
+
+/// The toolbar's and the status tab's tooltips, over everything.
+fn toolbar_tooltip(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
+    if overlay_shown() {
+        return;
+    }
+    let Some(origin) = CLIENT.with_borrow(|c| c.term_origin) else { return };
+    let at = [mouse[0] - origin[0], mouse[1] - origin[1]];
+    let inside = |r: [f32; 4]| at[0] >= r[0] && at[0] < r[0] + r[2] && at[1] >= r[1] && at[1] < r[1] + r[3];
+    let legacy = |l: &str| (horizon_client::text::Text::legacy(l), u32::MAX);
+    if inside(STATUS_TAB) {
+        game.draw_tooltip_lines(batch, &[legacy("Crafting Status")], mouse[0], mouse[1]);
+        return;
+    }
+    // MEStorageScreen.updateSearch: what the box understands.
+    if inside(SEARCH_BOX) && !CLIENT.with_borrow_mut(|c| settings(c)[6]) {
+        let lines: Vec<_> = ["Search in Name", "Use @ to search by mod (@ae2)", "Use $ to search by tags ($ingot)", "Use # to search in tooltips (#looting)", "Use * to search by id (*cell)"]
+            .iter()
+            .map(|l| legacy(l))
+            .collect();
+        game.draw_tooltip_lines(batch, &lines, mouse[0], mouse[1]);
+        return;
+    }
+    let entries = CLIENT.with_borrow(toolbar_entries);
+    for (b, (_, title, value)) in TOOLBAR.iter().zip(entries) {
+        if inside([b[0], b[1], 16.0, 16.0]) {
+            let mut lines = vec![legacy(title)];
+            if !value.is_empty() {
+                lines.push(legacy(&format!("§7{value}")));
+            }
+            game.draw_tooltip_lines(batch, &lines, mouse[0], mouse[1]);
+            return;
+        }
+    }
+}
+
 /// The search box in the header.
 const SEARCH_BOX: [f32; 4] = [80.0, 4.0, 89.0, 12.0];
 
+/// The names, tags and tooltips the next listing's search reads (it has no game to ask).
+fn search_prepare(game: &Game<'_>) {
+    CLIENT.with_borrow_mut(|c| {
+        if c.view.borrow().is_some() {
+            return;
+        }
+        let tips = c.search.contains('#');
+        let tags = c.search.contains('$');
+        let ids: Vec<String> = c.items.iter().map(|(id, _)| id.clone()).collect();
+        for id in ids {
+            c.search_names.entry(id.clone()).or_insert_with(|| key_words(game, &id).to_lowercase());
+            if tips && !c.search_tips.contains_key(&id) {
+                let lines = game.stack_tooltip(&ItemStack::new(&icon_of(&id), 1));
+                let text = lines.iter().map(|l| l.0.plain().to_lowercase()).collect::<Vec<_>>().join(" ");
+                c.search_tips.insert(id, text);
+            }
+        }
+        if tags && c.search_tags.is_empty() {
+            for (tag, items) in &game.res.items().item_tags {
+                for item in items {
+                    c.search_tags.entry(item.to_string()).or_default().push(tag.to_lowercase());
+                }
+            }
+        }
+    });
+}
+
 /// A terminal's grid of network items (or "Network offline") and its scroll bar's handle.
 fn draw_terminal_items(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32, online: bool) {
+    search_prepare(game);
     // The title, as AE2 names its terminals, the inventory's label, and the search box.
     game.native_text(batch, "Terminal", [ox + 8.0, oy + 6.0], 0x404040, false);
     if let Some(inv) = game.native_screen_inventory_y() {
         game.native_text(batch, "Inventory", [ox + 8.0, oy + inv - 11.0], 0x404040, false);
     }
-    let (search, focus, sort, view) = CLIENT.with_borrow(|c| (c.search.clone(), c.search_focus, c.sort, c.view_mode));
+    let (search, focus, external, shown_of, entries, jobs) = CLIENT.with_borrow_mut(|c| {
+        let external = settings(c)[6];
+        let all = c.items.iter().filter(|(_, n)| *n >= 0).count();
+        (c.search.clone(), c.search_focus, external, (visible(c).len(), all), toolbar_entries(c), c.jobs.len())
+    });
     let [sx, sy, sw, sh] = SEARCH_BOX;
-    game.native_fill(batch, [ox + sx - 1.0, oy + sy - 1.0, sw + 2.0, sh + 2.0], if focus { 0xFFFFFFFF } else { 0xFFA0A0A0 });
-    game.native_fill(batch, [ox + sx, oy + sy, sw, sh], 0xFF000000);
-    let shown = if focus { format!("{search}_") } else { search };
-    game.native_text(batch, &shown, [ox + sx + 2.0, oy + sy + 2.0], 0xFFFFFF, false);
-    // The toolbar: sort, view, crafting status (icons as AE2's buttons show them).
-    let icons = [
-        ["minecraft:redstone", "minecraft:name_tag", "minecraft:book"][usize::from(sort.min(2))],
-        ["minecraft:chest", "minecraft:barrel", "minecraft:crafting_table"][usize::from(view.min(2))],
-        "minecraft:crafting_table",
-    ];
-    for (at, icon) in TOOLBAR.iter().zip(icons) {
-        draw_button_hover(game, batch, [ox + at[0], oy + at[1], 18.0, 18.0], "", [ox, oy]);
-        game.native_item(batch, icon, [ox + at[0] + 1.0, oy + at[1] + 1.0], 16.0);
+    if external {
+        // updateSearch: JEI has the search; "entriesShown" says what it leaves.
+        if shown_of.0 != shown_of.1 {
+            let text = format!("Showing {} of {}", shown_of.0, shown_of.1);
+            let (x, y) = (ox + 195.0 - 26.0 - game.native_text_width(&text) * 0.6, oy + 8.0);
+            let start = batch.vertices.len();
+            game.native_text(batch, &text, [x, y], TEXT, false);
+            batch.scale_since(start, x, y, 0.6, 0.6);
+        }
+    } else {
+        // AETextField: guis/text_field.png's ends and middle, its focused look 24 down.
+        let v = if focus { 24.0 } else { 0.0 };
+        let sprite = "ae2:gui/text_field";
+        game.native_sprite(batch, sprite, [0.0, v, 1.0, 12.0], [ox + sx, oy + sy, 1.0, 12.0]);
+        game.native_sprite(batch, sprite, [1.0, v, (sw - 2.0).min(126.0), 12.0], [ox + sx + 1.0, oy + sy, sw - 2.0, 12.0]);
+        game.native_sprite(batch, sprite, [127.0, v, 1.0, 12.0], [ox + sx + sw - 1.0, oy + sy, 1.0, 12.0]);
+        if search.is_empty() && !focus {
+            game.native_text(batch, "Search...", [ox + sx + 2.0, oy + sy + 2.0], 0xAEAEAE, false);
+        } else {
+            let shown = if focus { format!("{search}_") } else { search };
+            game.native_text(batch, &shown, [ox + sx + 2.0, oy + sy + 2.0], 0xFFFFFF, true);
+        }
     }
-    let gear = [ox + TOOLBAR[2][0], oy + TOOLBAR[2][1] + 20.0, 18.0, 18.0];
-    draw_button_hover(game, batch, gear, "", [ox, oy]);
-    game.native_item(batch, "minecraft:repeater", [gear[0] + 1.0, gear[1] + 1.0], 16.0);
-    if CLIENT.with_borrow(|c| c.settings_open) {
-        draw_settings(game, batch, ox, oy, CLIENT.with_borrow(|c| c.rows.max(3)));
-        return;
+    let _ = sh;
+    // The toolbar, and the crafting status tab with how many jobs are running.
+    for (at, (icon, _, _)) in TOOLBAR.iter().zip(entries) {
+        draw_state_button(game, batch, [ox + at[0], oy + at[1]], icon);
     }
+    let [tx, ty, tw, th] = STATUS_TAB;
+    game.native_sprite(batch, "ae2:gui/states", [128.0, 192.0, tw, th], [ox + tx, oy + ty, tw, th]);
+    game.native_sprite(batch, "ae2:gui/states", [48.0, 144.0, 16.0, 16.0], [ox + tx + 4.0, oy + ty + 3.0, 16.0, 16.0]);
+    let label = jobs.to_string();
+    let (lx, ly) = (ox + tx + 4.0 + 16.0 - game.native_text_width(&label) * 0.5, oy + ty + 3.0 + 12.0);
+    let start = batch.vertices.len();
+    game.native_text(batch, &label, [lx, ly], 0xFFFFFF, true);
+    batch.scale_since(start, lx, ly, 0.5, 0.5);
     // Offline (no power, or no channel), the grid stays empty with AE2's notice in its middle. What the server sent
     // still shows while the screen's state catches up (a terminal opened a moment after placing it).
     if !online && CLIENT.with_borrow(|c| c.items.iter().all(|(_, n)| *n < 0)) {
@@ -4551,27 +5215,9 @@ fn draw_terminal_items(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32, 
         game.native_text(batch, "Network offline", [ox + 8.0 + 81.0 - w / 2.0, oy + 18.0 + 9.0 * rows - 4.0], 0xFF6060, true);
         return;
     }
-    let (show, jobs, rows) = CLIENT.with_borrow(|c| (c.show_jobs, c.jobs.clone(), c.rows.max(3)));
-    if show {
-        // Over the grid: one line per busy CPU, as AE2's crafting status lists them.
-        let h = 18.0 * rows as f32;
-        game.native_fill(batch, [ox + 7.0, oy + 17.0, 164.0, h], 0xFF2B2B2B);
-        game.native_text(batch, "Crafting status", [ox + 10.0, oy + 20.0], 0xFFFFFF, false);
-        if jobs.is_empty() {
-            game.native_text(batch, "No crafting jobs", [ox + 10.0, oy + 34.0], 0xAAAAAA, false);
-        }
-        for (i, (id, left, pct, secs)) in jobs.iter().enumerate().take(((h - 16.0) / 18.0) as usize) {
-            let y = oy + 32.0 + 18.0 * i as f32;
-            game.native_item(batch, id, [ox + 10.0, y], 16.0);
-            let eta = if *secs < 0 { "…".to_owned() } else if *secs >= 60 { format!("{}m {}s", secs / 60, secs % 60) } else { format!("{secs}s") };
-            game.native_text(batch, &format!("{left} left  {pct}%  ~{eta}"), [ox + 30.0, y + 1.0], 0xFFFFFF, false);
-            game.native_fill(batch, [ox + 30.0, y + 11.0, 136.0, 3.0], 0xFF555555);
-            game.native_fill(batch, [ox + 30.0, y + 11.0, 136.0 * (*pct).clamp(0, 100) as f32 / 100.0, 3.0], 0xFF55FF55);
-        }
-        return;
-    }
     {
         {
+            let mut dragged = None;
             CLIENT.with_borrow(|c| {
                 let start = c.scroll * TERM_COLS;
                 let shown = visible(c);
@@ -4580,6 +5226,11 @@ fn draw_terminal_items(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32, 
                     let x = ox + TERM_GRID[0] + (i % TERM_COLS) as f32 * 18.0;
                     let y = oy + TERM_GRID[1] + (i / TERM_COLS) as f32 * 18.0;
                     draw_key(game, batch, id, [x, y], 16.0);
+                    if c.pinned.contains(id) && c.jobs.iter().any(|j| j.0 == *id) {
+                        static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+                        let frame = (START.get_or_init(std::time::Instant::now).elapsed().as_millis() / 100 % 12) as f32;
+                        game.native_sprite(batch, "ae2:gui/hz/molecular_assembler_lights", [2.0, 2.0 + frame * 16.0, 12.0, 12.0], [x - 1.0, y - 1.0, 18.0, 18.0]);
+                    }
                     // The cell as a widget (the narrator, horizon-ctl's `ui` and `click`), named as its tooltip is.
                     if !id.starts_with('~') {
                         let name = format!("Network {}", game.pack.names.display_item(id));
@@ -4590,7 +5241,7 @@ fn draw_terminal_items(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32, 
                     let label = if *amount == 0 {
                         "Craft".to_owned()
                     } else if id.starts_with('~') {
-                        format!("{}B", readable_number::format_i64((*amount).max(0) / 1000, 3))
+                        key_amount(id, (*amount).max(0), super::port_ae2_core::AmountFormat::Slot)
                     } else {
                         readable_number::format_i64((*amount).max(0), 4)
                     };
@@ -4601,15 +5252,14 @@ fn draw_terminal_items(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32, 
                 }
                 // The scroll bar's handle, grey when there's nothing to scroll.
                 let rows = shown.len().div_ceil(TERM_COLS);
-                let track = 18.0 * c.rows.max(3) as f32 - 2.0 - 15.0;
-                let (at, colour) = if rows > c.rows.max(3) {
-                    (track * c.scroll as f32 / (rows - c.rows.max(3)) as f32, 0xFFE0E0E0)
-                } else {
-                    (0.0, 0xFF9A9A9A)
-                };
-                game.native_fill(batch, [ox + 175.0, oy + 18.0 + at, 12.0, 15.0], colour);
-                game.native_fill(batch, [ox + 175.0, oy + 18.0 + at, 11.0, 1.0], 0xFFFFFFFF);
+                let height = 18.0 * c.rows.max(3) as f32 - 2.0;
+                let most = rows.saturating_sub(c.rows.max(3));
+                draw_scrollbar(game, batch, [ox + 175.0, oy + 18.0], height, c.scroll.min(most), most);
+                dragged = (c.scroll_drag == 4).then(|| scrollbar_row(c.mouse[1], 18.0, height, most));
             });
+            if let Some(row) = dragged {
+                CLIENT.with_borrow_mut(|c| c.scroll = row);
+            }
         }
     }
 }
@@ -4653,11 +5303,15 @@ fn screen_click_inner(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, b
     match block {
         "ae2:import_bus" | "ae2:export_bus" | "ae2:storage_bus" | "ae2:formation_plane" => {
             let cells = if matches!(block, "ae2:storage_bus" | "ae2:formation_plane") { 63 } else { 9 };
-            if on([TOOLBAR[1][0], TOOLBAR[1][1], 18.0, 18.0]) {
-                *button = Some(BUS_REDSTONE);
-            } else if block == "ae2:export_bus" && on([TOOLBAR[2][0], TOOLBAR[2][1], 18.0, 18.0]) {
-                *button = Some(BUS_SCHEDULE);
-            } else if on([8.0, 29.0, 162.0, 18.0 * (cells / 9) as f32]) {
+            let d = |n: usize| CLIENT.with_borrow(|c| c.screen_data.get(n).copied().unwrap_or(0));
+            let (first, buttons) = bus_buttons(block, &d);
+            for (n, (id, _, _, _)) in buttons.iter().enumerate() {
+                let at = bar_place(first + n);
+                if on([at[0], at[1], 16.0, 16.0]) {
+                    *button = Some(*id);
+                }
+            }
+            if on([8.0, 29.0, 162.0, 18.0 * (cells / 9) as f32]) {
                 let cell = ((at[1] - 29.0) / 18.0) as i32 * 9 + ((at[0] - 8.0) / 18.0) as i32;
                 *button = Some(GHOST + (cell << 3) + if right { RIGHT } else { 0 });
             }
@@ -4686,21 +5340,9 @@ fn screen_click_inner(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, b
         _ => {}
     }
     if matches!(block, "ae2:terminal" | "ae2:crafting_terminal" | "ae2:pattern_encoding_terminal") {
-        // The settings button under the toolbar, and the settings over the grid while they're open.
-        if on([TOOLBAR[2][0], TOOLBAR[2][1] + 20.0, 18.0, 18.0]) {
-            CLIENT.with_borrow_mut(|c| {
-                c.settings_open = !c.settings_open;
-                c.show_jobs = false;
-            });
-            return;
-        }
-        if CLIENT.with_borrow(|c| c.settings_open) && on([TERM_GRID[0], TERM_GRID[1], 162.0, 18.0 * term_rows() as f32]) {
-            settings_click(at);
-            return;
-        }
         let inside = |x: f32, y: f32, w: f32, h: f32| at[0] >= x && at[0] < x + w && at[1] >= y && at[1] < y + h;
         let [sx, sy, sw, sh] = SEARCH_BOX;
-        let in_search = inside(sx, sy, sw, sh);
+        let in_search = inside(sx, sy, sw, sh) && !CLIENT.with_borrow_mut(|c| settings(c)[6]);
         CLIENT.with_borrow_mut(|c| {
             c.search_focus = in_search;
             // Right-click clears it, as AE2's does.
@@ -4712,14 +5354,34 @@ fn screen_click_inner(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, b
         if in_search {
             return;
         }
+        if inside(STATUS_TAB[0], STATUS_TAB[1], STATUS_TAB[2], STATUS_TAB[3]) {
+            // MEStorageScreen.showCraftingStatus.
+            CLIENT.with_borrow_mut(|c| {
+                c.show_jobs = true;
+                c.status_cpu = usize::MAX;
+                c.status_scroll = 0;
+                c.status_list_scroll = 0;
+            });
+            return;
+        }
         for (i, b) in TOOLBAR.iter().enumerate() {
-            if inside(b[0], b[1], 18.0, 18.0) {
+            if inside(b[0], b[1], 16.0, 16.0) {
                 CLIENT.with_borrow_mut(|c| {
+                    settings(c);
+                    // SettingToggleButton: right the one before.
+                    let cycle = |v: u8, n: u8| if right { (v + n - 1) % n } else { (v + 1) % n };
                     match i {
-                        0 => c.sort = (c.sort + 1) % 3,
-                        1 => c.view_mode = (c.view_mode + 1) % 3,
-                        _ => c.show_jobs = !c.show_jobs,
+                        0 => c.sort = cycle(c.sort, 3),
+                        1 => c.view_mode = cycle(c.view_mode, 3),
+                        2 => c.type_filter = cycle(c.type_filter, 3),
+                        3 => c.sort_desc = !c.sort_desc,
+                        4 => c.settings_open = true,
+                        _ => {
+                            c.term_style = cycle(c.term_style, 4);
+                            c.relayout = true;
+                        }
                     }
+                    save_settings(c);
                     c.view.take();
                     c.scroll = 0;
                 });
@@ -4727,10 +5389,26 @@ fn screen_click_inner(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, b
             }
         }
         let rows = CLIENT.with_borrow(|c| c.rows.max(3)) as f32;
+        if inside(175.0, 18.0, 12.0, 18.0 * rows - 2.0) {
+            CLIENT.with_borrow_mut(|c| c.scroll_drag = 4);
+            return;
+        }
         let over_grid = at[0] >= TERM_GRID[0] && at[0] < 170.0 && at[1] >= TERM_GRID[1] && at[1] < TERM_GRID[1] + 18.0 * rows;
         if over_grid && CLIENT.with_borrow(|c| c.show_jobs) {
             return;
         }
+    }
+    if block == "ae2:interface" && on([TOOLBAR[0][0], TOOLBAR[0][1], 16.0, 16.0]) && CLIENT.with_borrow(|c| c.screen_data.get(1).copied().unwrap_or(-1) >= 0) {
+        *button = Some(EMIT_FUZZY);
+        return;
+    }
+    if block == "ae2:level_emitter" && on([TOOLBAR[1][0], TOOLBAR[1][1], 16.0, 16.0]) && CLIENT.with_borrow(|c| c.screen_data.get(4).copied().unwrap_or(-1) >= 0) {
+        *button = Some(EMIT_FUZZY);
+        return;
+    }
+    if block == "ae2:inscriber" && on([TOOLBAR[0][0], TOOLBAR[0][1], 16.0, 16.0]) {
+        *button = Some(INSCRIBER_EXPORT);
+        return;
     }
     if block == "ae2:level_emitter" {
         if level_widget_click(at, right, 103.0, button) {
@@ -4747,7 +5425,8 @@ fn screen_click_inner(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, b
             // Shift-click: AE2's stock amount for the config cell.
             let ghost = CLIENT.with_borrow(|c| c.ghosts.get(cell as usize).cloned()).filter(|(id, _)| !id.is_empty() && id != "minecraft:air");
             if shift_held && let Some((id, n)) = ghost {
-                open_dialog(DialogKind::Stock(cell as usize, id), n.to_string());
+                let text = amount_text(&id, n);
+                open_dialog(DialogKind::Stock(cell as usize, id), text);
                 return;
             }
             *button = Some(GHOST + (cell << 3) + if right { RIGHT } else { 0 });
@@ -4766,6 +5445,10 @@ fn screen_click_inner(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, b
         return;
     }
     if block == "ae2:pattern_access_terminal" {
+        if on([TOOLBAR[0][0], TOOLBAR[0][1], 16.0, 16.0]) {
+            *button = Some(PAT_SHOW);
+            return;
+        }
         let in_search = at[0] >= 104.0 && at[0] < 169.0 && at[1] >= 4.0 && at[1] < 16.0;
         CLIENT.with_borrow_mut(|c| {
             c.search_focus = in_search;
@@ -4823,12 +5506,26 @@ fn screen_click_inner(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, b
             *button = Some(CLEAR);
             return;
         }
+        if mode == 0 && inside(ENC_SUBSTITUTE_AT, 9.0, 9.0) {
+            *button = Some(ENC_SUBSTITUTE);
+            return;
+        }
+        if mode == 1 && inside(ENC_CYCLE_AT, 9.0, 9.0) && CLIENT.with_borrow(encoder_outputs) > 1 {
+            *button = Some(ENC_CYCLE);
+            return;
+        }
         let _ = crafting;
-        if let Some(cell) = (0..mode_cells(mode)).find(|&i| inside(ghost_cell_mode(i, mode), 16.0, 16.0)) {
+        if mode == 1 && inside([17.0, 92.0], 7.0, 52.0) {
+            CLIENT.with_borrow_mut(|c| c.scroll_drag = 5);
+            return;
+        }
+        if let Some(place) = (0..mode_cells(mode)).find(|&i| inside(ghost_cell_mode(i, mode), 16.0, 16.0)) {
+            let cell = enc_visible(place, mode, CLIENT.with_borrow(|c| c.enc_scroll));
             // Shift-click on a processing cell: AE2's amount dialog.
             let ghost = CLIENT.with_borrow(|c| c.ghosts.get(cell).cloned()).filter(|(id, _)| !id.is_empty() && id != "minecraft:air");
             if mode == 1 && shift_held && let Some((id, n)) = ghost {
-                open_dialog(DialogKind::Amount(cell, id), n.to_string());
+                let text = amount_text(&id, n);
+                open_dialog(DialogKind::Amount(cell, id), text);
                 return;
             }
             *button = Some(GHOST + ((cell as i32) << 3) + if right { RIGHT } else { 0 });
@@ -4864,6 +5561,85 @@ fn screen_click_inner(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, b
 /// `native_screen_tooltip`: an item's name and full amount on the terminal's grid.
 pub fn screen_tooltip(block: &str, at: [f32; 2], lines: &mut Vec<String>) {
     CLIENT.with_borrow_mut(|c| c.mouse = at);
+    if block == "ae2:interface" && at[0] >= TOOLBAR[0][0] && at[0] < TOOLBAR[0][0] + 16.0 && at[1] >= TOOLBAR[0][1] && at[1] < TOOLBAR[0][1] + 16.0 {
+        let mode = CLIENT.with_borrow(|c| c.screen_data.get(1).copied().unwrap_or(-1));
+        if mode >= 0 {
+            lines.push("Fuzzy Comparison".to_owned());
+            lines.push(format!("§7{}", FUZZY_BUTTON[mode.clamp(0, 4) as usize].1));
+            return;
+        }
+    }
+    if block == "ae2:level_emitter" && at[0] >= TOOLBAR[1][0] && at[0] < TOOLBAR[1][0] + 16.0 && at[1] >= TOOLBAR[1][1] && at[1] < TOOLBAR[1][1] + 16.0 {
+        let mode = CLIENT.with_borrow(|c| c.screen_data.get(4).copied().unwrap_or(-1));
+        if mode >= 0 {
+            lines.push("Fuzzy Comparison".to_owned());
+            lines.push(format!("§7{}", FUZZY_BUTTON[mode.clamp(0, 4) as usize].1));
+            return;
+        }
+    }
+    if block == "ae2:pattern_access_terminal" && at[0] >= TOOLBAR[0][0] && at[0] < TOOLBAR[0][0] + 16.0 && at[1] >= TOOLBAR[0][1] && at[1] < TOOLBAR[0][1] + 16.0 {
+        let show = CLIENT.with_borrow(|c| c.screen_data.get(1).copied().unwrap_or(0));
+        lines.push("Display Mode".to_owned());
+        lines.push(format!("§7{}", PAT_BUTTON[show.clamp(0, 2) as usize].1));
+        return;
+    }
+    if block == "ae2:inscriber" && at[0] >= TOOLBAR[0][0] && at[0] < TOOLBAR[0][0] + 16.0 && at[1] >= TOOLBAR[0][1] && at[1] < TOOLBAR[0][1] + 16.0 {
+        let on = CLIENT.with_borrow(|c| c.screen_data.get(2).copied().unwrap_or(0) != 0);
+        lines.push("Auto-Export".to_owned());
+        lines.push(format!("§7{}", if on { "Produced items will be auto-exported through any extraction side." } else { "Produced items will be not be auto-exported." }));
+        return;
+    }
+    if block == "ae2:pattern_encoding_terminal" {
+        let (mode, scroll, extra, empty) = CLIENT.with_borrow(|c| (c.encoder_mode, c.enc_scroll, c.encoder_extra, c.ghosts.clone()));
+        let low = [at[0], at[1] - extra];
+        if mode == 1 && let Some(row) = (0..3).find(|r| low[0] >= 110.0 && low[0] < 126.0 && low[1] >= 93.0 + 18.0 * *r as f32 && low[1] < 109.0 + 18.0 * *r as f32) {
+            let j = scroll + row;
+            let unset = empty.get(enc_output(j)).is_none_or(|(id, _)| id.is_empty() || id == "minecraft:air");
+            if unset {
+                if j == 0 {
+                    lines.push("Primary Processing Result".to_owned());
+                    lines.push("§8Can be requested through the automated crafting system.".to_owned());
+                } else {
+                    lines.push("Secondary Processing Result".to_owned());
+                    lines.push("§8Can not be directly requested through the automated crafting system, but will be used before stored items in multi-step recipes.".to_owned());
+                }
+                return;
+            }
+        }
+        if mode == 0 && low[0] >= ENC_SUBSTITUTE_AT[0] && low[0] < ENC_SUBSTITUTE_AT[0] + 9.0 && low[1] >= ENC_SUBSTITUTE_AT[1] && low[1] < ENC_SUBSTITUTE_AT[1] + 9.0 {
+            let on = CLIENT.with_borrow(|c| c.screen_data.get(2).copied().unwrap_or(0) != 0);
+            lines.push(if on { "Substitutions Enabled" } else { "Substitutions Disabled" }.to_owned());
+            lines.push(format!("§7{}", if on { "Click to prevent alternate items in the recipe." } else { "Click to allow alternate items in the recipe." }));
+            return;
+        }
+        if mode == 1 && low[0] >= ENC_CYCLE_AT[0] && low[0] < ENC_CYCLE_AT[0] + 9.0 && low[1] >= ENC_CYCLE_AT[1] && low[1] < ENC_CYCLE_AT[1] + 9.0 {
+            lines.push("Cycle Outputs".to_owned());
+            lines.push("§7Change the primary output of this pattern".to_owned());
+            return;
+        }
+    }
+    let slots = upgrade_slots(block);
+    if slots > 0 && at[0] >= 178.0 && at[0] < 210.0 && at[1] >= 0.0 && at[1] < 14.0 + 18.0 * slots as f32 {
+        let name = ae2_name(block).unwrap_or("");
+        lines.push("Compatible Upgrades:".to_owned());
+        for (card, _, max, machines) in UPGRADES {
+            if machines.contains(&name) {
+                lines.push(format!("§7{} ({max})", item_words(card)));
+            }
+        }
+        return;
+    }
+    if matches!(block, "ae2:level_emitter" | "ae2:energy_level_emitter") && at[0] >= TOOLBAR[0][0] && at[0] < TOOLBAR[0][0] + 18.0 && at[1] >= TOOLBAR[0][1] && at[1] < TOOLBAR[0][1] + 18.0 {
+        let d = |i: usize| CLIENT.with_borrow(|c| c.screen_data.get(i).copied().unwrap_or(0));
+        if block == "ae2:level_emitter" && d(2) != 0 {
+            lines.push("Crafting Emitter Mode".to_owned());
+            lines.push(format!("§7{}", if d(3) != 0 { "Emit Redstone to craft item." } else { "Emit Redstone while item is crafting." }));
+        } else {
+            lines.push("Redstone Mode".to_owned());
+            lines.push(format!("§7{}", if CLIENT.with_borrow(|c| c.emit_below) { "Emit when levels are below limit." } else { "Emit when levels are above or equal to limit." }));
+        }
+        return;
+    }
     if block == "ae2:crafting_terminal"
         && let Some(b) = stash_button(at, CLIENT.with_borrow(|c| c.rows))
     {
@@ -4952,13 +5728,14 @@ pub fn screen_tooltip(block: &str, at: [f32; 2], lines: &mut Vec<String>) {
         return;
     }
     if matches!(block, "ae2:import_bus" | "ae2:export_bus" | "ae2:storage_bus" | "ae2:formation_plane") {
-        let inside = |r: [f32; 2]| at[0] >= r[0] && at[0] < r[0] + 18.0 && at[1] >= r[1] && at[1] < r[1] + 18.0;
-        if inside(TOOLBAR[1]) {
-            lines.push("Redstone Mode".to_owned());
-            lines.push(format!("§7{}", REDSTONE_MODES.join(" / ")));
-        } else if block == "ae2:export_bus" && inside(TOOLBAR[2]) {
-            lines.push("Scheduling Mode".to_owned());
-            lines.push(format!("§7{}", SCHEDULES.join(" / ")));
+        let d = |n: usize| CLIENT.with_borrow(|c| c.screen_data.get(n).copied().unwrap_or(0));
+        let (first, buttons) = bus_buttons(block, &d);
+        for (n, (_, _, title, value)) in buttons.iter().enumerate() {
+            let place = bar_place(first + n);
+            if at[0] >= place[0] && at[0] < place[0] + 16.0 && at[1] >= place[1] && at[1] < place[1] + 16.0 {
+                lines.push((*title).to_owned());
+                lines.push(format!("§7{value}"));
+            }
         }
         return;
     }
@@ -4979,7 +5756,7 @@ pub fn screen_tooltip(block: &str, at: [f32; 2], lines: &mut Vec<String>) {
             if *amount == 0 {
                 lines.push("§7Craftable: click 1, right-click 16, shift 64".to_owned());
             } else if fluid {
-                lines.push(format!("§7Stored: {} mB", super::port_ae2_core::KeyType::Fluids.format_amount(*amount, super::port_ae2_core::AmountFormat::Full)));
+                lines.push(format!("§7Stored: {}", key_amount("~", *amount, super::port_ae2_core::AmountFormat::Full)));
                 lines.push("§8Click with a bucket to fill it".to_owned());
             } else {
                 lines.push(format!("§7Stored: {}", super::port_ae2_core::KeyType::Items.format_amount(*amount, super::port_ae2_core::AmountFormat::Full)));
@@ -5007,6 +5784,20 @@ pub fn scrolled(menu: Option<&str>, scroll: [f64; 2], canceled: &mut bool) {
         return;
     }
     if !matches!(menu, Some("ae2:terminal" | "ae2:crafting_terminal" | "ae2:pattern_encoding_terminal")) {
+        return;
+    }
+    // ProcessingEncodingPanel.onMouseWheel.
+    if menu == Some("ae2:pattern_encoding_terminal")
+        && CLIENT.with_borrow_mut(|c| {
+            let y = c.mouse[1] - c.encoder_extra;
+            let over = c.encoder_mode == 1 && c.mouse[0] >= 9.0 && c.mouse[0] < 135.0 && (85.0..153.0).contains(&y);
+            if over {
+                c.enc_scroll = if scroll[1] > 0.0 { c.enc_scroll.saturating_sub(1) } else { (c.enc_scroll + 1).min(24) };
+            }
+            over
+        })
+    {
+        *canceled = true;
         return;
     }
     // Shift and the wheel over an item: one in (up) or out (down), AE2's ROLL_DOWN and ROLL_UP.
@@ -5072,6 +5863,14 @@ pub fn update_tag(entity: &ModBlockEntity, tag: &mut Option<Compound>) {
         *tag = Some(out);
         return;
     }
+    if entity.id == "ae2:crafting_monitor" {
+        let mut out = Compound::new();
+        for key in ["show", "text", "paint"] {
+            out.insert(java(key), Tag::String(java(&nbt_string(&entity.nbt, key))));
+        }
+        *tag = Some(out);
+        return;
+    }
     if is_monitor(&entity.id) {
         let key = key_from_string(&nbt_string(&entity.nbt, "item"));
         let show = key.as_ref().map_or(String::new(), |k| k.id().to_owned());
@@ -5100,6 +5899,7 @@ pub fn update_tag(entity: &ModBlockEntity, tag: &mut Option<Compound>) {
         if let Some(look) = entity.nbt.get(&java("look")) {
             out.insert(java("look"), look.clone());
         }
+        out.insert(java("speed"), Tag::Long(nbt_i64(&entity.nbt, "speed")));
         *tag = Some(out);
         return;
     }
@@ -5389,6 +6189,10 @@ pub fn submit(
         monitor_submit(game, state, entity, draw);
         return;
     }
+    if block == "ae2:crafting_monitor" {
+        crafting_monitor_submit(game, state, entity, draw);
+        return;
+    }
     if block == "ae2:sky_stone_tank" {
         tank_submit(game, entity, draw);
         return;
@@ -5406,20 +6210,16 @@ pub fn submit(
         return;
     }
     if block == "ae2:molecular_assembler" {
-        // AE2's assembler renderer: the item being made turns in the middle of the glass.
-        static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
-        if let Some(Tag::String(look)) = entity.nbt.get(&java("look"))
-            && let Ok(id) = look.to_string()
-            && !id.is_empty()
-        {
-            let turn = START.get_or_init(std::time::Instant::now).elapsed().as_secs_f32() * 90.0 % 360.0;
+        // MolecularAssemblerRenderer.renderStatus: the item made, still, as it lies on the ground in the glass.
+        let look = nbt_string(&entity.nbt, "look");
+        if !look.is_empty() {
+            let drop = if game.pack.assets.registry.default_state(&look).is_some() { 0.2 } else { 0.3 };
             draw.push();
-            draw.translate([0.5, 0.5, 0.5]);
-            draw.rotate_about([0.0, 1.0, 0.0], turn, [0.0, 0.0, 0.0]);
-            draw.scale([0.5, 0.5, 0.5]);
-            game.native_draw_item(draw, &ItemStack::new(&id, 1), horizon_assets::item_model::DisplayContext::Fixed, None, 0);
+            draw.translate([0.5, 0.5 - drop, 0.5]);
+            game.native_draw_item(draw, &ItemStack::new(&look, 1), horizon_assets::item_model::DisplayContext::Ground, None, 0);
             draw.pop();
         }
+        assembler_effects(game, state, entity, draw, !look.is_empty());
         return;
     }
     if block == "ae2:charger" {
@@ -5514,6 +6314,13 @@ const STATUS_BUTTON: [f32; 4] = [158.0, 3.0, 12.0, 12.0];
 const ENC_TABS: [[f32; 2]; 4] = [[173.0, 79.0], [173.0, 99.0], [173.0, 119.0], [173.0, 139.0]];
 /// The clear button on each mode's panel, and the encode button.
 const ENC_CLEAR: [[f32; 2]; 2] = [[74.0, 86.0], [82.0, 86.0]];
+const ENC_SUBSTITUTE_AT: [f32; 2] = [84.0, 86.0];
+const ENC_CYCLE_AT: [f32; 2] = [127.0, 97.0];
+
+/// The outputs set in a processing pattern's cells.
+fn encoder_outputs(c: &Client) -> usize {
+    (0..27).filter_map(|j| c.ghosts.get(enc_output(j))).filter(|(id, _)| !id.is_empty() && id != "minecraft:air").count()
+}
 const ENC_ENCODE: [f32; 2] = [147.0, 107.0];
 /// The blank and encoded pattern slots (AE2's pattern.png).
 const ENC_BLANK: [f32; 2] = [147.0, 88.0];
@@ -5544,14 +6351,51 @@ const SET_CRAFTING: i32 = 3;
 const SET_PROCESSING: i32 = 4;
 /// Menu buttons from here on are clicks on the encoder's ghost cells: the cell shifted by three, and RIGHT.
 const GHOST: i32 = 1 << 28;
+/// Presses on the Upgrade Toolbelt: its slot shifted by one, and whether the right button.
+const TOOLBELT: i32 = 1 << 25;
+/// The encoder's half-size buttons (below `STONECUT_PICK`, above what a terminal's click can reach here).
+const ENC_SUBSTITUTE: i32 = (1 << 25) - 2;
+const ENC_CYCLE: i32 = (1 << 25) - 1;
 /// A click on an empty part of a terminal's grid (no item there): only a cursor stack does anything.
 const EMPTY_CELL: usize = (1 << 23) - 1;
 
 /// The pattern access terminal's slot clicks: provider times nine plus slot, shifted by two, and SHIFT.
 const PROVIDER_SLOT: i32 = 1 << 27;
+const PAT_SHOW: i32 = 1;
+/// ShowPatternProviders' icons (Icon.PATTERN_TERMINAL_*) and words, by the setting.
+const PAT_BUTTON: [([f32; 2], &str); 3] = [
+    ([96.0, 80.0], "Show visible Pattern Providers"),
+    ([128.0, 80.0], "Show visible Pattern Providers with empty slots"),
+    ([112.0, 80.0], "Show all Pattern Providers"),
+];
 
 /// Where ghost cell `i` sits in the encoder's screen: the 3x3 grid (CRAFTING_GRID at 18, or PROCESSING_INPUTS at
 /// 26 beside the scroll bar), then processing's three outputs (PROCESSING_OUTPUTS at 110).
+/// The processing pattern's cells (PatternEncodingTermMenu: 81 inputs, 27 outputs), as they're saved: the first nine
+/// inputs, the first three outputs, then the other inputs and the other outputs.
+const ENC_CELLS: usize = 108;
+
+fn enc_input(k: usize) -> usize {
+    if k < 9 { k } else { k + 3 }
+}
+
+fn enc_output(j: usize) -> usize {
+    if j < 3 { 9 + j } else { 84 + j - 3 }
+}
+
+/// The saved cell the place `i` of the panel shows, the processing panel scrolled by `scroll` rows.
+fn enc_visible(i: usize, mode: i32, scroll: usize) -> usize {
+    match (mode, i) {
+        (1, 0..=8) => enc_input(scroll * 3 + i),
+        (1, _) => enc_output(scroll + i - 9),
+        _ => i,
+    }
+}
+
+fn enc_ghosts(entity: &ModBlockEntity) -> Vec<Option<(String, i64)>> {
+    ghosts_n(entity, ENC_CELLS)
+}
+
 fn ghost_cell(i: usize, crafting: bool) -> [f32; 2] {
     let left = if crafting { 18.0 } else { 26.0 };
     if i < 9 { [left + 18.0 * (i % 3) as f32, 93.0 + 18.0 * (i / 3) as f32] } else { [110.0, 93.0 + 18.0 * (i - 9) as f32] }
@@ -5589,7 +6433,7 @@ fn set_ghosts(entity: &mut ModBlockEntity, cells: &[Option<(String, i64)>]) {
 /// A click on a ghost cell: an item on the cursor puts a copy there (one in a crafting grid, the stack's
 /// amount in processing; right-click adds one), an empty cursor clears it (right-click takes one away).
 fn ghost_click(entity: &mut ModBlockEntity, cell: usize, right: bool, carried: Option<&ItemStack>) {
-    if cell >= 12 {
+    if cell >= ENC_CELLS {
         return;
     }
     let mode = nbt_i64(&entity.nbt, "mode");
@@ -5599,12 +6443,23 @@ fn ghost_click(entity: &mut ModBlockEntity, cell: usize, right: bool, carried: O
         0 => 9,
         2 => 3,
         3 => 1,
-        _ => 12,
+        _ => ENC_CELLS,
     };
     if cell >= cells_in_mode && entity.id == "ae2:pattern_encoding_terminal" || crafting && cell >= 9 {
         return;
     }
-    let mut cells = ghosts_of(entity);
+    if entity.id != "ae2:pattern_encoding_terminal" && cell >= 12 {
+        return;
+    }
+    let mut cells = if entity.id == "ae2:pattern_encoding_terminal" { enc_ghosts(entity) } else { ghosts_of(entity) };
+    if right
+        && let Some(fluid) = carried.and_then(|c| bucket_fluid(&c.item))
+        && (mode == 1 && entity.id == "ae2:pattern_encoding_terminal" || entity.id == "ae2:level_emitter")
+    {
+        cells[cell] = Some((format!("~{fluid}"), 1000));
+        set_ghosts(entity, &cells);
+        return;
+    }
     cells[cell] = match (carried, cells[cell].take()) {
         (Some(stack), Some((id, n))) if right && *stack.item == *id && !crafting => Some((id, n + 1)),
         (Some(stack), _) if crafting || right => Some((stack.item.to_string(), 1)),
@@ -5638,13 +6493,58 @@ fn draw_button_hover(game: &Game<'_>, batch: &mut HudBatch, rect: [f32; 4], labe
     draw_button_at(game, batch, rect, label, hover);
 }
 
+/// A vanilla button (AE2's widgets are): "§7" before the label greys it out.
 fn draw_button_at(game: &Game<'_>, batch: &mut HudBatch, rect: [f32; 4], label: &str, hover: bool) {
+    let (label, enabled) = label.strip_prefix("§7").map_or((label, true), |l| (l, false));
+    let sprite = match (enabled, hover) {
+        (false, _) => "gui/sprites/widget/button_disabled",
+        (true, true) => "gui/sprites/widget/button_highlighted",
+        (true, false) => "gui/sprites/widget/button",
+    };
     let [x, y, w, h] = rect;
-    game.native_fill(batch, [x, y, w, h], 0xFF555555);
-    game.native_fill(batch, [x, y, w - 1.0, h - 1.0], 0xFFFFFFFF);
-    game.native_fill(batch, [x + 1.0, y + 1.0, w - 2.0, h - 2.0], if hover { 0xFFA8B4E8 } else { 0xFF8B8B8B });
+    horizon_client::ui::nine_slice(batch, &game.gui.atlas, sprite, x, y, w, h, u32::MAX);
     let tw = game.native_text_width(label);
-    game.native_text(batch, label, [x + (w - tw) / 2.0, y + 3.0], 0xFFFFFF, true);
+    game.native_text(batch, label, [x + (w - tw) / 2.0, y + ((h - 8.0) / 2.0).floor()], if enabled { 0xFFFFFF } else { 0xA0A0A0 }, true);
+}
+
+/// AE2's Scrollbar (DEFAULT style): the creative tab's handle, greyed out with nothing to scroll.
+fn draw_scrollbar(game: &Game<'_>, batch: &mut HudBatch, at: [f32; 2], height: f32, top: usize, most: usize) {
+    let (sprite, offset) = if most == 0 {
+        ("gui/sprites/container/creative_inventory/scroller_disabled", 0.0)
+    } else {
+        ("gui/sprites/container/creative_inventory/scroller", ((height - 15.0) * top as f32 / most as f32).floor())
+    };
+    game.native_sprite(batch, sprite, [0.0, 0.0, 12.0, 15.0], [at[0], at[1] + offset, 12.0, 15.0]);
+}
+
+/// The row a scroll bar's handle at the pointer stands for.
+fn scrollbar_row(mouse_y: f32, top: f32, height: f32, most: usize) -> usize {
+    if most == 0 {
+        return 0;
+    }
+    let travel = (height - 15.0).max(1.0);
+    (((mouse_y - top - 7.5) / travel).clamp(0.0, 1.0) * most as f32).round() as usize
+}
+
+/// `native_screen_mouse_button_released_pre`: a scroll bar's handle let go. A press a dialog or the toolbelt took has
+/// its release taken too: let go outside the window, it would throw the stack on the cursor.
+pub fn scrollbar_release(canceled: &mut bool) {
+    CLIENT.with_borrow_mut(|c| {
+        c.scroll_drag = 0;
+        if std::mem::take(&mut c.press_taken) {
+            *canceled = true;
+        }
+    });
+}
+
+/// `native_screen_mouse_button_pressed_pre` took the press.
+pub fn press_taken() {
+    CLIENT.with_borrow_mut(|c| c.press_taken = true);
+}
+
+/// A dialog or the crafting status over a screen: those are menus of their own in AE2, with nothing behind them.
+fn overlay_shown() -> bool {
+    CLIENT.with_borrow(|c| c.show_jobs || c.settings_open || c.dialog.is_some())
 }
 
 /// The crafting terminal: its result is the grid's recipe; taking it uses one of each ingredient, and the grid
@@ -5717,9 +6617,25 @@ fn decode_pattern(game: &Game<'_>, stack: &ItemStack) -> Option<Pattern> {
     }
     let mut one = stack.clone();
     one.count = 1;
+    // Substitutions: `subs` lists, by input, what else its slot takes.
+    let subs: Vec<String> = match p.get(&java("subs")) {
+        Some(Tag::List(list)) => list.iter().map(|t| if let Tag::String(s) = t { s.to_string().unwrap_or_default() } else { String::new() }).collect(),
+        _ => Vec::new(),
+    };
+    let input_of = |(i, (k, n)): (usize, (AeKey, i64))| {
+        let mut input = PatternInput::of(k.clone(), n);
+        for alt in subs.get(i).map_or("", String::as_str).split('|').filter(|a| !a.is_empty()) {
+            let what = key_of(game, &ItemStack::new(alt, 1));
+            if what != k {
+                input.possible.push(super::port_ae2_core::GenericStack { what, amount: n });
+                input.substitute = true;
+            }
+        }
+        input
+    };
     Some(Pattern {
         definition: key_of(game, &one),
-        inputs: inputs.into_iter().map(|(k, n)| PatternInput::of(k, n)).collect(),
+        inputs: inputs.into_iter().enumerate().map(input_of).collect(),
         outputs: outputs.into_iter().map(|(what, amount)| super::port_ae2_core::GenericStack { what, amount }).collect(),
     })
 }
@@ -5761,26 +6677,38 @@ fn encoder_button(game: &mut Game<'_>, entity: &mut ModBlockEntity, id: i32) {
         encode_special(game, entity, mode as i32);
         return;
     }
-    let cells = ghosts_of(entity);
+    let cells = enc_ghosts(entity);
     let grid: Vec<Option<ItemStack>> =
         cells.iter().take(9).map(|c| c.as_ref().map(|(id, n)| ItemStack::new(id, (*n).clamp(1, 64) as u32))).collect();
-    let set_outputs: Vec<(String, i64)> = cells[9..].iter().flatten().cloned().collect();
+    let set_outputs: Vec<(String, i64)> = (0..27).filter_map(|j| cells[enc_output(j)].clone()).collect();
     let processing = nbt_i64(&entity.nbt, "mode") == 1;
+    // A processing pattern's inputs keep their amounts past a stack, in all 81 cells.
+    let all_inputs: Vec<(String, i64)> = (0..81).filter_map(|k| cells[enc_input(k)].clone()).collect();
     // Inputs: one of each slot's item for a crafting pattern, the whole stacks for a processing one.
     let mut inputs: Vec<(AeKey, i64)> = Vec::new();
-    for stack in grid.iter().flatten() {
-        let mut one = stack.clone();
-        one.count = 1;
-        let key = key_of(game, &one);
-        let n = if processing { i64::from(stack.count) } else { 1 };
+    let entries: Vec<(String, i64)> = if processing { all_inputs.clone() } else { grid.iter().flatten().map(|s| (s.item.to_string(), 1)).collect() };
+    for (id, n) in entries {
+        let key = if id.starts_with('~') { ghost_key(game, &id) } else { key_of(game, &ItemStack::new(&id, 1)) };
         match inputs.iter_mut().find(|(k, _)| *k == key) {
             Some((_, total)) => *total += n,
             None => inputs.push((key, n)),
         }
     }
+    // Substitutions on: each input may be anything its slot's ingredient takes (AECraftingPattern's possible inputs).
+    let mut alternatives: Vec<String> = Vec::new();
+    if !processing && nbt_i64(&entity.nbt, "substitute") != 0 {
+        let found = game.res.recipes().find(&grid, 3).map(|(name, _)| name.to_owned());
+        if let Some(placement) = found.and_then(|name| game.res.recipes().placement(&name)) {
+            for (key, _) in &inputs {
+                let probe = stack_of(key, 1);
+                let list = placement.ingredients.iter().find(|i| i.test(&probe)).map_or_else(Vec::new, |i| i.1.clone());
+                alternatives.push(list.join("|"));
+            }
+        }
+    }
     // Processing: the outputs set in its three cells; none set, what a furnace makes of the first input.
     if processing && !set_outputs.is_empty() {
-        let outputs: Vec<(AeKey, i64)> = set_outputs.iter().map(|(id, n)| (key_of(game, &ItemStack::new(id, 1)), *n)).collect();
+        let outputs: Vec<(AeKey, i64)> = set_outputs.iter().map(|(id, n)| (if id.starts_with('~') { ghost_key(game, id) } else { key_of(game, &ItemStack::new(id, 1)) }, *n)).collect();
         write_pattern(game, entity, true, &inputs, &outputs);
         return;
     }
@@ -5801,6 +6729,13 @@ fn encoder_button(game: &mut Game<'_>, entity: &mut ModBlockEntity, id: i32) {
     out_one.count = 1;
     let outputs = vec![(key_of(game, &out_one), i64::from(count))];
     write_pattern(game, entity, processing, &inputs, &outputs);
+    if !alternatives.is_empty()
+        && let Some(pattern) = entity.items[1].as_mut()
+        && let Some((_, Tag::Compound(data))) = pattern.extra.as_mut().and_then(|e| e.other.iter_mut().find(|(k, _)| k == CELL_DATA))
+        && let Some(Tag::Compound(p)) = data.get_mut(&java(PATTERN_KEY))
+    {
+        p.insert(java("subs"), Tag::List(alternatives.iter().map(|a| Tag::String(java(a))).collect()));
+    }
 }
 
 /// The encoded pattern into the encoder's output slot, a blank used up.
@@ -5946,22 +6881,46 @@ impl CpuNetwork for CpuNet<'_, '_> {
             provider_pushed(self.game, at, pattern);
             return true;
         }
-        let target = SIDES.iter().map(|d| add(at, *d)).find(|q| {
-            let b = block_id(&*self.game, *q);
-            !b.starts_with("ae2:") && self.game.world.block_entities.contains_key(&(q[0], q[1], q[2]))
-        });
-        let Some(target) = target else { return false };
-        let face = face_toward(target, at);
-        for list in inputs {
-            for (key, amount) in list.iter() {
-                let stack = stack_of(key, amount as u32);
-                if let Some(left) = self.game.native_insert_item(target, face, stack) {
-                    // What the machine wouldn't take goes back to the network.
-                    let back = key_of(self.game, &left);
-                    with_storage(self.game, self.grid, None, |st| st.insert(&back, i64::from(left.count), Actionable::Modulate));
+        // PatternProviderLogic.pushPattern: the first side that takes all of it, through the face it touches (a
+        // furnace takes what cooks from above, fuel from the side). One that won't take it all takes none, and the
+        // ingredients stay with the CPU until something does.
+        let machines: Vec<Pos> = SIDES
+            .iter()
+            .map(|d| add(at, *d))
+            .filter(|q| {
+                let b = block_id(&*self.game, *q);
+                let tanks = self.game.native_fluid_tanks(&self.game.dim.id().to_owned(), *q, face_toward(*q, at)).is_some();
+                !is_network_block(&b) && (tanks || self.game.world.block_entities.contains_key(&(q[0], q[1], q[2])))
+            })
+            .collect();
+        let mut pushed_to = None;
+        for machine in machines {
+            let spot = (machine[0], machine[1], machine[2]);
+            let before = self.game.world.block_entities.get(&spot).cloned();
+            let face = face_toward(machine, at);
+            let mut took_all = true;
+            'items: for list in inputs {
+                for (key, amount) in list.iter() {
+                    let refused = if key.key_type() == super::port_ae2_core::KeyType::Fluids {
+                        self.game.native_fluid_insert(machine, face, key.id(), amount.min(i64::from(i32::MAX)) as i32) > 0
+                    } else {
+                        self.game.native_insert_item(machine, face, stack_of(key, amount as u32)).is_some()
+                    };
+                    if refused {
+                        took_all = false;
+                        break 'items;
+                    }
                 }
             }
+            if took_all {
+                pushed_to = Some(machine);
+                break;
+            }
+            if let Some(be) = before {
+                self.game.world.block_entities.insert(spot, be);
+            }
         }
+        let Some(target) = pushed_to else { return false };
         let cpu = self.cpu;
         SERVER.with_borrow_mut(|s| s.awaiting.push((target, cpu, outputs)));
         provider_pushed(self.game, at, pattern);
@@ -5987,6 +6946,23 @@ impl CpuNetwork for CpuNet<'_, '_> {
 
 /// Runs each CPU's tick, hands back what assemblers made and machines finished, and tells requesters.
 fn run_cpus(game: &mut Game<'_>, tick: u64) {
+    let monitor = TICK_MONITOR.load(std::sync::atomic::Ordering::Relaxed).then(std::time::Instant::now);
+    run_cpus_now(game, tick);
+    if let Some(started) = monitor {
+        thread_local! {
+            static SPENT: std::cell::Cell<f64> = const { std::cell::Cell::new(0.0) };
+        }
+        let total = SPENT.get() + started.elapsed().as_secs_f64();
+        if tick % 100 == 0 {
+            log::info!("AE2 crafting CPUs: {:.3} ms a tick over the last 100 ticks", total * 10.0);
+            SPENT.set(0.0);
+        } else {
+            SPENT.set(total);
+        }
+    }
+}
+
+fn run_cpus_now(game: &mut Game<'_>, tick: u64) {
     let jobs: Vec<(Pos, usize, Vec<(Pos, Arc<Pattern>)>)> = SERVER.with_borrow(|s| {
         s.grids
             .iter()
@@ -5995,10 +6971,31 @@ fn run_cpus(game: &mut Game<'_>, tick: u64) {
             .filter(|(key, _, _)| s.cpus.get(key).is_some_and(|c| c.has_job() || c.active))
             .collect()
     });
+    use super::port_ae2_grid::CPU_WATCH;
+    // CraftingServiceStorage: what entered each network since the last tick, for the CPUs that wait for it.
+    let mut arrived = CPU_WATCH.with_borrow_mut(|w| {
+        w.quiet = true;
+        std::mem::take(&mut w.log)
+    });
+    let mut watching: Vec<AeKey> = Vec::new();
     for (key, grid, patterns) in jobs {
         let Some(mut cpu) = SERVER.with_borrow_mut(|s| s.cpus.remove(&key)) else { continue };
         let mut net = CpuNet { game, grid, cpu: key, patterns, tick };
         cpu.tick(&mut net);
+        for (on, what, amount) in &mut arrived {
+            let take = cpu.waiting_for(what).min(*amount);
+            if *on != grid || take <= 0 {
+                continue;
+            }
+            let got = net.extract(what, take, Actionable::Modulate);
+            if got > 0 {
+                *amount -= got;
+                let taken = cpu.insert(what, got, Actionable::Modulate, &mut net);
+                if taken < got {
+                    net.insert(what, got - taken, Actionable::Modulate);
+                }
+            }
+        }
         // Assemblers that are done, and machines with output, hand it to this CPU (what it doesn't wait for
         // goes to storage).
         let ready: Vec<Vec<(AeKey, i64)>> = SERVER.with_borrow_mut(|s| {
@@ -6063,6 +7060,32 @@ fn run_cpus(game: &mut Game<'_>, tick: u64) {
                     net.insert(&key, take - taken, Actionable::Modulate);
                 }
             }
+            // What it owes in fluids: out of its tanks, to the millibucket.
+            let dim = net.game.dim.id().to_owned();
+            for entry in owed.iter_mut().filter(|e| e.0.key_type() == super::port_ae2_core::KeyType::Fluids && e.1 > 0) {
+                let what = entry.0.clone();
+                for d in SIDES {
+                    let face = face_toward(target, add(target, d));
+                    let Some(tanks) = net.game.native_fluid_tanks(&dim, target, face) else { continue };
+                    let has: i64 = tanks.iter().filter(|t| t.can_drain && t.fluid.as_deref() == Some(what.id())).map(|t| i64::from(t.amount)).sum();
+                    if has <= 0 {
+                        continue;
+                    }
+                    let Some((fluid, got)) = net.game.native_fluid_extract(&dim, target, face, has.min(entry.1) as i32) else { continue };
+                    if fluid != what.id() {
+                        net.game.native_fluid_insert(target, face, &fluid, got);
+                        continue;
+                    }
+                    let got = i64::from(got);
+                    entry.1 -= got;
+                    took_any = true;
+                    let taken = cpu.insert(&what, got, Actionable::Modulate, &mut net);
+                    if taken < got {
+                        net.insert(&what, got - taken, Actionable::Modulate);
+                    }
+                    break;
+                }
+            }
             if took_any {
                 net.game.container_changed((target[0], target[1], target[2]));
             }
@@ -6081,54 +7104,99 @@ fn run_cpus(game: &mut Game<'_>, tick: u64) {
         for event in events {
             if let CpuEvent::Finished { .. } | CpuEvent::Cancelled { .. } = event {
                 let who = SERVER.with_borrow_mut(|s| s.requesters.remove(&key));
-                if let Some(uuid) = who {
-                    let text = if matches!(event, CpuEvent::Finished { .. }) { "§aCrafting finished" } else { "§cCrafting cancelled" };
-                    game.native_action_bar(uuid, horizon_client::text::Text::legacy(text));
+                let what = SERVER.with_borrow_mut(|s| s.request_items.remove(&key));
+                if let (true, Some(uuid), Some((id, amount))) = (matches!(event, CpuEvent::Finished { .. }), who.filter(|u| !SERVER.with_borrow(|s| s.no_notify.contains(u))), what) {
+                    let _ = game.native_net_send_to_player(uuid, NET_UI, format!("jobdone {id} {amount}").as_bytes());
                 }
             }
         }
+        watching.extend(cpu.waiting_keys());
         SERVER.with_borrow_mut(|s| s.cpus.insert(key, cpu));
     }
+    CPU_WATCH.with_borrow_mut(|w| {
+        w.quiet = false;
+        w.keys = watching;
+    });
 }
 
 /// A craft asked from a terminal: plan it, then start it on the grid's CPU, telling the player what happens.
 fn request_craft(game: &mut Game<'_>, grid: usize, uuid: u128, key: &AeKey, amount: i64) {
-    // The first CPU with nothing to do takes it (AE2's automatic CPU choice), the biggest first.
-    let (patterns, cpu_key) = SERVER.with_borrow(|s| {
-        s.grids.get(grid).map_or((Vec::new(), None), |g| {
-            let mut free: Vec<_> = g.cpus.iter().filter(|c| s.cpus.get(&c.0).is_some_and(|cpu| !cpu.has_job())).collect();
-            free.sort_by_key(|c| std::cmp::Reverse(c.1));
-            (g.patterns.clone(), free.first().map(|c| c.0))
-        })
-    });
-    let say = |game: &mut Game<'_>, text: &str| {
-        game.native_action_bar(uuid, horizon_client::text::Text::legacy(text));
-    };
-    let Some(cpu_key) = cpu_key else {
-        let any = SERVER.with_borrow(|s| s.grids.get(grid).is_some_and(|g| !g.cpus.is_empty()));
-        say(game, if any { "§cAll crafting CPUs are busy" } else { "§cNo crafting CPU: build a formed crafting cluster" });
-        return;
-    };
+    if let Err(e) = submit_craft(game, grid, uuid, key, amount, None) {
+        game.native_action_bar(uuid, horizon_client::text::Text::legacy(&format!("§c{e}")));
+    }
+}
+
+/// CraftingService.submitJob: the CPU a job goes to. `chosen` is the one the plan's button picked; with none
+/// (Automatic), findSuitableCraftingCPU: of those online, free, big enough and not kept for the other kind of
+/// request, one kept for this kind first, then the most co-processors, then the least storage that fits. A uuid
+/// of 0 is a machine's request.
+fn pick_cpu(game: &Game<'_>, grid: usize, bytes: i64, player: bool, chosen: Option<usize>) -> Result<Pos, String> {
+    let cpus = SERVER.with_borrow(|s| s.grids.get(grid).map_or(Vec::new(), |g| g.cpus.clone()));
+    let busy_cpu = |key: &Pos| SERVER.with_borrow(|s| s.cpus.get(key).is_some_and(CraftingCpu::has_job));
+    let active = |key: &Pos| SERVER.with_borrow(|s| s.cpus.get(key).is_some_and(|c| c.active));
+    if let Some(i) = chosen {
+        let Some(&(key, size, _)) = cpus.get(i) else { return Err("The selected CPU is offline.".to_owned()) };
+        if !active(&key) {
+            return Err("The selected CPU is offline.".to_owned());
+        }
+        if busy_cpu(&key) {
+            return Err("The selected CPU is already working on another job.".to_owned());
+        }
+        if size < bytes {
+            return Err("The selected CPU does not have enough storage.".to_owned());
+        }
+        return Ok(key);
+    }
+    if cpus.is_empty() {
+        return Err("There are no crafting CPUs on the network.".to_owned());
+    }
+    let (mut offline, mut busy, mut small, mut excluded) = (0, 0, 0, 0);
+    let mut valid = Vec::new();
+    for &(key, size, accel) in &cpus {
+        let mode = provider_nbt(game, key, "cpu_mode");
+        if !active(&key) {
+            offline += 1;
+        } else if busy_cpu(&key) {
+            busy += 1;
+        } else if size < bytes {
+            small += 1;
+        } else if (mode == 1 && !player) || (mode == 2 && player) {
+            excluded += 1;
+        } else {
+            valid.push((mode == 0, std::cmp::Reverse(accel), size, key));
+        }
+    }
+    valid.sort();
+    if let Some(first) = valid.first() {
+        return Ok(first.3);
+    }
+    let mut why = Vec::new();
+    for (n, word) in [(offline, "offline"), (busy, "busy"), (small, "too small"), (excluded, "excluded")] {
+        if n > 0 {
+            why.push(format!("{n} {word}"));
+        }
+    }
+    Err(format!("None of the crafting CPUs are suitable for this job. ({})", why.join(", ")))
+}
+
+fn submit_craft(game: &mut Game<'_>, grid: usize, uuid: u128, key: &AeKey, amount: i64, chosen: Option<usize>) -> Result<(), String> {
+    let patterns = SERVER.with_borrow(|s| s.grids.get(grid).map_or(Vec::new(), |g| g.patterns.clone()));
     let mut book = PatternBook::new();
     for (_, p) in &patterns {
         book.add((**p).clone(), 0);
     }
+    for key in emitable_keys(game, grid) {
+        book.add_emitable(key);
+    }
     let storage = with_storage(game, grid, None, |st| st.contents());
-    let plan = match calculate(&book, &storage, key, amount, CalculationStrategy::ReportMissingItems) {
-        Ok(plan) => plan,
-        Err(e) => {
-            say(game, &format!("§cCan't plan that: {e}"));
-            return;
-        }
-    };
+    let plan = calculate(&book, &storage, key, amount, CalculationStrategy::ReportMissingItems).map_err(|e| format!("Can't plan that: {e}"))?;
     if plan.simulation {
         let missing: Vec<String> = plan.missing_items.iter().filter(|(_, n)| *n > 0).map(|(k, n)| format!("{n} {}", k.id())).collect();
-        say(game, &format!("§cMissing: {}", missing.join(", ")));
-        return;
+        return Err(format!("Missing: {}", missing.join(", ")));
     }
+    let cpu_key = pick_cpu(game, grid, plan.bytes, uuid != 0, chosen)?;
     let Some(mut cpu) = SERVER.with_borrow_mut(|s| s.cpus.remove(&cpu_key)) else {
-        say(game, "§cThe crafting CPU isn't ready yet");
-        return;
+        return Err("The crafting CPU isn't ready yet".to_owned());
     };
     let tick = SERVER.with_borrow(|s| s.tick);
     let result = {
@@ -6136,13 +7204,12 @@ fn request_craft(game: &mut Game<'_>, grid: usize, uuid: u128, key: &AeKey, amou
         cpu.submit(&plan, &mut net, false, None)
     };
     SERVER.with_borrow_mut(|s| s.cpus.insert(cpu_key, cpu));
-    match result {
-        Ok(_) => {
-            SERVER.with_borrow_mut(|s| s.requesters.insert(cpu_key, uuid));
-            say(game, &format!("§aCrafting {amount} {}", key.id()));
-        }
-        Err(e) => say(game, &format!("§cCan't start: {e:?}")),
-    }
+    result.map_err(|e| format!("Can't start: {e:?}"))?;
+    SERVER.with_borrow_mut(|s| {
+        s.requesters.insert(cpu_key, uuid);
+        s.request_items.insert(cpu_key, (wire_id(key), amount));
+    });
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -6193,9 +7260,23 @@ fn inscriber_tick(game: &mut Game<'_>, pos: Pos, on_grid: bool, entity: &mut Mod
     if entity.items.len() < 4 {
         return;
     }
-    entity.data.resize(2, 0);
-    // Acceleration cards shorten the work (AE2: 0 to 3 cards).
-    let speed = [1, 2, 4, 10][cards(entity, 4, "ae2:speed_card").min(3)];
+    entity.data.resize(3, 0);
+    entity.data[2] = nbt_i64(&entity.nbt, "auto_export") as i32;
+    // InscriberBlockEntity.tickingRequest: Auto-Export pushes the result into what's beside it.
+    if nbt_i64(&entity.nbt, "auto_export") != 0
+        && let Some(result) = entity.items[3].take()
+    {
+        let mut left = Some(result);
+        for d in SIDES {
+            let Some(stack) = left.take() else { break };
+            let target = add(pos, d);
+            let face = face_toward(target, pos);
+            left = game.native_insert_item(target, face, stack);
+        }
+        entity.items[3] = left;
+    }
+    // Each tick's progress towards 100 by Acceleration Cards, and 10 AE a point of it.
+    let speed = [2, 3, 5, 10, 50][cards(entity, 4, "ae2:speed_card").min(4)];
     entity.data[1] = INSCRIBE_TICKS / speed;
     let all = inscriber_recipes(game);
     let recipe = all.into_iter().find(|r| {
@@ -6211,7 +7292,7 @@ fn inscriber_tick(game: &mut Game<'_>, pos: Pos, on_grid: bool, entity: &mut Mod
         entity.data[0] = 0;
         return;
     };
-    if !on_grid || !take_energy(pos, INSCRIBE_AE_PER_TICK) {
+    if !on_grid || !take_energy(pos, INSCRIBE_AE_PER_TICK * f64::from(speed)) {
         return;
     }
     entity.data[0] += 1;
@@ -6307,7 +7388,7 @@ struct External {
 
 impl super::port_ae2_grid::MeStorage for External {
     fn insert(&mut self, what: &AeKey, amount: i64, mode: Actionable) -> i64 {
-        if what.key_type() != super::port_ae2_core::KeyType::Items || !self.filter.allows(what) {
+        if what.key_type() != super::port_ae2_core::KeyType::Items || self.filter.access == 1 || !self.filter.allows(what) {
             return 0;
         }
         let mut left = amount;
@@ -6343,6 +7424,9 @@ impl super::port_ae2_grid::MeStorage for External {
         amount - left
     }
     fn extract(&mut self, what: &AeKey, amount: i64, mode: Actionable) -> i64 {
+        if self.filter.access == 2 || !(self.filter.no_extract_filter || self.filter.allows(what)) {
+            return 0;
+        }
         let mut got = 0;
         for (i, slot) in self.slots.iter_mut().enumerate() {
             if got >= amount {
@@ -6366,10 +7450,13 @@ impl super::port_ae2_grid::MeStorage for External {
         got
     }
     fn available_stacks(&self, out: &mut super::port_ae2_core::KeyCounter) {
+        if self.filter.access == 2 {
+            return;
+        }
         for (i, slot) in self.slots.iter().enumerate() {
             if let Some((k, n, _)) = slot
-                && self.access[i].1
-                && self.filter.allows(k)
+                && (self.access[i].1 || self.filter.report_all)
+                && (self.filter.no_extract_filter || self.filter.allows(k))
             {
                 out.add(k, *n);
             }
@@ -6402,18 +7489,13 @@ fn tooltip_inner(stack: &ItemStack, lines: &mut Vec<(horizon_client::text::Text,
     let line = |s: String| (horizon_client::text::Text::legacy(&s), u32::MAX);
     // AE2's upgrade cards (`Upgrades.addTooltip`): what takes them, and how many.
     if let Some(card) = ae2_name(&stack.item).filter(|c| c.ends_with("_card")) {
-        let supported: &[(&str, u32)] = match card {
-            "speed_card" => &[("Inscriber", 3), ("Molecular Assembler", 5), ("Import Bus", 4), ("Export Bus", 4), ("ME IO Port", 3)],
-            "capacity_card" => &[("Import Bus", 4), ("Export Bus", 4), ("Storage Bus", 5), ("Formation Plane", 5)],
-            "redstone_card" => &[("Import Bus", 1), ("Export Bus", 1), ("ME IO Port", 1)],
-            "fuzzy_card" => &[("Import Bus", 1), ("Export Bus", 1), ("Storage Bus", 1), ("Level Emitter", 1), ("Storage Cells", 1)],
-            "inverter_card" => &[("Import Bus", 1), ("Export Bus", 1), ("Storage Bus", 1), ("Storage Cells", 1)],
-            "crafting_card" => &[("Export Bus", 1), ("Level Emitter", 1), ("ME Interface", 1)],
-            "void_card" => &[("Storage Cells", 1)],
-            "equal_distribution_card" => &[("Storage Cells", 1)],
-            "energy_card" => &[("Wireless Terminals", 2), ("Portable Cells", 2)],
-            _ => &[],
-        };
+        let mut supported: Vec<(&str, u32)> = Vec::new();
+        for (c, label, max, _) in UPGRADES {
+            if *c == card && !supported.iter().any(|(l, _)| l == label) {
+                supported.push((label, *max));
+            }
+        }
+        supported.sort_by_key(|e| e.1);
         if !supported.is_empty() {
             let at = 1.min(lines.len());
             lines.insert(at, line("§7Supported by:".to_owned()));
@@ -6441,7 +7523,33 @@ fn tooltip_inner(stack: &ItemStack, lines: &mut Vec<(horizon_client::text::Text,
     if let Some(Tag::Compound(d)) = stack.extra.as_ref().and_then(|e| e.other.iter().find(|(k, _)| k == CELL_DATA)).map(|(_, t)| t)
         && let Some(Tag::IntArray(s)) = d.get(&java("ae2:spatial_size"))
     {
-        lines.insert(1.min(lines.len()), line(format!("§7Holds a {} x {} x {} volume", s.first().unwrap_or(&0), s.get(1).unwrap_or(&0), s.get(2).unwrap_or(&0))));
+        lines.insert(1.min(lines.len()), line(format!("§7Stored Size: {}x{}x{}", s.first().unwrap_or(&0), s.get(1).unwrap_or(&0), s.get(2).unwrap_or(&0))));
+        return;
+    }
+    // SpatialStorageCellItem: unformatted, and what it can take.
+    if let Some(max) = ae2_name(&stack.item).and_then(|n| n.strip_prefix("spatial_storage_cell_")) {
+        lines.insert(1.min(lines.len()), line("§7§oUnformatted".to_owned()));
+        lines.insert(2.min(lines.len()), line(format!("§7Capacity: {max}x{max}x{max}")));
+        return;
+    }
+    // SkyStoneTankBlock.appendHoverText, AnnihilationPlanePartItem.
+    // IntrinsicEnchantItem: fluix tools always have this at the least.
+    let intrinsic = match ae2_name(&stack.item) {
+        Some("fluix_sword") => Some("Looting I"),
+        Some("fluix_pickaxe" | "fluix_axe" | "fluix_shovel" | "fluix_spade" | "fluix_hoe") => Some("Fortune I"),
+        _ => None,
+    };
+    if let Some(what) = intrinsic {
+        lines.insert(1.min(lines.len()), line(format!("§7Always has at least {what}")));
+        return;
+    }
+    if &*stack.item == "ae2:sky_stone_tank" {
+        lines.insert(1.min(lines.len()), line("§7Can Store up to 16 Buckets".to_owned()));
+        return;
+    }
+    if &*stack.item == "ae2:annihilation_plane" {
+        let enchanted = stack.extra.as_ref().is_some_and(|e| !e.enchantments.is_empty());
+        lines.insert(lines.len().min(1 + usize::from(enchanted)), line(if enchanted { "§7Enchants increase energy use" } else { "§7Can be enchanted" }.to_owned()));
         return;
     }
     // Wireless terminals: whether they're linked to an access point (AE2's Linked / Unlinked).
@@ -6463,8 +7571,34 @@ fn tooltip_inner(stack: &ItemStack, lines: &mut Vec<(horizon_client::text::Text,
     let inv = BasicCellInventory::new(cell, &[], cell_fuzzy(stack), cell_upgrades(stack), &read_cell(stack));
     let (used, total) = (inv.used_bytes(), inv.total_bytes());
     let pct = if total > 0 { used * 100 / total } else { 0 };
-    lines.insert(1.min(lines.len()), line(format!("§7{used} of {total} Bytes Used ({pct}%)")));
-    lines.insert(2.min(lines.len()), line(format!("§7{} of {} Types", inv.stored_item_types(), inv.total_item_types())));
+    let mut at = 1.min(lines.len());
+    let mut add = |lines: &mut Vec<(horizon_client::text::Text, u32)>, text: String| {
+        lines.insert(at.min(lines.len()), (horizon_client::text::Text::legacy(&text), u32::MAX));
+        at += 1;
+    };
+    add(lines, format!("§7{used} of {total} Bytes Used ({pct}%)"));
+    add(lines, format!("§7{} of {} Types", inv.stored_item_types(), inv.total_item_types()));
+    // BasicCellHandler: a cell with a partition says how it filters.
+    let installed = cell_cards(stack);
+    if !cell_config(stack).is_empty() {
+        let list = if installed.iter().any(|c| c.as_str() == "ae2:inverter_card") { "Excluded" } else { "Included" };
+        let kind = if installed.iter().any(|c| c.as_str() == "ae2:fuzzy_card") { "Fuzzy" } else { "Precise" };
+        add(lines, format!("§7Partitioned - {list} {kind}"));
+    }
+    // StorageCellClientTooltipComponent: the first five it holds, then its cards (words here: tooltips take no icons).
+    let mut held = super::port_ae2_core::KeyCounter::new();
+    inv.available_stacks(&mut held);
+    let mut stored: Vec<(AeKey, i64)> = held.iter().filter(|(_, n)| *n > 0).map(|(k, n)| (k.clone(), n)).collect();
+    stored.sort_by_key(|e| std::cmp::Reverse(e.1));
+    for (key, n) in stored.iter().take(5) {
+        add(lines, format!("§8  {} {}", key.format_amount(*n, super::port_ae2_core::AmountFormat::Slot), item_words(key.id())));
+    }
+    if stored.len() > 5 {
+        add(lines, "§8  ...".to_owned());
+    }
+    if !installed.is_empty() {
+        add(lines, format!("§7Upgrades: {}", installed.iter().map(|c| item_words(c)).collect::<Vec<_>>().join(", ")));
+    }
 }
 
 /// An item id as words: `minecraft:oak_planks` -> "Oak Planks".
@@ -6479,6 +7613,53 @@ pub fn item_words(id: &str) -> String {
         .join(" ")
 }
 
+/// InitUpgrades: card, how AE2 names what takes it, how many, and the machines it stands for.
+const UPGRADES: &[(&str, &str, u32, &[&str])] = &[
+    ("crafting_card", "ME Interface", 1, &["interface", "cable_interface"]),
+    ("fuzzy_card", "ME Interface", 1, &["interface", "cable_interface"]),
+    ("speed_card", "ME IO Port", 3, &["io_port"]),
+    ("redstone_card", "ME IO Port", 1, &["io_port"]),
+    ("fuzzy_card", "ME Level Emitter", 1, &["level_emitter"]),
+    ("crafting_card", "ME Level Emitter", 1, &["level_emitter"]),
+    ("fuzzy_card", "ME Import/Export Bus", 1, &["import_bus", "export_bus"]),
+    ("redstone_card", "ME Import/Export Bus", 1, &["import_bus", "export_bus"]),
+    ("capacity_card", "ME Import/Export Bus", 5, &["import_bus", "export_bus"]),
+    ("speed_card", "ME Import/Export Bus", 4, &["import_bus", "export_bus"]),
+    ("inverter_card", "ME Import/Export Bus", 1, &["import_bus"]),
+    ("crafting_card", "ME Import/Export Bus", 1, &["export_bus"]),
+    ("fuzzy_card", "ME Storage Cells", 1, &[]),
+    ("inverter_card", "ME Storage Cells", 1, &[]),
+    ("equal_distribution_card", "ME Storage Cells", 1, &[]),
+    ("void_card", "ME Storage Cells", 1, &[]),
+    ("fuzzy_card", "Portable Cells", 1, &[]),
+    ("inverter_card", "Portable Cells", 1, &[]),
+    ("equal_distribution_card", "Portable Cells", 1, &[]),
+    ("void_card", "Portable Cells", 1, &[]),
+    ("energy_card", "Portable Cells", 2, &[]),
+    ("energy_card", "Wireless Terminals", 2, &[]),
+    ("fuzzy_card", "View Cell", 1, &[]),
+    ("inverter_card", "View Cell", 1, &[]),
+    ("fuzzy_card", "ME Storage Bus", 1, &["storage_bus"]),
+    ("inverter_card", "ME Storage Bus", 1, &["storage_bus"]),
+    ("capacity_card", "ME Storage Bus", 5, &["storage_bus"]),
+    ("void_card", "ME Storage Bus", 1, &["storage_bus"]),
+    ("fuzzy_card", "ME Formation Plane", 1, &["formation_plane"]),
+    ("inverter_card", "ME Formation Plane", 1, &["formation_plane"]),
+    ("capacity_card", "ME Formation Plane", 5, &["formation_plane"]),
+    ("energy_card", "Color Applicator", 2, &[]),
+    ("equal_distribution_card", "Color Applicator", 1, &[]),
+    ("void_card", "Color Applicator", 1, &[]),
+    ("energy_card", "Matter Cannon", 2, &[]),
+    ("fuzzy_card", "Matter Cannon", 1, &[]),
+    ("inverter_card", "Matter Cannon", 1, &[]),
+    ("void_card", "Matter Cannon", 1, &[]),
+    ("speed_card", "Matter Cannon", 4, &[]),
+    ("speed_card", "Molecular Assembler", 5, &["molecular_assembler"]),
+    ("speed_card", "Inscriber", 4, &["inscriber"]),
+    ("energy_card", "Vibration Chamber", 3, &["vibration_chamber"]),
+    ("speed_card", "Vibration Chamber", 3, &["vibration_chamber"]),
+];
+
 /// AE2's encoded pattern tooltip: the mode, what it makes and what it takes.
 fn pattern_tooltip(stack: &ItemStack, lines: &mut Vec<(horizon_client::text::Text, u32)>) {
     let Some(Tag::Compound(data)) = stack.extra.as_ref().and_then(|e| e.other.iter().find(|(k, _)| k == CELL_DATA)).map(|(_, t)| t) else {
@@ -6491,13 +7672,16 @@ fn pattern_tooltip(stack: &ItemStack, lines: &mut Vec<(horizon_client::text::Tex
     let crafting = &*stack.item == "ae2:crafting_pattern";
     let mut extra = Vec::new();
     extra.push(format!("§7{}", if crafting { "Crafting pattern" } else { "Processing pattern" }));
+    if crafting {
+        extra.push(format!("§7Using Substitutions: {}", if p.get(&java("subs")).is_some() { "Yes" } else { "No" }));
+    }
     for (i, (k, n)) in outputs.iter().enumerate() {
         let head = if i == 0 { if crafting { "Crafts: " } else { "Produces: " } } else { "and " };
-        extra.push(format!("§9{head}§f{n} x {}", item_words(k.id())));
+        extra.push(format!("§9{head}§f{} x {}", key_amount(&wire_id(k), *n, super::port_ae2_core::AmountFormat::Slot), item_words(k.id())));
     }
     for (i, (k, n)) in inputs.iter().enumerate() {
         let head = if i == 0 { "With: " } else { "and " };
-        extra.push(format!("§9{head}§f{n} x {}", item_words(k.id())));
+        extra.push(format!("§9{head}§f{} x {}", key_amount(&wire_id(k), *n, super::port_ae2_core::AmountFormat::Slot), item_words(k.id())));
     }
     for (i, l) in extra.into_iter().enumerate() {
         lines.insert((1 + i).min(lines.len()), (horizon_client::text::Text::legacy(&l), u32::MAX));
@@ -6560,7 +7744,14 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
     if channel == NET_DEBUG {
         let position = game.native_server_players().into_iter().find(|p| p.uuid == player).map(|p| p.position);
         if let Some(position) = position {
-            debug_command(game, player, position, &String::from_utf8_lossy(data));
+            let text = String::from_utf8_lossy(data).into_owned();
+            if let Some(rest) = text.strip_prefix("ae2") .filter(|r| r.is_empty() || r.starts_with(' ')) {
+                let level = game.native_server_players().into_iter().find(|p| p.uuid == player).map_or(0, |p| p.permission);
+                let args: Vec<&str> = rest.split_whitespace().collect();
+                ae2_run(game, Some(player), level, position, &args);
+                return;
+            }
+            debug_command(game, player, position, &text);
         }
         return;
     }
@@ -6598,15 +7789,15 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
     }
     match block_id(game, pos).as_str() {
         "ae2:pattern_encoding_terminal" => {
-            let mut cells: Vec<Option<(String, i64)>> = vec![None; 12];
+            let mut cells: Vec<Option<(String, i64)>> = vec![None; ENC_CELLS];
             for (i, ids, n) in &slots {
                 if let (Some(c), Some(id)) = (Some(cell(*i)).filter(|c| *c < 9), ids.first()) {
                     cells[c] = Some((id.clone(), if crafting { 1 } else { *n }));
                 }
             }
             if !crafting {
-                for (j, (id, n)) in results.iter().take(3).enumerate() {
-                    cells[9 + j] = Some((id.clone(), *n));
+                for (j, (id, n)) in results.iter().take(27).enumerate() {
+                    cells[enc_output(j)] = Some((id.clone(), *n));
                 }
             }
             game.native_with_mod_block_entity(pos, |e| {
@@ -6630,18 +7821,25 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
                 }
             }
             // One of each ingredient from the network, the first alternative it has.
+            SERVER.with_borrow_mut(|s| s.terminal_fills.retain(|f| f.0 != player));
             let mut fill: Vec<(usize, ItemStack)> = Vec::new();
             for (i, ids, _) in &slots {
                 let c = cell(*i);
                 if c >= 9 {
                     continue;
                 }
+                let mut found = false;
                 for id in ids {
                     let key = key_of(game, &ItemStack::new(id, 1));
                     if with_storage(game, grid, None, |st| st.extract(&key, 1, Actionable::Modulate)) > 0 {
                         fill.push((c, stack_of(&key, 1)));
+                        found = true;
                         break;
                     }
+                }
+                // What the network hasn't comes out of the player's inventory, once their state is to hand.
+                if !found {
+                    SERVER.with_borrow_mut(|s| s.terminal_fills.push((player, pos, c, ids.clone())));
                 }
             }
             game.native_with_mod_block_entity(pos, |e| {
@@ -6670,7 +7868,11 @@ pub const NET_LEVEL: &str = "ae2:level";
 
 fn send_level(game: &mut Game<'_>) {
     let text = CLIENT.with_borrow(|c| c.level_text.clone());
-    let _ = game.native_net_send_to_server(NET_LEVEL, text.as_bytes());
+    // (An expression goes as its value; one not yet complete doesn't go.)
+    // A fluid's is typed in buckets, and goes in mB.
+    let unit = CLIENT.with_borrow(|c| if c.ghosts.first().is_some_and(|(id, _)| id.starts_with('~')) { 1000.0 } else { 1.0 });
+    let Some(value) = (if text.trim().is_empty() { Some(0) } else { math_value(&text).and_then(|v| scaled_amount(v, unit)) }) else { return };
+    let _ = game.native_net_send_to_server(NET_LEVEL, value.to_string().as_bytes());
 }
 
 /// `native_screen_key_pressed_pre`: while the search box has the keys, they are its (the inventory key types).
@@ -6715,7 +7917,7 @@ pub fn screen_char(menu: Option<&str>, ch: char, canceled: &mut bool) {
     }
     if matches!(menu, Some("ae2:level_emitter" | "ae2:energy_level_emitter")) && CLIENT.with_borrow(|c| c.level_focus) {
         CLIENT.with_borrow_mut(|c| {
-            if ch.is_ascii_digit() && c.level_text.len() < 18 {
+            if (ch.is_ascii_digit() || "+-*/%^(). ".contains(ch)) && c.level_text.len() < 32 {
                 c.level_text.push(ch);
                 c.level_dirty = true;
             }
@@ -6744,16 +7946,26 @@ pub fn screen_char(menu: Option<&str>, ch: char, canceled: &mut bool) {
 pub fn register_commands(commands: &mut Vec<super::native_server::NativeCommand>) {
     commands.push(super::native_server::NativeCommand::op("ae2debug fill <types:integer> <amount:integer>", 2));
     commands.push(super::native_server::NativeCommand::op("ae2debug bench", 2));
+    for syntax in ["ae2", "ae2 list", "ae2 reloadconfig", "ae2 chunklogger", "ae2 spatial info", "ae2 spatial tpback", "ae2 channelmode", "ae2 channelmode infinite", "ae2 channelmode default", "ae2 channelmode x2", "ae2 channelmode x3", "ae2 channelmode x4", "ae2 tickmonitor true", "ae2 tickmonitor false", "ae2 compass", "ae2 testmeteorites", "ae2 testmeteorites force", "ae2 setuptestworld"] {
+        commands.push(super::native_server::NativeCommand::op(syntax, 4));
+    }
     commands.push(super::native_server::NativeCommand::op("ae2debug synth <cells:integer> <types:integer>", 2));
 }
 
 /// `native_perform_command` (a LAN guest's `/ae2debug`).
 pub fn perform_command(game: &mut Game<'_>, player: &super::native_server::NativeServerPlayer, command: &str, ran: &mut bool) {
-    if command.split_whitespace().next() != Some("ae2debug") {
-        return;
+    match command.split_whitespace().next() {
+        Some("ae2debug") => {
+            *ran = true;
+            debug_command(game, player.uuid, player.position, command);
+        }
+        Some("ae2") => {
+            *ran = true;
+            let args: Vec<&str> = command.split_whitespace().skip(1).collect();
+            ae2_run(game, Some(player.uuid), player.permission, player.position, &args);
+        }
+        _ => {}
     }
-    *ran = true;
-    debug_command(game, player.uuid, player.position, command);
 }
 
 /// The owner's `/ae2debug`, typed on their client (single player's own commands stay on the client): to the
@@ -6796,6 +8008,17 @@ fn debug_command(game: &mut Game<'_>, uuid: u128, position: [f64; 3], command: &
             set_custom(&mut pattern, PATTERN_KEY, Tag::Compound(p));
             let _ = game.native_give_stack(uuid, pattern);
         }
+        // `clearpatterns x y z`: a provider's patterns gone.
+        Some("clearpatterns") => {
+            let (Some(x), Some(y), Some(z)) = (arg(words.next()), arg(words.next()), arg(words.next())) else { return };
+            game.native_with_mod_block_entity([x as i32, y as i32, z as i32], |e| {
+                for slot in &mut e.items {
+                    if slot.as_ref().is_some_and(|s| s.item.ends_with("_pattern")) {
+                        *slot = None;
+                    }
+                }
+            });
+        }
         // `setpattern x y z crafting|processing in n out n`: a pattern into a provider.
         Some("setpattern") => {
             let (Some(x), Some(y), Some(z)) = (arg(words.next()), arg(words.next()), arg(words.next())) else { return };
@@ -6803,7 +8026,9 @@ fn debug_command(game: &mut Game<'_>, uuid: u128, position: [f64; 3], command: &
             let (Some(input), Some(a), Some(output), Some(b)) = (words.next().map(str::to_owned), arg(words.next()), words.next().map(str::to_owned), arg(words.next())) else { return };
             let mut pattern = ItemStack::new(if processing { "ae2:processing_pattern" } else { "ae2:crafting_pattern" }, 1);
             let mut p = Compound::new();
-            p.insert(java("in"), pattern_entries(&[(AeKey::item(&input, "", 0, 0), a)]));
+            // Several ingredients as `a+b`, `n` of each.
+            let inputs: Vec<(AeKey, i64)> = input.split('+').map(|id| (AeKey::item(id, "", 0, 0), a)).collect();
+            p.insert(java("in"), pattern_entries(&inputs));
             p.insert(java("out"), pattern_entries(&[(AeKey::item(&output, "", 0, 0), b)]));
             set_custom(&mut pattern, PATTERN_KEY, Tag::Compound(p));
             let done = game.native_with_mod_block_entity([x as i32, y as i32, z as i32], |e| {
@@ -7417,13 +8642,30 @@ struct Formation {
     blocks: Arc<HashSet<String>>,
     /// The plane's filter: AE2's config with its fuzzy and inverter cards.
     filter: BusFilter,
+    /// Settings.PLACE_BLOCK off, and what it has thrown out so far (AEConfig.formationPlaneEntityLimit: not while
+    /// 128 items lie there). What isn't a block is thrown out either way.
+    drop_items: bool,
+    can_throw: bool,
+    thrown: Vec<(AeKey, i64)>,
 }
 
 impl super::port_ae2_grid::MeStorage for Formation {
     fn insert(&mut self, what: &AeKey, amount: i64, mode: Actionable) -> i64 {
-        if !self.open || self.placed.is_some() || amount < 1 || what.key_type() != super::port_ae2_core::KeyType::Items || !self.blocks.contains(what.id())
-            || !self.filter.allows(what)
-        {
+        if !self.open || amount < 1 || what.key_type() != super::port_ae2_core::KeyType::Items || !self.filter.allows(what) {
+            return 0;
+        }
+        if self.drop_items || !self.blocks.contains(what.id()) {
+            if !self.can_throw || !self.thrown.is_empty() {
+                return 0;
+            }
+            let most = MAX_STACKS.with_borrow(|m| m.get(what.id()).copied().unwrap_or(64)).max(1);
+            let n = amount.min(most);
+            if mode == Actionable::Modulate {
+                self.thrown.push((what.clone(), n));
+            }
+            return n;
+        }
+        if self.placed.is_some() {
             return 0;
         }
         if mode == Actionable::Modulate {
@@ -7460,13 +8702,22 @@ fn annihilate(game: &mut Game<'_>, grid: usize, pos: Pos) {
         }
     }
     let name = block_id(game, t);
-    let skip = matches!(
-        name.as_str(),
-        "minecraft:air" | "minecraft:cave_air" | "minecraft:void_air" | "minecraft:water" | "minecraft:lava" | "minecraft:bedrock"
-            | "minecraft:barrier" | "minecraft:end_portal_frame" | "minecraft:end_portal" | "minecraft:nether_portal"
-    ) || name.starts_with("ae2:")
-        || game.world.block_entities.contains_key(&(t[0], t[1], t[2]));
-    if skip {
+    // FluidPickupStrategy.tryPickup: a source block, a bucket's worth, when the network has room for it.
+    if matches!(name.as_str(), "minecraft:water" | "minecraft:lava") {
+        if game.native_block_property(t, "level").as_deref() == Some("0") {
+            let key = AeKey::fluid(&name, "");
+            if with_storage(game, grid, None, |st| st.insert(&key, 1000, Actionable::Simulate)) == 1000
+                && let Some(air) = game.pack.assets.registry.default_state("minecraft:air")
+            {
+                with_storage(game, grid, None, |st| st.insert(&key, 1000, Actionable::Modulate));
+                game.native_set_block(&dim, t, air, 3);
+            }
+        }
+        return;
+    }
+    // ItemPickupStrategy.canHandleBlock: not air, not unbreakable, not what the tag lists (AE2's is empty).
+    let unbreakable = game.res.facts().get(game.world.block(t[0], t[1], t[2])).hardness < 0.0;
+    if unbreakable || matches!(name.as_str(), "minecraft:air" | "minecraft:cave_air" | "minecraft:void_air") {
         return;
     }
     let state = game.world.block(t[0], t[1], t[2]);
@@ -7516,8 +8767,13 @@ fn annihilate(game: &mut Game<'_>, grid: usize, pos: Pos) {
             st.insert(k, *n, Actionable::Modulate);
         }
     });
+    // Removing a container spills what it held, as breaking it does.
+    let held: Vec<ItemStack> = game.world.block_entities.get(&(t[0], t[1], t[2])).map_or(Vec::new(), |be| be.slots().iter().flatten().cloned().collect());
     if let Some(air) = game.pack.assets.registry.default_state("minecraft:air") {
         game.native_set_block(&dim, t, air, 3);
+    }
+    for stack in held {
+        game.spawn_item(stack, [f64::from(t[0]) + 0.5, f64::from(t[1]) + 0.5, f64::from(t[2]) + 0.5], [0.0, 0.1, 0.0], 10);
     }
 }
 
@@ -7579,7 +8835,19 @@ fn spatial_limit(item: &str) -> Option<i32> {
 }
 
 /// The redstone pulse: the cell in the input swaps with the volume, then goes to the output.
-fn spatial_swap(game: &mut Game<'_>, grid: usize, entity: &mut ModBlockEntity) {
+/// SpatialPylonService.updateStatus: what a transition costs in AE, and how well the pylons cover the volume (0 to 1).
+fn spatial_power(game: &Game<'_>, grid: usize, lo: Pos, hi: Pos) -> (f64, f64) {
+    let pylons = SERVER.with_borrow(|s| s.grids.get(grid).map_or(Vec::new(), |g| g.nodes.iter().copied().collect::<Vec<_>>()))
+        .into_iter()
+        .filter(|p| block_id(game, *p) == "ae2:spatial_pylon")
+        .count() as f64;
+    let (x, y, z) = (f64::from(hi[0] - lo[0] + 1), f64::from(hi[1] - lo[1] + 1), f64::from(hi[2] - lo[2] + 1));
+    let wanted = ((x * z + x * y + y * z) * 3.0 / 8.0).floor().max(6.0);
+    let efficiency = (pylons / wanted).clamp(0.0, 1.0);
+    ((x * y * z * 1250.0).powf(1.0 + 0.35 * (1.0 - efficiency)).floor(), efficiency)
+}
+
+fn spatial_swap(game: &mut Game<'_>, grid: usize, pos: Pos, entity: &mut ModBlockEntity) {
     let Some(mut cell) = entity.items.first().cloned().flatten() else { return };
     let Some(limit) = spatial_limit(&cell.item) else { return };
     if entity.items.get(1).is_some_and(Option::is_some) {
@@ -7588,6 +8856,11 @@ fn spatial_swap(game: &mut Game<'_>, grid: usize, entity: &mut ModBlockEntity) {
     let Some((lo, hi)) = spatial_region(game, grid) else { return };
     let size = [hi[0] - lo[0] + 1, hi[1] - lo[1] + 1, hi[2] - lo[2] + 1];
     if size.iter().any(|s| *s > limit) {
+        return;
+    }
+    // SpatialIOPortBlockEntity: it runs only with all the power it needs at hand.
+    let (required, _) = spatial_power(game, grid, lo, hi);
+    if !take_energy(pos, required) {
         return;
     }
     let data = match cell.extra.as_ref().and_then(|e| e.other.iter().find(|(k, _)| k == CELL_DATA)).map(|(_, t)| t.clone()) {
@@ -7803,6 +9076,15 @@ fn applicator_use(game: &mut Game<'_>, pos: Pos, block: &str) -> bool {
         Some(color) if held_power(game) > 100.0 => {
             if cable(block).is_some() {
                 paint_cable(game, pos, block)
+            } else if block == "ae2:crafting_monitor" {
+                // CraftingMonitorBlockEntity.recolourBlock.
+                let changed = game.native_with_mod_block_entity(pos, |e| {
+                    let new = nbt_string(&e.nbt, "paint") != color;
+                    e.nbt.insert(java("paint"), Tag::String(java(color)));
+                    new
+                });
+                game.native_block_entity_sync(pos);
+                changed.unwrap_or(false)
             } else if let Some(to) = recolor_block(block, color) {
                 let dim = game.dim.id().to_owned();
                 let old: Vec<(String, String)> = {
@@ -8223,11 +9505,21 @@ enum DialogKind {
 struct Dialog {
     kind: DialogKind,
     text: String,
-    /// The plan: what comes from storage (`u`), is crafted (`c`), is missing (`m`), with amounts.
+    /// An error's missing items (`m`), with amounts.
     plan: Vec<(char, String, i64)>,
+    /// CraftingPlanSummary's entries: item, available, missing, to craft.
+    entries: Vec<(String, i64, i64, i64)>,
     bytes: i64,
-    cpu: String,
+    /// CraftingCPUCycler: the CPUs that could take the job (index, bytes, co-processors), and which the button says
+    /// (-1 Automatic, or one of those by its place in the list).
+    cpus: Vec<(usize, i64, i64)>,
+    selected: i32,
+    /// The plan can run (CraftingPlanSummary.isSimulation: not), the job has been asked for, and Shift was down on
+    /// the amount screen's button (start as soon as the plan is ready), when the CPU list was last asked for.
     can_start: bool,
+    starting: bool,
+    auto_start: bool,
+    asked_cpus: Option<std::time::Instant>,
     waiting: bool,
     error: String,
     scroll: usize,
@@ -8235,7 +9527,22 @@ struct Dialog {
 
 impl Dialog {
     fn new(kind: DialogKind, text: String) -> Self {
-        Dialog { kind, text, plan: Vec::new(), bytes: 0, cpu: String::new(), can_start: false, waiting: false, error: String::new(), scroll: 0 }
+        Dialog {
+            kind,
+            text,
+            plan: Vec::new(),
+            entries: Vec::new(),
+            bytes: 0,
+            cpus: Vec::new(),
+            selected: -1,
+            can_start: false,
+            starting: false,
+            auto_start: false,
+            asked_cpus: None,
+            waiting: false,
+            error: String::new(),
+            scroll: 0,
+        }
     }
 
     fn size(&self) -> [f32; 2] {
@@ -8247,8 +9554,33 @@ impl Dialog {
         }
     }
 
+    /// What the number stands for in its key's amounts: a fluid's is typed in buckets, and counts in mB.
+    fn unit(&self) -> f64 {
+        match &self.kind {
+            DialogKind::Craft(_, id) | DialogKind::Stock(_, id) | DialogKind::Amount(_, id) if id.starts_with('~') => 1000.0,
+            _ => 1.0,
+        }
+    }
+
+    /// The text's value in that key's amounts; None when it isn't a whole number of them.
+    fn scaled(&self) -> Option<i64> {
+        scaled_amount(math_value(&self.text)?, self.unit())
+    }
+
     fn value(&self) -> i64 {
-        self.text.trim().parse().unwrap_or(0)
+        self.scaled().unwrap_or(0)
+    }
+
+    /// NumberEntryWidget.validate: what's wrong with the text as typed.
+    fn problem(&self) -> Option<String> {
+        let least = if self.kind == DialogKind::Priority { i64::MIN / 2 } else { 1 };
+        let fluid = self.unit() > 1.0;
+        match math_value(&self.text) {
+            None => Some("Please enter a number or a mathematical expression e.g. : 3*4".to_owned()),
+            Some(_) if self.scaled().is_none() => Some(if fluid { "The smallest amount is 0.001 B (1 mB)".to_owned() } else { "Must be whole number".to_owned() }),
+            Some(_) if self.value() < least => Some(if fluid { "Please enter at least 0.001 B (1 mB)".to_owned() } else { format!("Please enter a number greater than or equal to {least}") }),
+            Some(_) => None,
+        }
     }
 }
 
@@ -8262,9 +9594,12 @@ fn dialog_origin(game: &Game<'_>, d: &Dialog) -> [f32; 2] {
 const STEPS: [(f32, f32, i64); 4] = [(20.0, 22.0, 1), (48.0, 28.0, 10), (82.0, 32.0, 100), (120.0, 38.0, 1000)];
 const NEXT_BUTTON: [f32; 4] = [120.0, 51.0, 38.0, 20.0];
 const BACK_BUTTON: [f32; 4] = [154.0, 0.0, 22.0, 14.0];
-const CONFIRM_CANCEL: [f32; 4] = [6.0, 161.0, 50.0, 20.0];
-const CONFIRM_START: [f32; 4] = [162.0, 161.0, 50.0, 20.0];
-const ERROR_BUTTONS: [[f32; 4]; 3] = [[5.0, 42.0, 50.0, 20.0], [84.0, 42.0, 50.0, 20.0], [164.0, 42.0, 50.0, 20.0]];
+// (Position.resolve: `bottom` is the widget's top, that far up from the window's foot.)
+const CONFIRM_CANCEL: [f32; 4] = [6.0, 181.0, 50.0, 20.0];
+const CONFIRM_START: [f32; 4] = [162.0, 181.0, 50.0, 20.0];
+const CONFIRM_CPU: [f32; 4] = [19.0, 138.0, 180.0, 20.0];
+const CONFIRM_SCROLL: [f32; 4] = [218.0, 19.0, 12.0, 114.0];
+const ERROR_BUTTONS: [[f32; 4]; 3] = [[5.0, 62.0, 50.0, 20.0], [84.0, 62.0, 50.0, 20.0], [164.0, 62.0, 50.0, 20.0]];
 
 fn open_dialog(kind: DialogKind, text: String) {
     CLIENT.with_borrow_mut(|c| c.dialog = Some(Dialog::new(kind, text)));
@@ -8277,6 +9612,9 @@ pub fn dialog_open() -> bool {
 /// The dialog's number confirmed (its button or Enter): the plan asked for, or the amount saved.
 fn dialog_confirm(c: &mut Client) {
     let Some(d) = c.dialog.as_mut() else { return };
+    if !matches!(d.kind, DialogKind::Confirm(..) | DialogKind::Error(..)) && d.problem().is_some() {
+        return;
+    }
     let v = d.value();
     match d.kind.clone() {
         DialogKind::Craft(index, id) => {
@@ -8284,8 +9622,20 @@ fn dialog_confirm(c: &mut Client) {
                 return;
             }
             c.ui_out.push(format!("plan {index} {v}"));
+            if settings(c)[3]
+                && let Some((id, _)) = c.items.get(index).cloned()
+                && !c.pinned.contains(&id)
+            {
+                // PinnedKeys: the first row's nine, the oldest giving way.
+                if c.pinned.len() >= TERM_COLS {
+                    c.pinned.remove(0);
+                }
+                c.pinned.push(id);
+                c.view.take();
+            }
             let mut next = Dialog::new(DialogKind::Confirm(index, id, v), v.to_string());
             next.waiting = true;
+            next.auto_start = c.shift;
             c.dialog = Some(next);
         }
         DialogKind::Stock(cell, _) => {
@@ -8297,63 +9647,604 @@ fn dialog_confirm(c: &mut Client) {
             c.dialog = None;
         }
         DialogKind::Priority => c.dialog = None,
-        DialogKind::Confirm(index, _, amount) if d.can_start && !d.waiting => {
-            c.ui_out.push(format!("craft {index} {amount}"));
-            c.dialog = None;
+        DialogKind::Confirm(index, _, amount) if d.can_start && !d.waiting && !d.starting && !d.cpus.is_empty() => {
+            d.starting = true;
+            let cpu = d.cpus.get(d.selected.max(0) as usize).filter(|_| d.selected >= 0).map_or("auto".to_owned(), |k| k.0.to_string());
+            c.ui_out.push(format!("craft {index} {amount} {cpu}"));
         }
         _ => {}
     }
 }
 
-/// `native_screen_render_post`: the open dialog over everything, the screen under it dimmed.
-pub fn dialog_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
-    let Some(d) = CLIENT.with_borrow(|c| c.dialog.clone()) else { return };
+/// CraftingStatusScreen's window: its corner (the CPU list hangs off its left side).
+fn status_origin(game: &Game<'_>) -> [f32; 2] {
     let (w, h) = game.gui_size();
-    game.native_fill(batch, [0.0, 0.0, w, h], 0xA0000000);
+    [((w - 238.0) / 2.0).floor(), ((h - 184.0) / 2.0).floor()]
+}
+
+// screens/crafting_cpu.json and crafting_status.json.
+const STATUS_CANCEL: [f32; 4] = [163.0, 159.0, 50.0, 20.0];
+const STATUS_BACK: [f32; 4] = [213.0, -4.0, 25.0, 22.0];
+const STATUS_SCROLL: [f32; 4] = [218.0, 19.0, 12.0, 137.0];
+/// The left toolbar's one button (VerticalButtonBar: two pixels in from its place, then its own margin).
+const STATUS_MODE: [f32; 4] = [-20.0, 8.0, 16.0, 16.0];
+const STATUS_ROWS: usize = 6;
+const STATUS_COLS: usize = 3;
+const CPU_LIST: [f32; 4] = [-94.0, 4.0, 94.0, 164.0];
+const CPU_LIST_SCROLL: [f32; 4] = [-16.0, 23.0, 12.0, 137.0];
+const CPU_BUTTON: [f32; 2] = [67.0, 22.0];
+const CPU_ROWS: usize = 6;
+/// palette.json's SELECTION_COLOR, DEFAULT_TEXT_COLOR.
+const SELECTION: u32 = 0x00D5FF;
+const TEXT: u32 = 0x404040;
+/// The table's fills: AEColor.GREEN and YELLOW's blackVariant at 0x5A alpha; a missing item's overlay.
+const CELL_ACTIVE: u32 = 0x5A45A021;
+const CELL_PENDING: u32 = 0x5AFFF7AA;
+const CELL_MISSING: u32 = 0x1AFF0000;
+
+/// MathExpressionParser: + - * / % ^ and brackets over numbers. None for anything else.
+fn math_value(text: &str) -> Option<f64> {
+    struct P<'a>(std::iter::Peekable<std::str::Chars<'a>>);
+    impl P<'_> {
+        fn eat(&mut self, ch: char) -> bool {
+            while self.0.peek() == Some(&' ') {
+                self.0.next();
+            }
+            if self.0.peek() == Some(&ch) {
+                self.0.next();
+                return true;
+            }
+            false
+        }
+        fn sum(&mut self) -> Option<f64> {
+            let mut v = self.product()?;
+            loop {
+                if self.eat('+') {
+                    v += self.product()?;
+                } else if self.eat('-') {
+                    v -= self.product()?;
+                } else {
+                    return Some(v);
+                }
+            }
+        }
+        fn product(&mut self) -> Option<f64> {
+            let mut v = self.power()?;
+            loop {
+                if self.eat('*') {
+                    v *= self.power()?;
+                } else if self.eat('/') {
+                    let d = self.power()?;
+                    if d == 0.0 {
+                        return None;
+                    }
+                    v /= d;
+                } else if self.eat('%') {
+                    let d = self.power()?;
+                    if d == 0.0 {
+                        return None;
+                    }
+                    v %= d;
+                } else {
+                    return Some(v);
+                }
+            }
+        }
+        fn power(&mut self) -> Option<f64> {
+            let base = self.unary()?;
+            if self.eat('^') { Some(base.powf(self.power()?)) } else { Some(base) }
+        }
+        fn unary(&mut self) -> Option<f64> {
+            if self.eat('-') {
+                return Some(-self.unary()?);
+            }
+            if self.eat('+') {
+                return self.unary();
+            }
+            if self.eat('(') {
+                let v = self.sum()?;
+                return self.eat(')').then_some(v);
+            }
+            while self.0.peek() == Some(&' ') {
+                self.0.next();
+            }
+            let mut number = String::new();
+            while let Some(c) = self.0.peek().copied().filter(|c| c.is_ascii_digit() || *c == '.') {
+                number.push(c);
+                self.0.next();
+            }
+            number.parse().ok()
+        }
+    }
+    let mut p = P(text.chars().peekable());
+    let v = p.sum()?;
+    while p.0.peek() == Some(&' ') {
+        p.0.next();
+    }
+    (p.0.peek().is_none() && v.is_finite()).then_some(v)
+}
+
+fn math_whole(text: &str) -> Option<i64> {
+    math_value(text).filter(|v| v.fract() == 0.0).map(|v| v as i64)
+}
+
+/// `value` units as whole amounts (0.01 buckets is 10 mB, however the float falls).
+fn scaled_amount(value: f64, unit: f64) -> Option<i64> {
+    let v = value * unit;
+    ((v - v.round()).abs() < 1e-6).then(|| v.round() as i64)
+}
+
+/// An amount as its number field shows it: a fluid's in buckets.
+fn amount_text(id: &str, n: i64) -> String {
+    if id.starts_with('~') {
+        let text = format!("{:.3}", n as f64 / 1000.0);
+        text.trim_end_matches('0').trim_end_matches('.').to_owned()
+    } else {
+        n.to_string()
+    }
+}
+
+/// NumberFormat.getInstance: "1,024".
+fn group_digits(n: i64) -> String {
+    let digits = n.abs().to_string();
+    let mut out = String::new();
+    for (i, ch) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i) % 3 == 0 {
+            out.push(',');
+        }
+        out.push(ch);
+    }
+    if n < 0 { format!("-{out}") } else { out }
+}
+
+/// A key's amount as AE2 words it: `format` is AmountFormat.SLOT in a cell, FULL in its tooltip.
+fn key_amount(id: &str, n: i64, format: super::port_ae2_core::AmountFormat) -> String {
+    if id.starts_with('~') {
+        return match format {
+            super::port_ae2_core::AmountFormat::Full => format!("{} B ({n} mB)", amount_text(id, n)),
+            _ if n < 1000 => format!("{n}mB"),
+            _ => format!("{}B", readable_number::format_f64(n as f64 / 1000.0, 3)),
+        };
+    }
+    super::port_ae2_core::KeyType::Items.format_amount(n, format)
+}
+
+fn key_words(game: &Game<'_>, id: &str) -> String {
+    match id.strip_prefix('~') {
+        Some(fluid) => item_words(fluid),
+        None => game.pack.names.display_item(id).to_string(),
+    }
+}
+
+/// Part of a GUI sprite times a colour (Blitter.colorRgb).
+fn tinted_sprite(game: &Game<'_>, batch: &mut HudBatch, name: &str, src: [f32; 4], dst: [f32; 4], rgb: u32) {
+    let Some(mut r) = game.gui.atlas.sprites.get(name).copied() else { return };
+    let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+    r.u0 += src[0] * du;
+    r.v0 += src[1] * dv;
+    r.u1 = r.u0 + src[2] * du;
+    r.v1 = r.v0 + src[3] * dv;
+    let [_, red, green, blue] = rgb.to_be_bytes();
+    batch.rect_uv(dst[0], dst[1], dst[2], dst[3], r, horizon_client::hud::rgba(red, green, blue, 0xFF));
+}
+
+/// One cell of AbstractTableRenderer: its item, its lines, what its tooltip adds, and its fills.
+struct TableCell {
+    id: String,
+    lines: Vec<String>,
+    full: Vec<String>,
+    background: u32,
+    overlay: u32,
+}
+
+/// AbstractTableRenderer.render: three columns from (9, 19), each cell 67 by 22 with a line between, half-size text
+/// right-aligned against the item. The cell under the pointer, if any.
+fn draw_table(game: &Game<'_>, batch: &mut HudBatch, origin: [f32; 2], rows: usize, cells: &[TableCell], scroll: usize, mouse: [f32; 2]) -> Option<usize> {
+    let mut hovered = None;
+    for (n, cell) in cells.iter().enumerate().skip(scroll * STATUS_COLS).take(rows * STATUS_COLS) {
+        let at = n - scroll * STATUS_COLS;
+        let (x, y) = (origin[0] + 9.0 + (at % STATUS_COLS) as f32 * 68.0, origin[1] + 19.0 + (at / STATUS_COLS) as f32 * 23.0);
+        if cell.background != 0 {
+            game.native_fill(batch, [x, y, 67.0, 22.0], cell.background);
+        }
+        let count = cell.lines.len() as f32;
+        let height = count * 4.5 + (count - 1.0).max(0.0);
+        let mut text_y = (y + (22.0 - height) / 2.0).round();
+        let item_x = x + 67.0 - 19.0;
+        for line in &cell.lines {
+            let width = game.native_text_width(line);
+            let text_x = ((item_x - 2.0 - width * 0.5) * 2.0).floor() / 2.0;
+            let start = batch.vertices.len();
+            game.native_text(batch, line, [text_x, text_y], TEXT, false);
+            batch.scale_since(start, text_x, text_y, 0.5, 0.5);
+            text_y += 5.5;
+        }
+        draw_key(game, batch, &cell.id, [item_x, y + 3.0], 16.0);
+        if cell.overlay != 0 {
+            game.native_fill(batch, [x, y, 67.0, 22.0], cell.overlay);
+        }
+        if mouse[0] >= x && mouse[0] <= x + 67.0 && mouse[1] >= y && mouse[1] <= y + 22.0 {
+            hovered = Some(n);
+        }
+    }
+    hovered
+}
+
+fn table_tooltip(game: &Game<'_>, batch: &mut HudBatch, cell: &TableCell, mouse: [f32; 2]) {
+    let mut lines = vec![(horizon_client::text::Text::legacy(&key_words(game, &cell.id)), u32::MAX)];
+    lines.extend(cell.full.iter().map(|l| (horizon_client::text::Text::legacy(l), u32::MAX)));
+    game.draw_tooltip_lines(batch, &lines, mouse[0], mouse[1]);
+}
+
+/// Tooltips.ofBytes.
+fn bytes_words(bytes: i64) -> String {
+    let mut value = bytes as f64;
+    let mut units = ["B", "kB", "MB", "GB", "TB"].iter();
+    let mut unit = units.next().copied().unwrap_or("B");
+    while value >= 1024.0 {
+        let Some(next) = units.next() else { break };
+        value /= 1024.0;
+        unit = next;
+    }
+    let text = format!("{value:.2}");
+    format!("{} {unit}", text.trim_end_matches('0').trim_end_matches('.'))
+}
+
+/// Tooltips.ofDuration.
+fn duration_words(seconds: i64) -> String {
+    let (h, m, s) = (seconds / 3600, seconds % 3600 / 60, seconds % 60);
+    let mut out = String::new();
+    if h > 0 {
+        out.push_str(&format!("{h}h "));
+    }
+    if m > 0 {
+        out.push_str(&format!("{m}m "));
+    }
+    if s > 0 || out.is_empty() {
+        out.push_str(&format!("{s}s"));
+    }
+    out.trim_end().to_owned()
+}
+
+/// CPUSelectionList.drawBackgroundLayer's InfoBar: a row of icons, text and items at 0.6 scale.
+struct InfoBar {
+    x: f32,
+    y: f32,
+}
+
+impl InfoBar {
+    fn icon(&mut self, game: &Game<'_>, batch: &mut HudBatch, icon: [f32; 2]) {
+        game.native_sprite(batch, "ae2:gui/states", [icon[0], icon[1], 16.0, 16.0], [self.x, self.y, 9.6, 9.6]);
+        self.x += 10.0;
+    }
+
+    fn item(&mut self, game: &Game<'_>, batch: &mut HudBatch, id: &str) {
+        draw_key(game, batch, id, [self.x, self.y], 9.6);
+        self.x += 10.0;
+    }
+
+    fn text(&mut self, game: &Game<'_>, batch: &mut HudBatch, text: &str) {
+        let start = batch.vertices.len();
+        game.native_text(batch, text, [self.x, self.y + 3.0], TEXT, false);
+        batch.scale_since(start, self.x, self.y + 3.0, 0.6, 0.6);
+        self.x += (game.native_text_width(text) * 0.6).round();
+    }
+}
+
+/// CraftingStatusMenu's choice while none is made: the first CPU with a job, or else the first.
+fn status_selected(c: &mut Client) -> usize {
+    if c.status_cpu >= c.status_cpus.len() && !c.status_cpus.is_empty() {
+        c.status_cpu = c.status_cpus.iter().position(|k| k.item != "-").unwrap_or(0);
+    }
+    c.status_cpu
+}
+
+/// The selected CPU's entries in CraftingStatusEntry's order: most yet to come, then most stored.
+fn status_cells(c: &Client, selected: usize) -> Vec<TableCell> {
+    use super::port_ae2_core::AmountFormat::{Full, Slot};
+    let mut entries: Vec<&(usize, String, i64, i64, i64)> = c.status_entries.iter().filter(|e| e.0 == selected).collect();
+    entries.sort_by_key(|e| std::cmp::Reverse((e.3 + e.4, e.2)));
+    entries
+        .into_iter()
+        .map(|(_, id, stored, active, pending)| {
+            let mut lines = Vec::new();
+            let mut full = Vec::new();
+            for (n, word) in [(*stored, "Stored"), (*active, "Crafting"), (*pending, "Scheduled")] {
+                if n > 0 {
+                    lines.push(format!("{word}: {}", key_amount(id, n, Slot)));
+                    full.push(format!("{word}: {}", key_amount(id, n, Full)));
+                }
+            }
+            let background = if *active > 0 {
+                CELL_ACTIVE
+            } else if *pending > 0 {
+                CELL_PENDING
+            } else {
+                0
+            };
+            TableCell { id: id.clone(), lines, full, background, overlay: 0 }
+        })
+        .collect()
+}
+
+/// CraftingStatusScreen (from a terminal: the CPUs down the side, a tab back) and CraftingCPUScreen (from a crafting
+/// block: its CPU alone, and its auto-selection mode).
+fn status_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
+    if !CLIENT.with_borrow(|c| c.show_jobs) {
+        return;
+    }
+    let (cpus, cells, sel, scroll, list_scroll, block_mode, host, drag) = CLIENT.with_borrow_mut(|c| {
+        let sel = status_selected(c);
+        c.status_mouse = mouse;
+        c.gui_size_seen = game.gui_size();
+        (c.status_cpus.clone(), status_cells(c, sel), sel, c.status_scroll, c.status_list_scroll, c.status_block, c.status_host.clone(), c.scroll_drag)
+    });
+    if game.native_mod_screen().is_some() {
+        let (w, h) = game.gui_size();
+        game.native_fill(batch, [0.0, 0.0, w, h], 0xA0000000);
+    }
+    let [ox, oy] = status_origin(game);
+    let on = |r: [f32; 4]| mouse[0] >= ox + r[0] && mouse[0] < ox + r[0] + r[2] && mouse[1] >= oy + r[1] && mouse[1] < oy + r[1] + r[3];
+    let mut tip: Option<Vec<(horizon_client::text::Text, u32)>> = None;
+    let legacy = |l: &str| (horizon_client::text::Text::legacy(l), u32::MAX);
+    if !block_mode {
+        // The CPU list, behind the window's left edge (CPUSelectionList).
+        let [lx, ly] = [ox + CPU_LIST[0], oy + CPU_LIST[1]];
+        game.native_sprite(batch, "ae2:gui/cpu_selector", [0.0, 0.0, 94.0, 164.0], [lx, ly, 94.0, 164.0]);
+        game.native_text(batch, "Crafting CPUs", [ox - 86.0, oy + 12.0], TEXT, false);
+        let most = cpus.len().saturating_sub(CPU_ROWS);
+        let top = if drag == 2 { scrollbar_row(mouse[1], oy + CPU_LIST_SCROLL[1], CPU_LIST_SCROLL[3], most) } else { list_scroll.min(most) };
+        if drag == 2 {
+            CLIENT.with_borrow_mut(|c| c.status_list_scroll = top);
+        }
+        for (i, cpu) in cpus.iter().enumerate().skip(top).take(CPU_ROWS) {
+            let (x, y) = (lx + 9.0, ly + 19.0 + (i - top) as f32 * (CPU_BUTTON[1] + 1.0));
+            let selected = i == sel;
+            tinted_sprite(game, batch, "ae2:gui/cpu_selector", [100.0, 0.0, CPU_BUTTON[0], CPU_BUTTON[1]], [x, y, CPU_BUTTON[0], CPU_BUTTON[1]], if selected { SELECTION } else { 0xFFFFFF });
+            let name = format!("CPU #{}", i + 1);
+            let start = batch.vertices.len();
+            game.native_text(batch, &name, [x + 3.0, y + 3.0], TEXT, false);
+            batch.scale_since(start, x + 3.0, y + 3.0, 0.8, 0.8);
+            let mut bar = InfoBar { x: x + 2.0, y: y + CPU_BUTTON[1] - 12.0 };
+            if cpu.item == "-" {
+                bar.icon(game, batch, [64.0, 64.0]);
+                bar.x += 1.0;
+                bar.text(game, batch, &format!("{}k", cpu.bytes / 1024));
+                bar.x += 1.0;
+                if cpu.accel > 0 {
+                    bar.icon(game, batch, [64.0, 16.0]);
+                    bar.text(game, batch, &cpu.accel.to_string());
+                    bar.x += 1.0;
+                }
+                match cpu.mode {
+                    1 => bar.item(game, batch, "ae2:terminal"),
+                    2 => bar.item(game, batch, "ae2:export_bus"),
+                    _ => {}
+                }
+            } else {
+                bar.icon(game, batch, [48.0, 144.0]);
+                bar.x += 2.0;
+                bar.text(game, batch, &key_amount(&cpu.item, cpu.amount, super::port_ae2_core::AmountFormat::Slot));
+                bar.x += 1.0;
+                bar.item(game, batch, &cpu.item);
+                let progress = (cpu.permille as f32 / 1000.0 * (CPU_BUTTON[0] - 1.0)).floor();
+                if progress > 1.0 {
+                    let color = if selected { 0xFFFFFFFF } else { 0xFF000000 | SELECTION };
+                    game.native_fill(batch, [x + 1.0, y + CPU_BUTTON[1] - 2.0, progress - 1.0, 1.0], color);
+                }
+            }
+            if mouse[0] >= x && mouse[0] < x + CPU_BUTTON[0] && mouse[1] >= y && mouse[1] < y + CPU_BUTTON[1] {
+                let mut lines = vec![legacy(&name), legacy(&format!("§7{} Storage", bytes_words(cpu.bytes)))];
+                match cpu.accel {
+                    0 => {}
+                    1 => lines.push(legacy("§71 Co-Processor")),
+                    n => lines.push(legacy(&format!("§7{n} Co-Processors"))),
+                }
+                match cpu.mode {
+                    1 => lines.push(legacy("Only for requests by players")),
+                    2 => lines.push(legacy("Only for requests by automation")),
+                    _ => {}
+                }
+                if cpu.item != "-" {
+                    lines.push(legacy(&format!("Crafting {} {}", key_amount(&cpu.item, cpu.amount, super::port_ae2_core::AmountFormat::Full), key_words(game, &cpu.item))));
+                    lines.push(legacy(&format!("Crafted {}% in {}", cpu.permille / 10, duration_words(cpu.elapsed))));
+                }
+                tip = Some(lines);
+            }
+        }
+        draw_scrollbar(game, batch, [ox + CPU_LIST_SCROLL[0], oy + CPU_LIST_SCROLL[1]], CPU_LIST_SCROLL[3], top, most);
+    }
+    game.native_sprite(batch, "ae2:gui/craftingcpu", [0.0, 0.0, 238.0, 184.0], [ox, oy, 238.0, 184.0]);
+    // The title: "Crafting Status", the time left (GuiText.ETAFormat, HH:mm:ss), and CantStoreItems.
+    let selected = cpus.get(sel);
+    let mut title = "Crafting Status".to_owned();
+    if let Some(cpu) = selected.filter(|k| k.item != "-" && k.secs >= 0) {
+        title.push_str(&format!(" - {:02}:{:02}:{:02}", cpu.secs / 3600, cpu.secs % 3600 / 60, cpu.secs % 60));
+    }
+    game.native_text(batch, &title, [ox + 8.0, oy + 7.0], TEXT, false);
+    if selected.is_some_and(|k| k.cant_store) {
+        let at = ox + 8.0 + game.native_text_width(&title);
+        game.native_text(batch, " - ", [at, oy + 7.0], TEXT, false);
+        game.native_text(batch, "Can't Store Contents!", [at + game.native_text_width(" - "), oy + 7.0], 0xFF5555, false);
+    }
+    let rows = cells.len().div_ceil(STATUS_COLS);
+    let most = rows.saturating_sub(STATUS_ROWS);
+    let top = if drag == 1 { scrollbar_row(mouse[1], oy + STATUS_SCROLL[1], STATUS_SCROLL[3], most) } else { scroll.min(most) };
+    if drag == 1 {
+        CLIENT.with_borrow_mut(|c| c.status_scroll = top);
+    }
+    let hovered = draw_table(game, batch, [ox, oy], STATUS_ROWS, &cells, top, mouse);
+    draw_scrollbar(game, batch, [ox + STATUS_SCROLL[0], oy + STATUS_SCROLL[1]], STATUS_SCROLL[3], top, most);
+    let cancel = [ox + STATUS_CANCEL[0], oy + STATUS_CANCEL[1], STATUS_CANCEL[2], STATUS_CANCEL[3]];
+    draw_button_at(game, batch, cancel, if cells.is_empty() { "§7Cancel" } else { "Cancel" }, !cells.is_empty() && on(STATUS_CANCEL));
+    if block_mode {
+        // SettingToggleButton on Settings.CPU_SELECTION_MODE.
+        let mode = selected.map_or(0, |k| k.mode);
+        let at = [ox + STATUS_MODE[0], oy + STATUS_MODE[1]];
+        match mode {
+            1 | 2 => {
+                let [bx, by] = ICON_BUTTON_BACKGROUND;
+                game.native_sprite(batch, "ae2:gui/states", [bx, by, 16.0, 16.0], [at[0], at[1], 16.0, 16.0]);
+                draw_key(game, batch, if mode == 1 { "ae2:terminal" } else { "ae2:export_bus" }, at, 16.0);
+            }
+            _ => draw_state_button(game, batch, at, [48.0, 144.0]),
+        }
+        if on(STATUS_MODE) {
+            let word = ["For requests by players or automation", "Only for requests by players", "Only for requests by automation"][mode.clamp(0, 2) as usize];
+            tip = Some(vec![legacy("CPU Auto-Selection Mode"), legacy(&format!("§7{word}"))]);
+        }
+    } else {
+        // AESubScreen.addBackButton: a corner tab with the terminal's icon.
+        let at = [ox + STATUS_BACK[0], oy + STATUS_BACK[1]];
+        game.native_sprite(batch, "ae2:gui/states", [128.0, 192.0, STATUS_BACK[2], STATUS_BACK[3]], [at[0], at[1], STATUS_BACK[2], STATUS_BACK[3]]);
+        let icon = if host.is_empty() { "ae2:terminal" } else { host.as_str() };
+        draw_key(game, batch, icon, [at[0] + 4.0, at[1] + 3.0], 16.0);
+        if on(STATUS_BACK) {
+            tip = Some(vec![legacy(&key_words(game, icon))]);
+        }
+    }
+    if let Some(i) = hovered
+        && let Some(cell) = cells.get(i)
+    {
+        table_tooltip(game, batch, cell, mouse);
+    }
+    if let Some(lines) = tip {
+        game.draw_tooltip_lines(batch, &lines, mouse[0], mouse[1]);
+    }
+}
+
+/// A press while the status window is open: it takes them all.
+fn status_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) -> bool {
+    if !CLIENT.with_borrow(|c| c.show_jobs) {
+        return false;
+    }
+    *canceled = true;
+    let [ox, oy] = status_origin(game);
+    let on = |r: [f32; 4]| mouse[0] >= ox + r[0] && mouse[0] < ox + r[0] + r[2] && mouse[1] >= oy + r[1] && mouse[1] < oy + r[1] + r[3];
+    CLIENT.with_borrow_mut(|c| {
+        let sel = status_selected(c);
+        if c.status_block && on(STATUS_MODE) {
+            let back = if button == 1 { " back" } else { "" };
+            c.ui_out.push(format!("cpumode {sel}{back}"));
+            return;
+        }
+        if button != 0 {
+            return;
+        }
+        if !c.status_block && on(STATUS_BACK) {
+            c.show_jobs = false;
+        } else if on(STATUS_CANCEL) {
+            if c.status_entries.iter().any(|e| e.0 == sel) {
+                c.ui_out.push(format!("cpucancel {sel}"));
+            }
+        } else if on(STATUS_SCROLL) {
+            c.scroll_drag = 1;
+        } else if !c.status_block && on(CPU_LIST_SCROLL) {
+            c.scroll_drag = 2;
+        } else if !c.status_block {
+            let top = c.status_list_scroll.min(c.status_cpus.len().saturating_sub(CPU_ROWS));
+            for row in 0..CPU_ROWS {
+                let at = [CPU_LIST[0] + 9.0, CPU_LIST[1] + 19.0 + row as f32 * (CPU_BUTTON[1] + 1.0), CPU_BUTTON[0], CPU_BUTTON[1]];
+                if on(at) && top + row < c.status_cpus.len() {
+                    c.status_cpu = top + row;
+                    c.status_scroll = 0;
+                }
+            }
+        }
+    });
+    true
+}
+
+/// `native_screen_render_post`: the open dialog, or the crafting status.
+pub fn dialog_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
+    toolbar_tooltip(game, batch, mouse);
+    toolbelt_draw(game, batch);
+    toolbelt_tooltip(game, batch, mouse);
+    if CLIENT.with_borrow(|c| c.settings_open) {
+        settings_draw(game, batch, mouse);
+    }
+    status_draw(game, batch, mouse);
+    let Some(d) = CLIENT.with_borrow(|c| c.dialog.clone()) else { return };
+    if game.native_mod_screen().is_some() {
+        let (w, h) = game.gui_size();
+        game.native_fill(batch, [0.0, 0.0, w, h], 0xA0000000);
+    }
     let [ox, oy] = dialog_origin(game, &d);
     let hover = |r: [f32; 4]| mouse[0] >= ox + r[0] && mouse[0] < ox + r[0] + r[2] && mouse[1] >= oy + r[1] && mouse[1] < oy + r[1] + r[3];
     let shifted = |r: [f32; 4]| [ox + r[0], oy + r[1], r[2], r[3]];
     match &d.kind {
         DialogKind::Confirm(_, _, _) => {
+            use super::port_ae2_core::AmountFormat::{Full, Slot};
             game.native_sprite(batch, "ae2:gui/craftingreport", [0.0, 0.0, 238.0, 206.0], [ox, oy, 238.0, 206.0]);
-            let title = if d.waiting { "Crafting plan: working it out…".to_owned() } else { format!("Crafting plan - {} bytes", d.bytes) };
-            game.native_text(batch, &title, [ox + 8.0, oy + 7.0], 0x404040, false);
-            // Three columns of five, as AE2's report: what comes from storage, what is crafted, what is missing.
-            let mut tip: Option<(String, i64, char)> = None;
-            for (i, (kind, id, n)) in d.plan.iter().skip(d.scroll * 3).take(15).enumerate() {
-                let (x, y) = (ox + 9.0 + 67.0 * (i % 3) as f32, oy + 19.0 + 22.0 * (i / 3) as f32);
-                if *kind == 'm' {
-                    game.native_fill(batch, [x, y, 66.0, 21.0], 0x66FF0000);
-                }
-                let label = match kind {
-                    'u' => format!("Stored: {}", readable_number::format_i64(*n, 5)),
-                    'c' => format!("Craft: {}", readable_number::format_i64(*n, 5)),
-                    _ => format!("Missing: {}", readable_number::format_i64(*n, 5)),
-                };
-                let start = batch.vertices.len();
-                game.native_text(batch, &label, [x + 3.0, y + 8.0], 0x404040, false);
-                batch.scale_since(start, x + 3.0, y + 8.0, 0.5, 0.5);
-                draw_key(game, batch, id, [x + 47.0, y + 3.0], 16.0);
-                if mouse[0] >= x && mouse[0] < x + 66.0 && mouse[1] >= y && mouse[1] < y + 21.0 {
-                    tip = Some((id.clone(), *n, *kind));
-                }
+            let cpus_left = d.asked_cpus.is_none_or(|t| t.elapsed().as_secs_f32() >= 1.0);
+            if !d.waiting && cpus_left {
+                let bytes = d.bytes;
+                CLIENT.with_borrow_mut(|c| {
+                    c.ui_out.push(format!("plancpus {bytes}"));
+                    if let Some(open) = c.dialog.as_mut() {
+                        open.asked_cpus = Some(std::time::Instant::now());
+                    }
+                });
             }
-            let cpu = if d.waiting { String::new() } else { d.cpu.clone() };
-            let cw = game.native_text_width(&cpu);
-            game.native_text(batch, &cpu, [ox + 109.0 - cw / 2.0, oy + 140.0], 0x404040, false);
-            draw_button_at(game, batch, shifted(CONFIRM_CANCEL), "Back", hover(CONFIRM_CANCEL));
-            draw_button_at(game, batch, shifted(CONFIRM_START), if d.can_start && !d.waiting { "Start" } else { "§7Start" }, d.can_start && hover(CONFIRM_START));
-            if let Some((id, n, kind)) = tip {
-                let what = match kind {
-                    'u' => "From storage",
-                    'c' => "To craft",
-                    _ => "Missing",
-                };
-                let lines = vec![
-                    (horizon_client::text::Text::legacy(&item_words(id.trim_start_matches('~'))), u32::MAX),
-                    (horizon_client::text::Text::legacy(&format!("§7{what}: {}", super::port_ae2_core::KeyType::Items.format_amount(n, super::port_ae2_core::AmountFormat::Full))), u32::MAX),
-                ];
-                game.draw_tooltip_lines(batch, &lines, mouse[0], mouse[1]);
+            // CraftConfirmScreen.updateBeforeRender.
+            let title = if d.waiting { "Crafting Plan - Calculating Please Wait...".to_owned() } else { format!("Crafting Plan - {} Bytes Used", group_digits(d.bytes)) };
+            game.native_text(batch, &title, [ox + 8.0, oy + 7.0], TEXT, false);
+            let cells: Vec<TableCell> = d
+                .entries
+                .iter()
+                .map(|(id, stored, missing, craft)| {
+                    let mut lines = Vec::new();
+                    let mut full = Vec::new();
+                    for (n, word) in [(*stored, "Available"), (*missing, "Missing"), (*craft, "To Craft")] {
+                        if n > 0 {
+                            lines.push(format!("{word}: {}", key_amount(id, n, Slot)));
+                            full.push(format!("{word}: {}", key_amount(id, n, Full)));
+                        }
+                    }
+                    TableCell { id: id.clone(), lines, full, background: 0, overlay: if *missing > 0 { CELL_MISSING } else { 0 } }
+                })
+                .collect();
+            let most = cells.len().div_ceil(STATUS_COLS).saturating_sub(5);
+            let drag = CLIENT.with_borrow(|c| c.scroll_drag);
+            let top = if drag == 3 { scrollbar_row(mouse[1], oy + CONFIRM_SCROLL[1], CONFIRM_SCROLL[3], most) } else { d.scroll.min(most) };
+            if drag == 3 {
+                CLIENT.with_borrow_mut(|c| {
+                    if let Some(open) = c.dialog.as_mut() {
+                        open.scroll = top;
+                    }
+                });
+            }
+            let hovered = draw_table(game, batch, [ox, oy], 5, &cells, top, mouse);
+            draw_scrollbar(game, batch, [ox + CONFIRM_SCROLL[0], oy + CONFIRM_SCROLL[1]], CONFIRM_SCROLL[3], top, most);
+            let startable = d.can_start && !d.waiting;
+            let picked = usize::try_from(d.selected).ok().and_then(|i| d.cpus.get(i));
+            let label = if d.cpus.is_empty() && !d.waiting {
+                "No Crafting CPUs are Available".to_owned()
+            } else if d.selected >= 0 {
+                format!("Crafting CPU: #{}", d.selected + 1)
+            } else {
+                "Crafting CPU: Automatic".to_owned()
+            };
+            let label = if startable { label } else { format!("§7{label}") };
+            draw_button_at(game, batch, shifted(CONFIRM_CPU), &label, startable && hover(CONFIRM_CPU));
+            let status = if d.waiting {
+                String::new()
+            } else if !d.can_start {
+                "Partial Plan (Missing Ingredients)".to_owned()
+            } else if let Some(k) = picked {
+                format!("Storage: {} : Co Processors: {}", k.1, k.2)
+            } else {
+                "Storage: N/A : Co Processors: N/A".to_owned()
+            };
+            let width = game.native_text_width(&status);
+            game.native_text(batch, &status, [ox + 109.0 - (width / 2.0).floor(), oy + 165.0], TEXT, false);
+            draw_button_at(game, batch, shifted(CONFIRM_CANCEL), "Cancel", hover(CONFIRM_CANCEL));
+            let can = startable && !d.cpus.is_empty() && !d.starting;
+            draw_button_at(game, batch, shifted(CONFIRM_START), if can { "Start" } else { "§7Start" }, can && hover(CONFIRM_START));
+            if let Some(i) = hovered
+                && let Some(cell) = cells.get(i)
+            {
+                table_tooltip(game, batch, cell, mouse);
             }
         }
         DialogKind::Error(..) => {
@@ -8384,7 +10275,16 @@ pub fn dialog_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
             let [bx, bw] = if *kind == DialogKind::Priority { [60.0, 61.0] } else { [48.0, 66.0] };
             game.native_fill(batch, [ox + bx - 1.0, oy + 54.0, bw + 2.0, 14.0], 0xFFFFFFFF);
             game.native_fill(batch, [ox + bx, oy + 55.0, bw, 12.0], 0xFF000000);
-            game.native_text(batch, &format!("{}_", d.text), [ox + bx + 2.0, oy + 57.0], 0xFFFFFF, false);
+            // TEXTFIELD_ERROR while it isn't a number, and why under the pointer.
+            let problem = d.problem();
+            game.native_text(batch, &format!("{}_", d.text), [ox + bx + 2.0, oy + 57.0], if problem.is_some() { 0xFF1900 } else { 0xFFFFFF }, false);
+            // NumberEntryWidget's unit, at the box's end.
+            if d.unit() > 1.0 {
+                game.native_text(batch, "B", [ox + bx + bw - 8.0, oy + 57.0], 0xAAAAAA, false);
+            }
+            if let Some(why) = problem.filter(|_| hover([bx - 1.0, 54.0, bw + 2.0, 14.0])) {
+                game.draw_tooltip_lines(batch, &[(horizon_client::text::Text::legacy(&format!("§c{why}")), u32::MAX)], mouse[0], mouse[1]);
+            }
             match kind {
                 DialogKind::Priority => {
                     game.native_text(batch, "Higher priority storage is filled first", [ox + 8.0, oy + 98.0], 0x404040, false);
@@ -8392,7 +10292,14 @@ pub fn dialog_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
                 }
                 DialogKind::Craft(_, id) | DialogKind::Stock(_, id) | DialogKind::Amount(_, id) => {
                     draw_key(game, batch, id, [ox + 23.0, oy + 53.0], 16.0);
-                    let label = if matches!(kind, DialogKind::Craft(..)) { "Next" } else { "Save" };
+                    // CraftAmountScreen: with Shift down the button starts the job straight away.
+                    let label = if !matches!(kind, DialogKind::Craft(..)) {
+                        "Save"
+                    } else if CLIENT.with_borrow(|c| c.shift) {
+                        "Start"
+                    } else {
+                        "Next"
+                    };
                     draw_button_at(game, batch, shifted(NEXT_BUTTON), label, hover(NEXT_BUTTON));
                 }
                 _ => {}
@@ -8403,25 +10310,58 @@ pub fn dialog_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
 
 /// `native_screen_mouse_button_pressed_pre`: a click on the open dialog (nothing under it gets the click).
 pub fn dialog_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
+    if settings_click(game, mouse, button, canceled) || status_click(game, mouse, button, canceled) {
+        return;
+    }
+    if !overlay_shown()
+        && let Some([x, y]) = CLIENT.with_borrow(|c| c.toolbelt_at)
+        && mouse[0] >= x
+        && mouse[0] < x + 68.0
+        && mouse[1] >= y
+        && mouse[1] < y + 68.0
+    {
+        *canceled = true;
+        if let Some(cell) = toolbelt_cell([mouse[0] - x, mouse[1] - y]) {
+            CLIENT.with_borrow_mut(|c| c.toolbelt_presses.push(TOOLBELT + ((cell as i32) << 1) + i32::from(button == 1)));
+        }
+        return;
+    }
     let Some(d) = CLIENT.with_borrow(|c| c.dialog.clone()) else { return };
     *canceled = true;
+    let [ox, oy] = dialog_origin(game, &d);
+    // CraftConfirmScreen.selectNextCpu: left the next, right the one before (CraftingCPUCycler.cycleCpu).
+    if matches!(d.kind, DialogKind::Confirm(..)) && d.can_start && !d.waiting && (button == 0 || button == 1) {
+        let at = [mouse[0] - ox, mouse[1] - oy];
+        if at[0] >= CONFIRM_CPU[0] && at[0] < CONFIRM_CPU[0] + CONFIRM_CPU[2] && at[1] >= CONFIRM_CPU[1] && at[1] < CONFIRM_CPU[1] + CONFIRM_CPU[3] {
+            CLIENT.with_borrow_mut(|c| {
+                let Some(open) = c.dialog.as_mut() else { return };
+                let count = open.cpus.len() as i32;
+                let next = open.selected + if button == 0 { 1 } else { -1 };
+                open.selected = if next < -1 { count - 1 } else if next >= count { -1 } else { next };
+            });
+            return;
+        }
+    }
     if button != 0 {
         return;
     }
-    let [ox, oy] = dialog_origin(game, &d);
     let at = [mouse[0] - ox, mouse[1] - oy];
     let inside = |r: [f32; 4]| at[0] >= r[0] && at[0] < r[0] + r[2] && at[1] >= r[1] && at[1] < r[1] + r[3];
     CLIENT.with_borrow_mut(|c| match d.kind.clone() {
         DialogKind::Confirm(index, id, amount) => {
             if inside(CONFIRM_CANCEL) {
-                c.dialog = Some(Dialog::new(DialogKind::Craft(index, id), amount.to_string()));
+                let text = amount_text(&id, amount);
+                c.dialog = Some(Dialog::new(DialogKind::Craft(index, id), text));
             } else if inside(CONFIRM_START) {
                 dialog_confirm(c);
+            } else if inside(CONFIRM_SCROLL) {
+                c.scroll_drag = 3;
             }
         }
         DialogKind::Error(index, id, amount) => {
             if inside(ERROR_BUTTONS[0]) {
-                c.dialog = Some(Dialog::new(DialogKind::Craft(index, id), amount.to_string()));
+                let text = amount_text(&id, amount);
+                c.dialog = Some(Dialog::new(DialogKind::Craft(index, id), text));
             } else if inside(ERROR_BUTTONS[1]) {
                 c.ui_out.push(format!("plan {index} {amount}"));
                 let mut next = Dialog::new(DialogKind::Confirm(index, id, amount), amount.to_string());
@@ -8450,7 +10390,12 @@ pub fn dialog_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mu
                     continue;
                 };
                 if let Some(d) = c.dialog.as_mut() {
-                    d.text = (d.value().saturating_add(step)).max(least).to_string();
+                    // The steps are whole buckets for a fluid: the box takes anything finer.
+                    let amount = d.value().saturating_add(step * d.unit() as i64).max(least);
+                    d.text = match &d.kind {
+                        DialogKind::Craft(_, id) | DialogKind::Stock(_, id) | DialogKind::Amount(_, id) => amount_text(id, amount),
+                        _ => amount.to_string(),
+                    };
                     if kind == DialogKind::Priority {
                         c.ui_out.push(format!("set priority {}", d.text));
                     }
@@ -8463,6 +10408,22 @@ pub fn dialog_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mu
 /// Keys while a dialog is open: digits, backspace, Enter (confirm), Escape (close). True when the dialog took it.
 fn dialog_key(key: &str) -> bool {
     CLIENT.with_borrow_mut(|c| {
+        if c.status_block {
+            // A crafting block's screen is the menu itself: the keys that close a menu close it.
+            return false;
+        }
+        if c.settings_open {
+            if key.ends_with("escape") {
+                c.settings_open = false;
+            }
+            return true;
+        }
+        if c.show_jobs {
+            if key.ends_with("escape") {
+                c.show_jobs = false;
+            }
+            return true;
+        }
         let Some(d) = c.dialog.as_mut() else { return false };
         let priority = d.kind == DialogKind::Priority;
         if key.ends_with("backspace") {
@@ -8476,8 +10437,7 @@ fn dialog_key(key: &str) -> bool {
         } else {
             return true;
         }
-        if priority {
-            let v = d.value();
+        if priority && let Some(v) = math_whole(&d.text) {
             c.ui_out.push(format!("set priority {v}"));
         }
         true
@@ -8491,13 +10451,12 @@ fn dialog_char(ch: char) -> bool {
             return true;
         }
         let priority = d.kind == DialogKind::Priority;
-        if (ch.is_ascii_digit() || priority && ch == '-' && d.text.is_empty()) && d.text.len() < 12 {
-            if d.text == "0" {
+        if (ch.is_ascii_digit() || "+-*/%^(). ".contains(ch)) && d.text.len() < 32 {
+            if d.text == "0" && ch.is_ascii_digit() {
                 d.text.clear();
             }
             d.text.push(ch);
-            if priority {
-                let v = d.value();
+            if priority && let Some(v) = math_whole(&d.text) {
                 c.ui_out.push(format!("set priority {v}"));
             }
         }
@@ -8508,8 +10467,24 @@ fn dialog_char(ch: char) -> bool {
 /// The wheel over the crafting plan scrolls it.
 fn dialog_scroll(dy: f64) -> bool {
     CLIENT.with_borrow_mut(|c| {
+        if c.show_jobs {
+            // Over the CPU list, the list (CPUSelectionList.onMouseWheel); anywhere else, the table.
+            let (w, h) = c.gui_size_seen;
+            let [ox, oy] = [((w - 238.0) / 2.0).floor(), ((h - 184.0) / 2.0).floor()];
+            let [mx, my] = c.status_mouse;
+            let in_list = !c.status_block && mx >= ox + CPU_LIST[0] && mx < ox && my >= oy + CPU_LIST[1] && my < oy + CPU_LIST[1] + CPU_LIST[3];
+            if in_list {
+                let most = c.status_cpus.len().saturating_sub(CPU_ROWS);
+                c.status_list_scroll = if dy > 0.0 { c.status_list_scroll.saturating_sub(1) } else { (c.status_list_scroll + 1).min(most) };
+            } else {
+                let n = c.status_entries.iter().filter(|e| e.0 == c.status_cpu).count();
+                let most = n.div_ceil(STATUS_COLS).saturating_sub(STATUS_ROWS);
+                c.status_scroll = if dy > 0.0 { c.status_scroll.saturating_sub(1) } else { (c.status_scroll + 1).min(most) };
+            }
+            return true;
+        }
         let Some(d) = c.dialog.as_mut() else { return false };
-        let rows = d.plan.len().div_ceil(3);
+        let rows = d.entries.len().div_ceil(3);
         if dy > 0.0 {
             d.scroll = d.scroll.saturating_sub(1);
         } else if dy < 0.0 {
@@ -8539,23 +10514,50 @@ fn ui_from_server(data: &[u8]) {
             d.waiting = false;
             d.bytes = bytes.parse().unwrap_or(0);
             d.can_start = *can == "1";
-            d.plan.clear();
+            d.entries.clear();
+            d.cpus.clear();
             for l in lines {
-                if let Some(cpu) = l.strip_prefix("cpu ") {
-                    d.cpu = cpu.to_owned();
-                    continue;
-                }
                 let f: Vec<&str> = l.split(' ').collect();
-                if let [k, id, n] = f.as_slice() {
-                    d.plan.push((k.chars().next().unwrap_or('u'), (*id).to_owned(), n.parse().unwrap_or(0)));
+                match f.as_slice() {
+                    ["K", i, b, a] => d.cpus.push((i.parse().unwrap_or(0), b.parse().unwrap_or(0), a.parse().unwrap_or(0))),
+                    [k, id, n] => {
+                        let n: i64 = n.parse().unwrap_or(0);
+                        let at = d.entries.iter().position(|e| e.0 == *id).unwrap_or_else(|| {
+                            d.entries.push(((*id).to_owned(), 0, 0, 0));
+                            d.entries.len() - 1
+                        });
+                        match *k {
+                            "u" => d.entries[at].1 += n,
+                            "m" => d.entries[at].2 += n,
+                            _ => d.entries[at].3 += n,
+                        }
+                    }
+                    _ => {}
                 }
             }
-            d.plan.sort_by_key(|(k, _, _)| match k {
-                'm' => 0,
-                'c' => 1,
-                _ => 2,
-            });
+            // CraftingPlanSummaryEntry.COMPARATOR: missing, then to craft, then available, most first.
+            d.entries.sort_by_key(|e| std::cmp::Reverse((e.2, e.3, e.1)));
+            // CraftConfirmMenu.isAutoStart: Shift on the amount screen's button skips this screen when it can.
+            if d.auto_start && d.can_start && !d.cpus.is_empty() {
+                dialog_confirm(c);
+            }
         }),
+        ["plancpus"] => CLIENT.with_borrow_mut(|c| {
+            let Some(d) = c.dialog.as_mut() else { return };
+            let picked = usize::try_from(d.selected).ok().and_then(|i| d.cpus.get(i)).map(|k| k.0);
+            d.cpus = lines
+                .filter_map(|l| {
+                    let f: Vec<&str> = l.split(' ').collect();
+                    match f.as_slice() {
+                        ["K", i, b, a] => Some((i.parse().ok()?, b.parse().ok()?, a.parse().ok()?)),
+                        _ => None,
+                    }
+                })
+                .collect();
+            d.selected = picked.and_then(|p| d.cpus.iter().position(|k| k.0 == p)).map_or(-1, |i| i as i32);
+        }),
+        ["started"] => CLIENT.with_borrow_mut(|c| c.dialog = None),
+        ["jobdone", id, amount] => CLIENT.with_borrow_mut(|c| c.job_toast = Some(((*id).to_owned(), amount.parse().unwrap_or(0), None))),
         ["error", ..] => CLIENT.with_borrow_mut(|c| {
             let Some(d) = c.dialog.as_mut() else { return };
             if let DialogKind::Confirm(index, id, amount) = d.kind.clone() {
@@ -8581,6 +10583,14 @@ fn ui_from_server(data: &[u8]) {
             }
         }),
         ["panel"] => CLIENT.with_borrow_mut(|c| c.panel = lines.map(str::to_owned).collect()),
+        ["toolbelt", rest @ ..] => CLIENT.with_borrow_mut(|c| {
+            let text = rest.join(" ");
+            c.toolbelt = if text == "none" {
+                Vec::new()
+            } else {
+                text.split(';').map(|e| e.split_once(' ').map(|(id, n)| (id.to_owned(), n.parse().unwrap_or(0))).unwrap_or_default()).collect()
+            };
+        }),
         ["toolbox", rest @ ..] => CLIENT.with_borrow_mut(|c| {
             c.toolbox = rest
                 .join(" ")
@@ -8598,15 +10608,41 @@ fn settings_path() -> Option<std::path::PathBuf> {
     std::env::var_os("APPDATA").map(|a| std::path::PathBuf::from(a).join("horizon").join("ae2-client.txt"))
 }
 
-const SETTINGS: [&str; 3] = ["Auto-focus the search box", "Remember the last search", "Ask how many to craft"];
+/// TerminalSettingsScreen's checkboxes (screens/terminals/terminal_settings.json): the setting, x, y, width, label, and
+/// whether it shows with AE's own search (0), with JEI's (1), or always (2). Settings: 0 auto-focus, 1 remember the
+/// search, 3 pin, 4 notify, 5 clear the grid, 6 use JEI's search, 7 sync with JEI, 8 clear JEI's on open.
+const SETTINGS: [(usize, f32, f32, f32, &str, u8); 7] = [
+    (3, 10.0, 25.0, 180.0, "Pin auto-crafted items to first row", 2),
+    (4, 10.0, 50.0, 180.0, "Notify about finished crafting jobs (requires wireless terminal)", 2),
+    (5, 10.0, 82.0, 180.0, "Automatically clear terminal grid on close (if applicable)", 2),
+    (1, 10.0, 160.0, 150.0, "Remember last search", 0),
+    (0, 10.0, 176.0, 150.0, "Auto-Focus on open", 0),
+    (7, 10.0, 192.0, 150.0, "Sync with JEI search", 0),
+    (8, 10.0, 160.0, 150.0, "Clear JEI search on open", 1),
+];
+/// The two radio buttons, "Use AE" and "Use JEI": x, y, width.
+const SETTINGS_RADIOS: [(f32, f32, f32, &str); 2] = [(10.0, 124.0, 75.0, "Use AE"), (95.0, 124.0, 75.0, "Use JEI")];
+const SETTINGS_SIZE: [f32; 2] = [200.0, 216.0];
+const SETTINGS_BACK: [f32; 4] = [178.0, 0.0, 22.0, 22.0];
+const SETTINGS_DEFAULT: [bool; 9] = [false, true, true, true, true, false, false, true, true];
 
-fn settings(c: &mut Client) -> [bool; 3] {
+fn settings(c: &mut Client) -> [bool; 9] {
     if !c.settings_loaded {
         c.settings_loaded = true;
-        c.settings = [false, true, true];
+        c.settings = SETTINGS_DEFAULT;
+        c.term_style = 3;
         if let Some(text) = settings_path().and_then(|p| std::fs::read_to_string(p).ok()) {
-            for (i, l) in text.lines().take(3).enumerate() {
+            for (i, l) in text.lines().take(9).enumerate() {
                 c.settings[i] = l.trim() == "true";
+            }
+            // The toolbar's, after the checkboxes.
+            let n: Vec<u8> = text.lines().skip(9).filter_map(|l| l.trim().parse().ok()).collect();
+            if let [sort, view, filter, desc, style] = n.as_slice() {
+                c.sort = *sort;
+                c.view_mode = *view;
+                c.type_filter = *filter;
+                c.sort_desc = *desc != 0;
+                c.term_style = (*style).min(3);
             }
         }
     }
@@ -8615,41 +10651,135 @@ fn settings(c: &mut Client) -> [bool; 3] {
 
 fn save_settings(c: &Client) {
     if let Some(p) = settings_path() {
-        let _ = std::fs::write(p, c.settings.iter().map(|b| format!("{b}\n")).collect::<String>());
+        let mut text = c.settings.iter().map(|b| format!("{b}\n")).collect::<String>();
+        for n in [c.sort, c.view_mode, c.type_filter, u8::from(c.sort_desc), c.term_style] {
+            text.push_str(&format!("{n}\n"));
+        }
+        let _ = std::fs::write(p, text);
     }
 }
 
-/// The settings over the terminal's grid: one toggle a line.
-fn draw_settings(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32, rows: usize) {
-    let s = CLIENT.with_borrow_mut(settings);
-    game.native_fill(batch, [ox + 7.0, oy + 17.0, 164.0, 18.0 * rows as f32], 0xFF2B2B2B);
-    game.native_text(batch, "Terminal settings", [ox + 10.0, oy + 20.0], 0xFFFFFF, false);
-    for (i, label) in SETTINGS.iter().enumerate() {
-        let y = oy + 34.0 + 14.0 * i as f32;
-        game.native_fill(batch, [ox + 10.0, y, 10.0, 10.0], 0xFFA0A0A0);
-        game.native_fill(batch, [ox + 11.0, y + 1.0, 8.0, 8.0], if s[i] { 0xFF55FF55 } else { 0xFF000000 });
-        game.native_text(batch, label, [ox + 24.0, y + 1.0], 0xFFFFFF, false);
+fn settings_origin(game: &Game<'_>) -> [f32; 2] {
+    let (w, h) = game.gui_size();
+    [((w - SETTINGS_SIZE[0]) / 2.0).floor(), ((h - SETTINGS_SIZE[1]) / 2.0).floor()]
+}
+
+/// BackgroundGenerator.draw: guis/background.png's corners, edges and middle stretched by tiling to the window's size.
+fn draw_generated_background(game: &Game<'_>, batch: &mut HudBatch, at: [f32; 2], size: [f32; 2]) {
+    let [x, y] = at;
+    let [w, h] = size;
+    let (iw, ih) = (w - 8.0, h - 8.0);
+    let sprite = "ae2:gui/background";
+    for (src, dst) in [
+        ([0.0, 0.0, 4.0, 4.0], [x, y, 4.0, 4.0]),
+        ([252.0, 0.0, 4.0, 4.0], [x + w - 4.0, y, 4.0, 4.0]),
+        ([0.0, 252.0, 4.0, 4.0], [x, y + h - 4.0, 4.0, 4.0]),
+        ([252.0, 252.0, 4.0, 4.0], [x + w - 4.0, y + h - 4.0, 4.0, 4.0]),
+        ([4.0, 0.0, iw, 4.0], [x + 4.0, y, iw, 4.0]),
+        ([4.0, 252.0, iw, 4.0], [x + 4.0, y + h - 4.0, iw, 4.0]),
+        ([0.0, 4.0, 4.0, ih], [x, y + 4.0, 4.0, ih]),
+        ([252.0, 4.0, 4.0, ih], [x + w - 4.0, y + 4.0, 4.0, ih]),
+        ([4.0, 4.0, iw, ih], [x + 4.0, y + 4.0, iw, ih]),
+    ] {
+        game.native_sprite(batch, sprite, src, dst);
     }
 }
 
-fn settings_click(at: [f32; 2]) {
-    let row = ((at[1] - 34.0) / 14.0).floor();
-    if !(0.0..3.0).contains(&row) {
-        return;
+/// AECheckbox: its 14-pixel box from guis/checkbox.png, the label wrapped to the rest of its width.
+fn draw_checkbox(game: &Game<'_>, batch: &mut HudBatch, at: [f32; 2], width: f32, label: &str, on: bool, radio: bool, hover: bool) {
+    let u = if radio { 28.0 } else { 0.0 } + if hover { 14.0 } else { 0.0 };
+    let v = if on { 14.0 } else { 0.0 };
+    game.native_sprite(batch, "ae2:gui/checkbox", [u, v, 14.0, 14.0], [at[0], at[1], 14.0, 14.0]);
+    let mut lines: Vec<String> = Vec::new();
+    for word in label.split(' ') {
+        match lines.last_mut() {
+            Some(line) if game.native_text_width(&format!("{line} {word}")) <= width - 16.0 => {
+                line.push(' ');
+                line.push_str(word);
+            }
+            _ => lines.push(word.to_owned()),
+        }
     }
-    CLIENT.with_borrow_mut(|c| {
-        settings(c);
-        c.settings[row as usize] = !c.settings[row as usize];
-        save_settings(c);
-    });
+    let mut y = at[1] + if lines.len() <= 1 { 4.0 } else { 1.0 };
+    for line in &lines {
+        game.native_text(batch, line, [at[0] + 16.0, y], TEXT, false);
+        y += 9.0;
+    }
 }
 
-/// A craftable entry clicked: AE2 asks how many (or, with that setting off, crafts 1, 16 or 64 at once).
-fn ask_craft(index: usize) -> bool {
-    let (ask, id) = CLIENT.with_borrow_mut(|c| (settings(c)[2], c.items.get(index).map(|(id, _)| id.clone()).unwrap_or_default()));
-    if !ask {
+/// TerminalSettingsScreen.
+fn settings_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
+    let (s, host) = CLIENT.with_borrow_mut(|c| (settings(c), c.status_host.clone()));
+    let [ox, oy] = settings_origin(game);
+    if game.native_mod_screen().is_some() {
+        let (w, h) = game.gui_size();
+        game.native_fill(batch, [0.0, 0.0, w, h], 0xA0000000);
+    }
+    draw_generated_background(game, batch, [ox, oy], SETTINGS_SIZE);
+    game.native_text(batch, "Terminal Settings", [ox + 8.0, oy + 7.0], TEXT, false);
+    game.native_text(batch, "Search Settings", [ox + 8.0, oy + 110.0], TEXT, false);
+    let over = |x: f32, y: f32, w: f32, h: f32| mouse[0] >= ox + x && mouse[0] < ox + x + w && mouse[1] >= oy + y && mouse[1] < oy + y + h;
+    for (i, (x, y, w, label)) in SETTINGS_RADIOS.iter().enumerate() {
+        draw_checkbox(game, batch, [ox + x, oy + y], *w, label, s[6] == (i == 1), true, over(*x, *y, *w, 14.0));
+    }
+    for (index, x, y, w, label, shows) in SETTINGS {
+        if shows == 2 || (shows == 1) == s[6] {
+            draw_checkbox(game, batch, [ox + x, oy + y], w, label, s[index], false, over(x, y, w, 14.0));
+        }
+    }
+    // The back button: TabButton's BOX style, with the terminal's icon.
+    let [bx, by, bw, bh] = SETTINGS_BACK;
+    game.native_sprite(batch, "ae2:gui/states", [160.0, 192.0, bw, bh], [ox + bx, oy + by, bw, bh]);
+    let icon = if host.is_empty() { "ae2:terminal" } else { host.as_str() };
+    draw_key(game, batch, icon, [ox + bx + 3.0, oy + by + 3.0], 16.0);
+    if over(bx, by, bw, bh) {
+        let lines = vec![(horizon_client::text::Text::legacy(&key_words(game, icon)), u32::MAX)];
+        game.draw_tooltip_lines(batch, &lines, mouse[0], mouse[1]);
+    }
+}
+
+/// A press while the settings are open: they take them all.
+fn settings_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) -> bool {
+    if !CLIENT.with_borrow(|c| c.settings_open) {
         return false;
     }
+    *canceled = true;
+    if button != 0 {
+        return true;
+    }
+    let [ox, oy] = settings_origin(game);
+    let over = |x: f32, y: f32, w: f32, h: f32| mouse[0] >= ox + x && mouse[0] < ox + x + w && mouse[1] >= oy + y && mouse[1] < oy + y + h;
+    CLIENT.with_borrow_mut(|c| {
+        settings(c);
+        let [bx, by, bw, bh] = SETTINGS_BACK;
+        if over(bx, by, bw, bh) {
+            c.settings_open = false;
+            return;
+        }
+        for (i, (x, y, w, _)) in SETTINGS_RADIOS.iter().enumerate() {
+            if over(*x, *y, *w, 14.0) {
+                c.settings[6] = i == 1;
+                c.search_focus = false;
+                save_settings(c);
+                return;
+            }
+        }
+        for (index, x, y, w, _, shows) in SETTINGS {
+            if (shows == 2 || (shows == 1) == c.settings[6]) && over(x, y, w, 14.0) {
+                c.settings[index] = !c.settings[index];
+                save_settings(c);
+                let notify = c.settings[4];
+                c.ui_out.push(format!("notify {}", u8::from(notify)));
+                return;
+            }
+        }
+    });
+    true
+}
+
+/// A craftable entry clicked: AE2 asks how many.
+fn ask_craft(index: usize) -> bool {
+    let id = CLIENT.with_borrow(|c| c.items.get(index).map(|(id, _)| id.clone()).unwrap_or_default());
     open_dialog(DialogKind::Craft(index, id), "1".to_owned());
     true
 }
@@ -8789,8 +10919,9 @@ pub fn item_screen_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) 
         "status" => {
             // AE2's NetworkStatusScreen: power at the top, a grid of the network's devices, the rates under it.
             game.native_sprite(batch, "ae2:gui/networkstatus", [0.0, 0.0, 195.0, 157.0], [ox, oy, 195.0, 157.0]);
-            game.native_text(batch, "Network Details", [ox + 8.0, oy + 6.0], 0x404040, false);
             let panel = CLIENT.with_borrow(|c| c.panel.clone());
+            let channels = panel.iter().find_map(|l| l.strip_prefix("c ")).unwrap_or("0");
+            game.native_text(batch, &format!("Network Details ({channels} Channels)"), [ox + 8.0, oy + 6.0], 0x404040, false);
             let mut texts = Vec::new();
             let mut devices = Vec::new();
             for l in &panel {
@@ -8976,6 +11107,62 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
                 let _ = game.native_give_stack(player, stack_of(&key, most));
             }
         }
+        // The screen with the toolbelt closed: what its clicks did goes on the tool.
+        ["toolbeltdone"] => {
+            SERVER.with_borrow_mut(|s| {
+                s.toolbelt_flush.insert(player);
+            });
+        }
+        // Notify about finished crafting jobs.
+        ["notify", on] => SERVER.with_borrow_mut(|s| {
+            if *on == "1" {
+                s.no_notify.remove(&player);
+            } else {
+                s.no_notify.insert(player);
+            }
+        }),
+        // Clear crafting grid on close: what is left in it, back to the network.
+        ["cleargrid"] => {
+            let Some(pos) = viewing else { return };
+            if block_id(game, pos) == "ae2:crafting_terminal"
+                && let Some(grid) = SERVER.with_borrow(|s| s.grid_of.get(&pos).copied())
+            {
+                let old: Vec<ItemStack> = game.native_with_mod_block_entity(pos, |e| e.items[CT_GRID].iter_mut().filter_map(Option::take).collect()).unwrap_or_default();
+                for stack in old {
+                    let key = key_of(game, &stack);
+                    let stored = with_storage(game, grid, None, |st| st.insert(&key, i64::from(stack.count), Actionable::Modulate));
+                    if stored < i64::from(stack.count) {
+                        let mut left = stack.clone();
+                        left.count -= stored as u32;
+                        let _ = game.native_give_stack(player, left);
+                    }
+                }
+            }
+        }
+        // The crafting status screen: cancel a CPU's job (CraftingCPUMenu.cancelCrafting), step its mode.
+        ["cpucancel", i] | ["cpumode", i] => {
+            let Ok(i) = i.parse::<usize>() else { return };
+            let Some(at) = viewing else { return };
+            let found = SERVER.with_borrow(|s| {
+                let grid = *s.grid_of.get(&at)?;
+                let g = s.grids.get(grid)?;
+                Some((grid, g.cpus.get(i)?.0, g.patterns.clone()))
+            });
+            let Some((grid, key, patterns)) = found else { return };
+            if w[0] == "cpumode" {
+                let step = if w.get(2) == Some(&"back") { 2 } else { 1 };
+                let next = (provider_nbt(game, key, "cpu_mode") + step) % 3;
+                game.native_with_mod_block_entity(key, |e| set_nbt_i64(&mut e.nbt, "cpu_mode", next));
+                return;
+            }
+            let Some(mut cpu) = SERVER.with_borrow_mut(|s| s.cpus.remove(&key)) else { return };
+            let tick = SERVER.with_borrow(|s| s.tick);
+            {
+                let mut net = CpuNet { game, grid, cpu: key, patterns, tick };
+                cpu.cancel(&mut net);
+            }
+            SERVER.with_borrow_mut(|s| s.cpus.insert(key, cpu));
+        }
         // CompassRequestPacket: the direction from the player's chunk (CompassService, 174 chunks out).
         ["compass", cx, cz] => {
             let (Ok(cx), Ok(cz)) = (cx.parse::<i32>(), cz.parse::<i32>()) else { return };
@@ -8994,11 +11181,23 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
             let (Ok(index), Ok(amount)) = (index.parse::<usize>(), amount.parse::<i64>()) else { return };
             plan_reply(game, player, index, amount.max(1));
         }
-        ["craft", index, amount] => {
+        ["craft", index, amount, cpu] => {
             let (Ok(index), Ok(amount)) = (index.parse::<usize>(), amount.parse::<i64>()) else { return };
             let Some(grid) = viewing.and_then(|p| SERVER.with_borrow(|s| s.grid_of.get(&p).copied())) else { return };
             let Some((key, _)) = SERVER.with_borrow(|s| s.sent.get(&player).and_then(|v| v.keys.get(index).cloned())) else { return };
-            request_craft(game, grid, player, &key, amount.max(1));
+            // CraftConfirmMenu.startJob: the screen stays until the job has started, or says why it didn't.
+            let reply = match submit_craft(game, grid, player, &key, amount.max(1), cpu.parse::<usize>().ok()) {
+                Ok(()) => "started".to_owned(),
+                Err(e) => format!("error {e}"),
+            };
+            let _ = game.native_net_send_to_player(player, NET_UI, reply.as_bytes());
+        }
+        // CraftingCPUCycler.detectAndSendChanges: the plan's CPU button keeps up with the network.
+        ["plancpus", bytes] => {
+            let Ok(bytes) = bytes.parse::<i64>() else { return };
+            let Some(grid) = viewing.and_then(|p| SERVER.with_borrow(|s| s.grid_of.get(&p).copied())) else { return };
+            let reply = format!("plancpus\n{}", plan_cpus(grid, bytes));
+            let _ = game.native_net_send_to_player(player, NET_UI, reply.as_bytes());
         }
         // A JEI ghost ingredient dropped on config slot button `id`: the click with the item held.
         ["ghost", id, item, components @ ..] => {
@@ -9034,11 +11233,11 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
             let block = block_id(game, pos);
             let ok = match *what {
                 "stock" => canon(&block) == "ae2:interface" && cell < 9,
-                _ => block == "ae2:pattern_encoding_terminal" && cell < 12,
+                _ => block == "ae2:pattern_encoding_terminal" && cell < ENC_CELLS,
             };
             if ok {
                 game.native_with_mod_block_entity(pos, |e| {
-                    let mut cells = ghosts_of(e);
+                    let mut cells = if e.id == "ae2:pattern_encoding_terminal" { enc_ghosts(e) } else { ghosts_of(e) };
                     if let Some(Some((_, amount))) = cells.get_mut(cell) {
                         *amount = n.max(1);
                     }
@@ -9069,6 +11268,42 @@ fn priority_of(game: &mut Game<'_>, pos: Pos) -> i32 {
     game.native_with_mod_block_entity(pos, |e| nbt_i64(&e.nbt, "priority")).unwrap_or(0) as i32
 }
 
+/// StorageLevelEmitterPart.getEmitableItems: what the grid's emitters set to craft by redstone can make.
+fn emitable_keys(game: &Game<'_>, grid: usize) -> Vec<AeKey> {
+    let nodes: Vec<Pos> = SERVER.with_borrow(|s| s.grids.get(grid).map_or(Vec::new(), |g| g.nodes.iter().copied().collect()));
+    let mut out = Vec::new();
+    for pos in nodes {
+        if block_id(game, pos) != "ae2:level_emitter" {
+            continue;
+        }
+        let Some(horizon_client::containers::BlockEntity::Mod(m)) = game.world.block_entities.get(&(pos[0], pos[1], pos[2])) else { continue };
+        if nbt_i64(&m.nbt, "craft_redstone") == 0 || cards(m, 1, "ae2:crafting_card") == 0 {
+            continue;
+        }
+        if let Some((id, _)) = ghosts_of(m).into_iter().next().flatten() {
+            out.push(ghost_key(game, &id));
+        }
+    }
+    out
+}
+
+/// CraftingCPUCycler: the CPUs the plan's button can choose, those free and big enough, most co-processors then
+/// most storage first: a `K index bytes co-processors` line each.
+fn plan_cpus(grid: usize, bytes: i64) -> String {
+    SERVER.with_borrow(|s| {
+        let Some(g) = s.grids.get(grid) else { return String::new() };
+        let mut free: Vec<(usize, i64, i32)> = g
+            .cpus
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| c.1 >= bytes && s.cpus.get(&c.0).is_some_and(|cpu| !cpu.has_job()))
+            .map(|(i, c)| (i, c.1, c.2))
+            .collect();
+        free.sort_by_key(|c| (std::cmp::Reverse(c.2), std::cmp::Reverse(c.1)));
+        free.iter().map(|(i, b, a)| format!("K {i} {b} {a}\n")).collect()
+    })
+}
+
 /// AE2's crafting calculation for the confirm screen: what the job takes from storage, what it crafts, what is
 /// missing, its bytes and whether a CPU can take it.
 fn plan_reply(game: &mut Game<'_>, uuid: u128, index: usize, amount: i64) {
@@ -9083,20 +11318,13 @@ fn plan_reply(game: &mut Game<'_>, uuid: u128, index: usize, amount: i64) {
         send(game, "error That item is no longer on the network".to_owned());
         return;
     };
-    let (patterns, cpus, free) = SERVER.with_borrow(|s| {
-        s.grids.get(grid).map_or((Vec::new(), Vec::new(), None), |g| {
-            let mut free: Vec<_> = g.cpus.iter().filter(|c| s.cpus.get(&c.0).is_some_and(|cpu| !cpu.has_job())).collect();
-            free.sort_by_key(|c| std::cmp::Reverse(c.1));
-            (g.patterns.clone(), g.cpus.clone(), free.first().map(|c| c.1))
-        })
-    });
-    if cpus.is_empty() {
-        send(game, "error No crafting CPU: build a formed crafting cluster".to_owned());
-        return;
-    }
+    let patterns = SERVER.with_borrow(|s| s.grids.get(grid).map_or(Vec::new(), |g| g.patterns.clone()));
     let mut book = PatternBook::new();
     for (_, p) in &patterns {
         book.add((**p).clone(), 0);
+    }
+    for key in emitable_keys(game, grid) {
+        book.add_emitable(key);
     }
     let storage = with_storage(game, grid, None, |st| st.contents());
     let plan = match calculate(&book, &storage, &key, amount, CalculationStrategy::ReportMissingItems) {
@@ -9106,13 +11334,7 @@ fn plan_reply(game: &mut Game<'_>, uuid: u128, index: usize, amount: i64) {
             return;
         }
     };
-    let fits = free.is_some_and(|bytes| bytes >= plan.bytes);
-    let cpu = match free {
-        None => "§cAll crafting CPUs are busy".to_owned(),
-        Some(_) if !fits => "§cNo CPU has enough crafting storage".to_owned(),
-        Some(bytes) => format!("CPU: automatic ({} bytes)", readable_number::format_i64(bytes, 6)),
-    };
-    let mut out = format!("plan {} {}\ncpu {cpu}\n", plan.bytes, u8::from(!plan.simulation && fits));
+    let mut out = format!("plan {} {}\n{}", plan.bytes, u8::from(!plan.simulation), plan_cpus(grid, plan.bytes));
     for (k, n) in plan.used_items.iter() {
         if n > 0 {
             out.push_str(&format!("u {} {n}\n", wire_id(k)));
@@ -9130,6 +11352,12 @@ fn plan_reply(game: &mut Game<'_>, uuid: u128, index: usize, amount: i64) {
     }
     for (id, n) in crafted {
         out.push_str(&format!("c {id} {n}\n"));
+    }
+    // CraftingPlanSummary.fromJob: what emitters make counts as both.
+    for (k, n) in plan.emitted_items.iter() {
+        if n > 0 {
+            out.push_str(&format!("u {} {n}\nc {} {n}\n", wire_id(k), wire_id(k)));
+        }
     }
     for (k, n) in plan.missing_items.iter() {
         if n > 0 {
@@ -9194,7 +11422,8 @@ fn open_network_status(game: &mut Game<'_>, uuid: u128, grid: usize) {
         let mut out = vec![
             format!("t Stored Power: {} AE", readable_number::format_i64(stored as i64, 6)),
             format!("t Max Power: {} AE", readable_number::format_i64(cap as i64, 6)),
-            format!("t Channels: {}  Devices: {}", g.channels, g.nodes.len()),
+            format!("c {}", g.channels),
+            format!("t Devices: {}", g.nodes.len()),
             format!("t Power Usage: {:.1} AE/t", g.idle),
             format!("t Status: {}", if g.online { "§2online" } else { "§4offline" }),
         ];
@@ -9452,6 +11681,97 @@ fn toolbox_tick(game: &mut Game<'_>, uuid: u128, slot: i32, mut tool: ItemStack)
         let _ = game.native_net_send_to_player(uuid, NET_UI, format!("toolbox {}", text.join(";")).as_bytes());
         SERVER.with_borrow_mut(|s| s.portable_sent.insert(uuid, (Vec::new(), hash)));
     }
+}
+
+/// NetworkToolItem.findNetworkToolInv: the first network tool the player carries.
+fn network_tool_slot(game: &mut Game<'_>) -> Option<i32> {
+    (0..36).find(|&i| game.native_carried_stack(i).is_some_and(|s| s.count > 0 && &*s.item == "ae2:network_tool"))
+}
+
+fn toolbelt_parse(text: &str) -> Vec<(String, i64)> {
+    let mut out: Vec<(String, i64)> = text.split(';').map(|e| e.split_once(' ').map(|(id, n)| (id.to_owned(), n.parse().unwrap_or(0))).unwrap_or_default()).collect();
+    out.resize(9, (String::new(), 0));
+    out
+}
+
+/// A slot of ToolboxMenu (RestrictedInputSlot of UPGRADES): the cursor's cards in or the slot's out, as any slot does.
+/// A menu's button has no player's inventory at hand, and the tool can't change under an open menu: it is written when
+/// the screen closes (`toolbelt_stream`).
+fn toolbelt_click(game: &mut Game<'_>, pos: Pos, cell: usize, right: bool, carried: &mut Option<ItemStack>) {
+    let Some(uuid) = menu_player(pos) else { return };
+    let Some(text) = SERVER.with_borrow(|s| s.toolbelt_sent.get(&uuid).cloned()).filter(|t| t != "none") else { return };
+    let mut boxed = toolbelt_parse(&text);
+    let Some((id, n)) = boxed.get(cell).cloned() else { return };
+    match carried.take() {
+        Some(mut hand) if ae2_name(&hand.item).is_some_and(|c| c.ends_with("_card")) => {
+            if n > 0 && id != *hand.item {
+                if right {
+                    *carried = Some(hand);
+                    return;
+                }
+                // Another card: they change places.
+                boxed[cell] = (hand.item.to_string(), i64::from(hand.count));
+                *carried = Some(ItemStack::new(&id, n as u32));
+            } else {
+                let room = 64 - n;
+                let add = (if right { 1 } else { i64::from(hand.count) }).min(room);
+                boxed[cell] = (hand.item.to_string(), n + add);
+                hand.count -= add as u32;
+                *carried = (hand.count > 0).then_some(hand);
+            }
+        }
+        Some(hand) => {
+            *carried = Some(hand);
+            return;
+        }
+        None if n > 0 => {
+            let take = if right { (n + 1) / 2 } else { n };
+            *carried = Some(ItemStack::new(&id, take as u32));
+            boxed[cell] = if n > take { (id, n - take) } else { (String::new(), 0) };
+        }
+        None => return,
+    }
+    let text = boxed.iter().map(|(id, n)| if *n > 0 { format!("{id} {n}") } else { String::new() }).collect::<Vec<_>>().join(";");
+    let _ = game.native_net_send_to_player(uuid, NET_UI, format!("toolbelt {text}").as_bytes());
+    SERVER.with_borrow_mut(|s| {
+        s.toolbelt_sent.insert(uuid, text.clone());
+        s.toolbelt_writes.insert(uuid, text);
+    });
+}
+
+/// Each tick, for a viewer: the tool written with what the toolbelt's clicks did, and what their client should show
+/// of it, when that changed.
+fn toolbelt_stream(game: &mut Game<'_>, uuid: u128) {
+    let tick = SERVER.with_borrow_mut(|s| {
+        let tick = s.tick;
+        if !s.viewers.contains_key(&uuid) || s.toolbelt_seen.insert(uuid, tick) == Some(tick) {
+            return None;
+        }
+        Some(tick)
+    });
+    if tick.is_none() {
+        return;
+    }
+    // While the screen's clicks wait to be written, the client's list is the truth.
+    if SERVER.with_borrow(|s| s.toolbelt_writes.contains_key(&uuid)) && !SERVER.with_borrow_mut(|s| s.toolbelt_flush.remove(&uuid)) {
+        return;
+    }
+    let slot = network_tool_slot(game);
+    if let Some(write) = SERVER.with_borrow_mut(|s| s.toolbelt_writes.remove(&uuid))
+        && let Some(slot) = slot
+        && let Some(tool) = game.native_carried_stack(slot)
+    {
+        set_custom(tool, "ae2:toolbox", Tag::String(java(&write)));
+    }
+    let text = match slot.and_then(|slot| game.native_carried_stack(slot).map(|s| s.clone())) {
+        Some(tool) => toolbox_of(&tool).iter().map(|(id, n)| if *n > 0 { format!("{id} {n}") } else { String::new() }).collect::<Vec<_>>().join(";"),
+        None => "none".to_owned(),
+    };
+    if SERVER.with_borrow(|s| s.toolbelt_sent.get(&uuid) == Some(&text)) {
+        return;
+    }
+    let _ = game.native_net_send_to_player(uuid, NET_UI, format!("toolbelt {text}").as_bytes());
+    SERVER.with_borrow_mut(|s| s.toolbelt_sent.insert(uuid, text));
 }
 
 /// The cutting knife (AE2's `QuartzKnifeMenu`): an iron ingot and the name typed make a Name Press of that name;
@@ -10111,6 +12431,12 @@ struct BusFilter {
     keys: Vec<AeKey>,
     fuzzy: bool,
     inverted: bool,
+    /// Settings.FUZZY_MODE; Settings.ACCESS (0 both ways, 1 extract only, 2 insert only); Settings.FILTER_ON_EXTRACT
+    /// turned off; Settings.STORAGE_FILTER set to report what can't be extracted.
+    mode: FuzzyMode,
+    access: i64,
+    no_extract_filter: bool,
+    report_all: bool,
 }
 
 impl BusFilter {
@@ -10118,7 +12444,7 @@ impl BusFilter {
         if self.keys.is_empty() {
             return true;
         }
-        let hit = self.keys.iter().any(|k| k == key || (self.fuzzy && k.fuzzy_equals(key, FuzzyMode::IgnoreAll)));
+        let hit = self.keys.iter().any(|k| k == key || (self.fuzzy && k.fuzzy_equals(key, self.mode)));
         hit != self.inverted
     }
 }
@@ -10164,6 +12490,83 @@ const REDSTONE_MODES: [&str; 3] = ["Active with signal", "Active without signal"
 const SCHEDULES: [&str; 3] = ["Default", "Round robin", "Random"];
 const BUS_REDSTONE: i32 = 1;
 const BUS_SCHEDULE: i32 = 2;
+const BUS_CRAFT_ONLY: i32 = 3;
+const BUS_FUZZY: i32 = 4;
+const BUS_CLEAR: i32 = 5;
+const BUS_PARTITION: i32 = 6;
+const BUS_REPORT: i32 = 7;
+const BUS_EXTRACT_FILTER: i32 = 8;
+const BUS_ACCESS: i32 = 9;
+const BUS_PLACE: i32 = 10;
+/// The fuzzy mode's icons and words (FuzzyMode), by its setting.
+const FUZZY_BUTTON: [([f32; 2], &str); 5] = [
+    ([64.0, 96.0], "Match Any"),
+    ([48.0, 96.0], "Split Damaged Items"),
+    ([32.0, 96.0], "Split Damage at 75%"),
+    ([16.0, 96.0], "Split Damage at 50%"),
+    ([0.0, 96.0], "Split Damage at 25%"),
+];
+
+/// IOBusScreen's and StorageBusScreen's left toolbar, those that show: id, icon, title, value. On the storage bus and
+/// the plane the first place is the priority button's.
+fn bus_buttons(block: &str, d: &dyn Fn(usize) -> i32) -> (usize, Vec<(i32, [f32; 2], &'static str, &'static str)>) {
+    let mut out = Vec::new();
+    let storage = block == "ae2:storage_bus";
+    if storage {
+        out.push((BUS_CLEAR, [96.0, 0.0], "Clear", "Clear Config/Settings"));
+        out.push((BUS_PARTITION, [32.0, 64.0], "Partition Storage", "Configures Partition based on currently stored items."));
+        out.push(if d(8) != 0 {
+            (BUS_REPORT, [96.0, 48.0], "Report Inaccessible Items", "Yes: Items that cannot be extracted will be visible.")
+        } else {
+            (BUS_REPORT, [80.0, 48.0], "Report Inaccessible Items", "No: Only extractable items will be visible.")
+        });
+        out.push(if d(7) != 0 {
+            (BUS_EXTRACT_FILTER, [176.0, 48.0], "Filtered Operations", "Filter on insertion only.")
+        } else {
+            (BUS_EXTRACT_FILTER, [160.0, 48.0], "Filtered Operations", "Filter on insert and extract.")
+        });
+    } else if d(1) >= 0 {
+        let v = d(1).clamp(0, 2) as usize;
+        out.push((BUS_REDSTONE, [[16.0, 0.0], [0.0, 0.0], [32.0, 0.0]][v], "Redstone Mode", REDSTONE_MODES[v]));
+    }
+    if block == "ae2:formation_plane" {
+        out.push(if d(6) != 0 {
+            (BUS_PLACE, [16.0, 224.0], "Block Placement", "Blocks will be dropped as item.")
+        } else {
+            (BUS_PLACE, [0.0, 224.0], "Block Placement", "Blocks will be placed as block.")
+        });
+    }
+    if d(5) >= 0 {
+        let (icon, word) = FUZZY_BUTTON[d(5).clamp(0, 4) as usize];
+        out.push((BUS_FUZZY, icon, "Fuzzy Comparison", word));
+    }
+    if block == "ae2:export_bus" {
+        if d(4) >= 0 {
+            out.push(if d(4) != 0 {
+                (BUS_CRAFT_ONLY, [48.0, 16.0], "Crafting Behavior", "Do not use stocked items, only craft items while exporting.")
+            } else {
+                (BUS_CRAFT_ONLY, [32.0, 16.0], "Crafting Behavior", "Use stocked items, or craft items while exporting.")
+            });
+        }
+        let v = d(2).clamp(0, 2) as usize;
+        out.push((
+            BUS_SCHEDULE,
+            [[0.0, 240.0], [16.0, 240.0], [32.0, 240.0]][v],
+            "Scheduling Mode",
+            ["Export the first item until the network is empty, then try the next ones.", "Export using round robin mode.", "Export items in random mode."][v],
+        ));
+    }
+    if storage {
+        let v = d(6).clamp(0, 2) as usize;
+        out.push((BUS_ACCESS, [[32.0, 144.0], [16.0, 144.0], [0.0, 144.0]][v], "Input/Output Mode", ["Bi-Directional", "Extract Only", "Insert Only"][v]));
+    }
+    (usize::from(has_priority(block)), out)
+}
+
+/// The place of the toolbar's `i`th button (16 pixels, 4 between).
+fn bar_place(i: usize) -> [f32; 2] {
+    [-20.0, 8.0 + 20.0 * i as f32]
+}
 
 fn bus_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
     // Buses placed before filters were ghosts: their nine filter items become ghosts, the cards move up.
@@ -10182,7 +12585,12 @@ fn bus_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
         set_ghosts(entity, &cells);
         entity.items = old[filters..].to_vec();
     }
-    entity.data.resize(4, 0);
+    entity.data.resize(9, 0);
+    entity.data[4] = if cards(entity, 0, "ae2:crafting_card") > 0 { nbt_i64(&entity.nbt, "craft_only") as i32 } else { -1 };
+    entity.data[5] = if cards(entity, 0, "ae2:fuzzy_card") > 0 { nbt_i64(&entity.nbt, "fuzzy") as i32 } else { -1 };
+    entity.data[6] = nbt_i64(&entity.nbt, if entity.id == "ae2:formation_plane" { "drop_items" } else { "access" }) as i32;
+    entity.data[7] = nbt_i64(&entity.nbt, "no_extract_filter") as i32;
+    entity.data[8] = nbt_i64(&entity.nbt, "report_all") as i32;
     entity.data[0] = bus_slots(entity) as i32;
     entity.data[1] = if cards(entity, 0, "ae2:redstone_card") > 0 { nbt_i64(&entity.nbt, "redstone") as i32 } else { -1 };
     entity.data[2] = nbt_i64(&entity.nbt, "schedule") as i32;
@@ -10248,6 +12656,7 @@ fn run_buses(game: &mut Game<'_>) {
         };
         let filter = raw.resolve(game);
         let per = [1i64, 8, 32, 64, 96][speed.min(4)];
+        let craft_only = crafting && game.native_with_mod_block_entity(bus, |e| nbt_i64(&e.nbt, "craft_only") != 0).unwrap_or(false);
         let face = face_toward(target, bus);
         if import {
             let mut moved = 0;
@@ -10338,7 +12747,13 @@ fn run_buses(game: &mut Game<'_>) {
                     }
                     continue;
                 }
-                let got = with_storage(game, grid, None, |st| st.extract(&key, per - moved, Actionable::Modulate));
+                // ExportBusPart: with a Fuzzy Card, the first of what matches its config in the network.
+                let key = if filter.fuzzy {
+                    with_storage(game, grid, None, |st| st.contents().find_fuzzy(&key, filter.mode)).into_iter().find(|(_, n)| *n > 0).map_or(key, |(k, _)| k)
+                } else {
+                    key
+                };
+                let got = if craft_only { 0 } else { with_storage(game, grid, None, |st| st.extract(&key, per - moved, Actionable::Modulate)) };
                 if got <= 0 {
                     // The crafting card: what isn't there is crafted (once at a time, as AE2's bus waits for it).
                     if crafting {
@@ -10367,11 +12782,28 @@ struct RawFilter {
     ids: Vec<String>,
     fuzzy: bool,
     inverted: bool,
+    mode: FuzzyMode,
+    access: i64,
+    no_extract_filter: bool,
+    report_all: bool,
+}
+
+/// Settings.FUZZY_MODE, in the button's order.
+fn fuzzy_mode_of(e: &ModBlockEntity) -> FuzzyMode {
+    [FuzzyMode::IgnoreAll, FuzzyMode::Percent99, FuzzyMode::Percent75, FuzzyMode::Percent50, FuzzyMode::Percent25][nbt_i64(&e.nbt, "fuzzy").clamp(0, 4) as usize]
 }
 
 impl RawFilter {
     fn resolve(self, game: &Game<'_>) -> BusFilter {
-        BusFilter { keys: self.ids.iter().map(|id| ghost_key(game, id)).collect(), fuzzy: self.fuzzy, inverted: self.inverted }
+        BusFilter {
+            keys: self.ids.iter().map(|id| ghost_key(game, id)).collect(),
+            fuzzy: self.fuzzy,
+            inverted: self.inverted,
+            mode: self.mode,
+            access: self.access,
+            no_extract_filter: self.no_extract_filter,
+            report_all: self.report_all,
+        }
     }
 }
 
@@ -10380,6 +12812,10 @@ fn bus_filter_raw(e: &ModBlockEntity) -> RawFilter {
         ids: ghosts_n(e, bus_cells(e)).into_iter().take(bus_slots(e)).flatten().map(|(id, _)| id).collect(),
         fuzzy: cards(e, 0, "ae2:fuzzy_card") > 0,
         inverted: cards(e, 0, "ae2:inverter_card") > 0,
+        mode: fuzzy_mode_of(e),
+        access: nbt_i64(&e.nbt, "access"),
+        no_extract_filter: nbt_i64(&e.nbt, "no_extract_filter") != 0,
+        report_all: nbt_i64(&e.nbt, "report_all") != 0,
     }
 }
 
@@ -10392,7 +12828,7 @@ struct ExternalFluids {
 
 impl super::port_ae2_grid::MeStorage for ExternalFluids {
     fn insert(&mut self, what: &AeKey, amount: i64, mode: Actionable) -> i64 {
-        if what.key_type() != super::port_ae2_core::KeyType::Fluids || !self.filter.allows(what) {
+        if what.key_type() != super::port_ae2_core::KeyType::Fluids || self.filter.access == 1 || !self.filter.allows(what) {
             return 0;
         }
         let mut left = amount;
@@ -10411,6 +12847,9 @@ impl super::port_ae2_grid::MeStorage for ExternalFluids {
         amount - left
     }
     fn extract(&mut self, what: &AeKey, amount: i64, mode: Actionable) -> i64 {
+        if self.filter.access == 2 || !(self.filter.no_extract_filter || self.filter.allows(what)) {
+            return 0;
+        }
         let mut got = 0;
         for (fluid, n, _, _, drain) in self.tanks.iter_mut() {
             if got >= amount || !*drain || fluid.as_deref() != Some(what.id()) {
@@ -10432,6 +12871,8 @@ impl super::port_ae2_grid::MeStorage for ExternalFluids {
         for (fluid, n, _, _, _) in &self.tanks {
             if let Some(f) = fluid
                 && *n > 0
+                && self.filter.access != 2
+                && (self.filter.no_extract_filter || self.filter.allows(&AeKey::fluid(f, "")))
             {
                 out.add(&AeKey::fluid(f, ""), *n);
             }
@@ -10835,6 +13276,10 @@ fn draw_key(game: &Game<'_>, batch: &mut HudBatch, id: &str, at: [f32; 2], size:
 /// AE2's NumberEntryWidget on the level emitters: +1 +10 +100 +1000 above the box, the same less below.
 const LEVEL_ROWS: [f32; 2] = [17.0, 59.0];
 const EMIT_MODE: i32 = 3;
+/// Settings.AUTO_EXPORT on the inscriber.
+const INSCRIBER_EXPORT: i32 = 5;
+/// Settings.FUZZY_MODE on the level emitter.
+const EMIT_FUZZY: i32 = 6;
 
 fn draw_level_widget(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32, box_w: f32) {
     let mouse = CLIENT.with_borrow(|c| c.mouse);
@@ -10866,8 +13311,9 @@ fn level_widget_click(at: [f32; 2], right: bool, box_w: f32, button: &mut Option
         for (row, sign) in LEVEL_ROWS.iter().zip([1i64, -1]) {
             if on([x, *row, w, 20.0]) {
                 CLIENT.with_borrow_mut(|c| {
-                    let v: i64 = c.level_text.trim().parse().unwrap_or(0);
-                    c.level_text = (v + sign * n).max(0).to_string();
+                    let v = math_value(&c.level_text).unwrap_or(0.0);
+                    let next = (v + (sign * n) as f64).max(0.0);
+                    c.level_text = if next.fract() == 0.0 { format!("{next:.0}") } else { format!("{next:.3}").trim_end_matches('0').to_owned() };
                     c.level_dirty = true;
                 });
                 return true;
@@ -11157,7 +13603,7 @@ const MONITOR_GLYPH_WIDTHS: [u8; 25] = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 1, 5, 5, 5
 
 /// BlockEntityRenderHelper.renderItem2dWithAmount's text: centred 0.23 under the item, a font pixel 1/124 of a
 /// block, black (fluix's contrast colour), full bright. The pose faces +z at the item's centre.
-fn monitor_text(game: &Game<'_>, draw: &mut super::native_block_entity_draw::BlockEntityDraw, text: &str) {
+fn monitor_text(game: &Game<'_>, draw: &mut super::native_block_entity_draw::BlockEntityDraw, text: &str, spacing: f32, color: u32) {
     let glyphs: Vec<(usize, f32)> = text
         .chars()
         .filter_map(|ch| MONITOR_GLYPHS.find(ch).map(|i| (i, f32::from(MONITOR_GLYPH_WIDTHS[i]))))
@@ -11170,7 +13616,7 @@ fn monitor_text(game: &Game<'_>, draw: &mut super::native_block_entity_draw::Blo
     let (light, z) = (draw.light, 0.001);
     draw.light = 0xF0F0;
     let mut x = -width / 2.0 * px;
-    let top = -0.23 + 3.5 * px;
+    let top = spacing;
     for (i, w) in glyphs {
         // The quad seen from the screen's front: top left, bottom left, bottom right, top right.
         let (x0, x1) = (x, x + w * px);
@@ -11179,8 +13625,8 @@ fn monitor_text(game: &Game<'_>, draw: &mut super::native_block_entity_draw::Blo
         let u0 = i as f32 * 8.0 / 16.0;
         let uv = [u0, 0.0, u0 + w / 16.0, 14.0];
         // Both windings: the glyph shows whichever way the turned pose leaves it facing.
-        let drawn = game.native_draw_quad(draw, "ae2:gui/hz/monitor_font", [[x0, y0, z], [x0, y1, z], [x1, y1, z], [x1, y0, z]], uv, 0x000000);
-        game.native_draw_quad(draw, "ae2:gui/hz/monitor_font", [[x1, y0, z], [x1, y1, z], [x0, y1, z], [x0, y0, z]], [uv[2], uv[1], uv[0], uv[3]], 0x000000);
+        let drawn = game.native_draw_quad(draw, "ae2:gui/hz/monitor_font", [[x0, y0, z], [x0, y1, z], [x1, y1, z], [x1, y0, z]], uv, color);
+        game.native_draw_quad(draw, "ae2:gui/hz/monitor_font", [[x1, y0, z], [x1, y1, z], [x0, y1, z], [x0, y0, z]], [uv[2], uv[1], uv[0], uv[3]], color);
         if !drawn {
             once("monitor text: the font sprite ae2:gui/hz/monitor_font is not in the GUI atlas");
         }
@@ -11210,7 +13656,7 @@ fn monitor_submit(game: &Game<'_>, state: horizon_world::registry::BlockStateId,
     draw.translate([0.5, 0.55, 12.9 / 16.0]);
     draw.rotate_about([0.0, 1.0, 0.0], 180.0, [0.0, 0.0, 0.0]);
     draw.push();
-    monitor_text(game, draw, &nbt_string(&entity.nbt, "text"));
+    monitor_text(game, draw, &nbt_string(&entity.nbt, "text"), -0.23, 0x000000);
     draw.pop();
     draw.scale([0.4, 0.4, 0.0001]);
     // Full bright: the part's block is solid, so the light inside it is none (AE2 lights the screen's item as a
@@ -11220,6 +13666,135 @@ fn monitor_submit(game: &Game<'_>, state: horizon_world::registry::BlockStateId,
     game.native_draw_item(draw, &ItemStack::new(&id, 1), horizon_assets::item_model::DisplayContext::Gui, None, 0);
     draw.light = light;
     draw.pop();
+}
+
+/// AEColor: name, its black, medium and white variants, and the text colour that reads over it.
+const AE_COLORS: [(&str, u32, u32, u32, u32); 17] = [
+    ("white", 12500670, 14408667, 16448250, 0),
+    ("orange", 16357177, 16428612, 16047811, 0),
+    ("magenta", 8527490, 12069560, 12949704, 0),
+    ("light_blue", 6458827, 8563943, 14219007, 0),
+    ("yellow", 16775082, 16318282, 16777192, 0),
+    ("lime", 8191818, 12320593, 15202263, 0),
+    ("pink", 14454197, 16299479, 16244459, 0),
+    ("gray", 8158332, 10526880, 13224393, 0),
+    ("light_gray", 10329501, 13487565, 15724527, 0),
+    ("cyan", 3120037, 5352134, 11460084, 0),
+    ("purple", 8532146, 10769358, 13083596, 0),
+    ("blue", 2959776, 5327615, 14542591, 0),
+    ("brown", 7491125, 12031615, 14734024, 0),
+    ("green", 4562977, 6349614, 14938851, 0),
+    ("red", 10813481, 16711740, 16770797, 0),
+    ("black", 2829099, 5658198, 8684676, 16777215),
+    ("fluix", 1778500, 9002152, 14138348, 0),
+];
+
+/// CraftingMonitorRenderer and MonitorBakedModel's front: the lights in the monitor's colour (formed), and the job's
+/// item with how many are left, on the block's front.
+fn crafting_monitor_submit(game: &Game<'_>, state: horizon_world::registry::BlockStateId, entity: &ModBlockEntity, draw: &mut super::native_block_entity_draw::BlockEntityDraw) {
+    let paint = nbt_string(&entity.nbt, "paint");
+    let color = AE_COLORS.iter().find(|c| c.0 == paint).copied().unwrap_or(AE_COLORS[16]);
+    let c = [0.5, 0.5, 0.5];
+    draw.push();
+    // The pose: +z out of the block's front, as AE2's rotateToFace leaves it.
+    match game.native_block_state_property(state, "facing").unwrap_or("north") {
+        "north" => draw.rotate_about([0.0, 1.0, 0.0], 180.0, c),
+        "east" => draw.rotate_about([0.0, 1.0, 0.0], 90.0, c),
+        "west" => draw.rotate_about([0.0, 1.0, 0.0], -90.0, c),
+        "up" => draw.rotate_about([1.0, 0.0, 0.0], -90.0, c),
+        "down" => draw.rotate_about([1.0, 0.0, 0.0], 90.0, c),
+        _ => {}
+    }
+    let light = draw.light;
+    if game.native_block_state_property(state, FORMED_KEY) == Some("true") {
+        let powered = game.native_block_state_property(state, "powered") == Some("true");
+        if powered {
+            draw.light = 0xF0F0;
+        }
+        let (a, b, z) = (0.0, 1.0, 1.0005);
+        for (sprite, tint) in [("ae2:gui/hz/monitor_light_bright", color.3), ("ae2:gui/hz/monitor_light_medium", color.2), ("ae2:gui/hz/monitor_light_dark", color.1)] {
+            game.native_draw_quad(draw, sprite, [[a, b, z], [a, a, z], [b, a, z], [b, b, z]], [0.0, 0.0, 16.0, 16.0], tint);
+        }
+        draw.light = light;
+    }
+    let id = nbt_string(&entity.nbt, "show");
+    if !id.is_empty() {
+        draw.translate([0.5, 0.52, 1.001]);
+        draw.push();
+        monitor_text(game, draw, &nbt_string(&entity.nbt, "text"), -0.18, color.4);
+        draw.pop();
+        draw.translate([0.0, 0.0, 0.0005]);
+        draw.scale([0.3, 0.3, 0.0001]);
+        draw.light = 0xF0F0;
+        game.native_draw_item(draw, &ItemStack::new(&icon_of(&id), 1), horizon_assets::item_model::DisplayContext::Gui, None, 0);
+        draw.light = light;
+    }
+    draw.pop();
+}
+
+/// MolecularAssemblerRenderer.renderPowerLight (molecular_assembler_lights: twelve frames, three ticks each, on a cube
+/// inside the shell, full bright) and CraftingFx: every four ticks of a craft, sparks that shrink into the middle.
+fn assembler_effects(game: &Game<'_>, state: horizon_world::registry::BlockStateId, entity: &ModBlockEntity, draw: &mut super::native_block_entity_draw::BlockEntityDraw, working: bool) {
+    let light = draw.light;
+    draw.light = 0xF0F0;
+    if game.native_block_state_property(state, "powered") == Some("true") {
+        let frame = (draw.game_time.div_euclid(3).rem_euclid(12)) as f32;
+        let v = |t: f32| (frame + t / 16.0) * 16.0 / 12.0;
+        let uv = [2.6, v(2.6), 13.4, v(13.4)];
+        let (a, b) = (2.0 / 16.0, 14.0 / 16.0);
+        for corners in [
+            [[b, b, a], [b, a, a], [a, a, a], [a, b, a]],
+            [[a, b, b], [a, a, b], [b, a, b], [b, b, b]],
+            [[a, b, a], [a, a, a], [a, a, b], [a, b, b]],
+            [[b, b, b], [b, a, b], [b, a, a], [b, b, a]],
+            [[a, b, a], [a, b, b], [b, b, b], [b, b, a]],
+            [[a, a, b], [a, a, a], [b, a, a], [b, a, b]],
+        ] {
+            game.native_draw_quad(draw, "ae2:gui/hz/molecular_assembler_lights", corners, uv, 0xFFFFFF);
+        }
+    }
+    if working {
+        // Stateless: where each spark is follows from when it started, so nothing runs on the ticks between.
+        let speed = nbt_i64(&entity.nbt, "speed").max(10);
+        let count = (speed as f32 / 5.0).ceil() as u32;
+        let now = draw.game_time as f32 + draw.partial;
+        let (yaw, pitch) = (game.yaw.to_radians(), game.pitch.to_radians());
+        let forward = [-yaw.sin() * pitch.cos(), -pitch.sin(), yaw.cos() * pitch.cos()];
+        let right = [-yaw.cos(), 0.0, -yaw.sin()];
+        let up = [
+            right[1] * forward[2] - right[2] * forward[1],
+            right[2] * forward[0] - right[0] * forward[2],
+            right[0] * forward[1] - right[1] * forward[0],
+        ];
+        let seed = std::ptr::from_ref(entity) as usize as u64;
+        let newest = draw.game_time.div_euclid(4);
+        for step in 0..10 {
+            let born = newest - step;
+            for spark in 0..count {
+                let mut bits = seed ^ (born as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ u64::from(spark).wrapping_mul(0xC2B2_AE3D_27D4_EB4F);
+                let mut next = || {
+                    bits ^= bits << 13;
+                    bits ^= bits >> 7;
+                    bits ^= bits << 17;
+                    (bits >> 40) as f32 / (1u64 << 24) as f32
+                };
+                let _ = next();
+                let off = [next() - 0.5, next() - 0.5, next() - 0.5];
+                let length = (off[0] * off[0] + off[1] * off[1] + off[2] * off[2]).sqrt().max(0.001);
+                let life = (4.0 / (next() * 0.9 + 0.1) / 1.2).floor().max(1.0);
+                let f = (now - (born * 4) as f32) / life;
+                if !(0.0..1.0).contains(&f) {
+                    continue;
+                }
+                let eased = (1.0 - (f - 1.0) * (f - 1.0)).sqrt();
+                let size = 0.13 * (1.0 - eased);
+                let at = off.map(|o| 0.5 + o / length * 0.35 * (1.0 - f));
+                let corner = |r: f32, u: f32| [0, 1, 2].map(|i| at[i] + right[i] * r * size + up[i] * u * size);
+                game.native_draw_quad(draw, "ae2:gui/hz/crafting_fx", [corner(-1.0, 1.0), corner(-1.0, -1.0), corner(1.0, -1.0), corner(1.0, 1.0)], [0.0, 0.0, 16.0, 16.0], 0xFFE6FF);
+            }
+        }
+    }
+    draw.light = light;
 }
 
 /// Places the held block against `pos`'s `face`, as a block item does on a block that doesn't use the click.
@@ -12022,17 +14597,83 @@ pub fn load_channel_mode() {
     });
 }
 
-/// `/ae2 ...`: true when it was one of AE2's.
-pub fn ae2_command(game: &mut Game<'_>, args: &[&str]) -> bool {
-    load_channel_mode();
-    let say = |game: &mut Game<'_>, t: &str| game.native_chat(t);
-    // Commands.CHANNEL_MODE's level 4 (single player's owner with cheats on).
-    let level = game.native_server_players().into_iter().map(|p| p.permission).max().unwrap_or(0);
-    if level < 4 {
-        say(game, "You do not have permission to use this command");
-        return true;
+/// Chunk Logger: chunks log as they load and unload (`/ae2 chunklogger`).
+static CHUNK_LOGGER: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+/// `/ae2 tickmonitor`: how long AE2's CPUs take each tick goes to the log.
+static TICK_MONITOR: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// `native_chunk_load` and `native_chunk_unload`, while the logger is on (ChunkLogger.onChunkLoadEvent).
+pub fn chunk_logged(dimension: &str, chunk: [i32; 2], load: bool) {
+    if CHUNK_LOGGER.load(std::sync::atomic::Ordering::Relaxed) {
+        log::info!("{} chunk {} {} in {dimension}", if load { "Loaded" } else { "Unloaded" }, chunk[0], chunk[1]);
     }
+}
+
+/// `/ae2 ...` as typed: to the server, where AE2's state is; on the server itself it runs here.
+pub fn ae2_command(game: &mut Game<'_>, args: &[&str]) -> bool {
+    let line = format!("ae2 {}", args.join(" "));
+    if game.native_net_send_to_server(NET_DEBUG, line.as_bytes()).is_err() {
+        let level = game.native_server_players().into_iter().map(|p| p.permission).max().unwrap_or(4);
+        let at = game.eye_position().unwrap_or([0.0; 3]);
+        ae2_run(game, None, level, at, args);
+    }
+    true
+}
+
+/// `AECommand`: a player (None: the one here) runs a subcommand.
+fn ae2_run(game: &mut Game<'_>, player: Option<u128>, level: u8, at: [f64; 3], args: &[&str]) {
+    load_channel_mode();
+    let say = |game: &mut Game<'_>, t: &str| match player {
+        Some(uuid) => {
+            game.native_tell(uuid, horizon_client::text::Text::legacy(t));
+        }
+        None => game.native_chat(t),
+    };
+    // Commands' level 4.
+    if level < 4 {
+        say(game, "You do not have adequate permissions to run this command.");
+        return;
+    }
+    const USAGE: &str = "Commands provided by Applied Energistics 2 - use /ae2 list for a list, and /ae2 help _____ for help with a command.";
+    use std::sync::atomic::Ordering::Relaxed;
     match args {
+        [] => say(game, USAGE),
+        ["list"] => say(game, "reloadconfig, chunklogger, spatial, channelmode, tickmonitor, compass, testmeteorites, setuptestworld"),
+        ["help"] => say(game, USAGE),
+        ["help", what] => {
+            let text = match *what {
+                "reloadconfig" => "/ae2 reloadconfig: reads AE2's configuration again",
+                "chunklogger" => "/ae2 chunklogger: logs chunks as they load and unload, or stops",
+                "spatial" => "/ae2 spatial info|tpback|givecell <id>|<id>",
+                "channelmode" => "/ae2 channelmode [infinite|default|x2|x3|x4]",
+                "tickmonitor" => "/ae2 tickmonitor <enable:true|false>",
+                "compass" => "/ae2 compass: the meteorite compass's view of this region",
+                "testmeteorites" => "/ae2 testmeteorites [force]: the meteorites around here",
+                "setuptestworld" => "/ae2 setuptestworld [plot]: AE2's own test plots",
+                _ => USAGE,
+            };
+            say(game, text);
+        }
+        ["reloadconfig"] => {
+            let saved = channel_mode_file().and_then(|f| std::fs::read_to_string(f).ok()).unwrap_or_default();
+            if let Some((_, f)) = CHANNEL_MODES.iter().find(|(n, _)| *n == saved.trim()) {
+                super::port_ae2_grid::CHANNEL_MODE.store(*f, Relaxed);
+            }
+            say(game, "AE2 configuration reloaded");
+        }
+        ["chunklogger"] => {
+            let on = !CHUNK_LOGGER.fetch_xor(true, Relaxed);
+            say(game, if on { "Chunk Logging is now on" } else { "Chunk Logging is now off" });
+        }
+        ["tickmonitor"] => say(game, "/ae2 tickmonitor <enable:true|false>"),
+        ["tickmonitor", value @ ("true" | "false")] => {
+            TICK_MONITOR.store(*value == "true", Relaxed);
+            say(game, &format!("Tick monitoring is now {}", if *value == "true" { "on" } else { "off" }));
+        }
+        // Spatial storage here lives in the cell itself: Horizon has no room for AE2's extra dimension of plots.
+        ["spatial" | "spatial_info"] | ["spatial", "info"] => say(game, "Spatial cells hold what they store in the cell itself here: there are no plots to list."),
+        ["spatial", "tpback"] => say(game, "You are not in the spatial storage level."),
+        ["spatial", "givecell", _] | ["spatial", _] => say(game, "There is no spatial storage plot with that id."),
         ["channelmode"] => {
             let f = super::port_ae2_grid::channel_factor();
             let name = CHANNEL_MODES.iter().find(|(_, v)| *v == f).map_or("default", |(n, _)| n);
@@ -12041,23 +14682,33 @@ pub fn ae2_command(game: &mut Game<'_>, args: &[&str]) -> bool {
         ["channelmode", mode] => {
             let Some((name, f)) = CHANNEL_MODES.iter().find(|(n, _)| n == mode).copied() else {
                 say(game, &format!("Unknown channel mode: {mode}"));
-                return true;
+                return;
             };
-            super::port_ae2_grid::CHANNEL_MODE.store(f, std::sync::atomic::Ordering::Relaxed);
+            super::port_ae2_grid::CHANNEL_MODE.store(f, Relaxed);
             if let Some(file) = channel_mode_file() {
                 let _ = std::fs::write(file, name);
             }
-            // PathingService.repath on every grid: the next pass works them out with the new capacities.
             let grids = SERVER.with_borrow_mut(|s| {
+                // PathingService.repath on every grid: the next pass works them out with the new capacity.
                 s.mounted.clear();
                 s.grids.len()
             });
             say(game, &format!("Channel mode set to {name}. Updated {grids} grids."));
         }
-        [] => say(game, "/ae2 channelmode [infinite|default|x2|x3|x4]"),
-        _ => say(game, "That /ae2 command isn't available in this port."),
+        ["compass"] | ["testmeteorites"] | ["testmeteorites", "force"] => {
+            let dim = game.dim.id().to_owned();
+            let spot = [at[0].floor() as i32, at[1].floor() as i32, at[2].floor() as i32];
+            let lines = super::port_ae2_meteor::report(game, &dim, spot);
+            if lines.is_empty() {
+                say(game, "No meteorites in the regions around here.");
+            }
+            for line in lines {
+                say(game, &line);
+            }
+        }
+        ["setuptestworld", ..] => say(game, "AE2's test plots are for its own development and not part of this port."),
+        _ => say(game, USAGE),
     }
-    true
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -13003,6 +15654,11 @@ fn wcraft_ops(game: &mut Game<'_>, player: u128) {
                             grid[c] = Some(stack_of(&key, 1));
                             break;
                         }
+                        // Then the player's inventory, as the terminal's own grid does.
+                        if game.native_take_items(id, 1) == 1 {
+                            grid[c] = Some(ItemStack::new(id, 1));
+                            break;
+                        }
                     }
                 }
             }
@@ -13257,11 +15913,11 @@ fn ghost_targets(block: &str) -> Vec<([f32; 4], i32)> {
         "ae2:cell_workbench" => grid(63, 29.0),
         "ae2:level_emitter" => vec![([137.0, 40.0, 16.0, 16.0], GHOST)],
         "ae2:pattern_encoding_terminal" => {
-            let (extra, mode) = CLIENT.with_borrow(|c| (c.encoder_extra, c.encoder_mode));
+            let (extra, mode, scroll) = CLIENT.with_borrow(|c| (c.encoder_extra, c.encoder_mode, c.enc_scroll));
             (0..mode_cells(mode))
                 .map(|i| {
                     let [x, y] = ghost_cell_mode(i, mode);
-                    ([x, y + extra, 16.0, 16.0], GHOST + ((i as i32) << 3))
+                    ([x, y + extra, 16.0, 16.0], GHOST + ((enc_visible(i, mode, scroll) as i32) << 3))
                 })
                 .collect()
         }
@@ -13292,11 +15948,86 @@ pub fn ghost_press(game: &Game<'_>, screen: &crate::game::native_hooks::NativeSc
     GHOST_DRAG.with_borrow_mut(|g| g.probe = Some(screen.mouse));
 }
 
+/// Once a frame: what the terminal settings ask of the frame: the grid cleared after closing, JEI's search kept in
+/// step with the terminal's (or the terminal's taken from JEI's).
+fn terminal_frame(game: &mut Game<'_>) {
+    if matches!(game.screen, super::Screen::Playing) {
+        CLIENT.with_borrow_mut(|c| {
+            c.show_jobs = false;
+            c.status_block = false;
+            c.settings_open = false;
+            c.dialog = None;
+        });
+    }
+    if game.native_screen_height().is_none() {
+        CLIENT.with_borrow_mut(|c| {
+            if c.toolbelt_at.take().is_some() {
+                c.ui_out.push("toolbeltdone".to_owned());
+            }
+        });
+    }
+    super::native_hooks::port_ae2_screen::set_hidden(game, overlay_shown());
+    // The toolbelt lies beyond the window, where a press isn't the screen's: it goes as the slot's button by hand.
+    for button in CLIENT.with_borrow_mut(|c| std::mem::take(&mut c.toolbelt_presses)) {
+        if let Some(container) = game.remote.as_ref().and_then(|r| r.menu.as_ref()).map(|(w, _)| *w) {
+            game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container, button }));
+        }
+    }
+    if CLIENT.with_borrow_mut(|c| std::mem::take(&mut c.relayout)) {
+        super::native_hooks::port_ae2_screen::relayout(game);
+    }
+    let title = game.native_screen_title();
+    let crafting = matches!(title.as_deref(), Some("ME Crafting Terminal"));
+    let open = crafting || matches!(title.as_deref(), Some("ME Terminal" | "Terminal" | "ME Pattern Encoding Terminal"));
+    let (was_crafting, was_open, s) = CLIENT.with_borrow_mut(|c| {
+        let s = settings(c);
+        (std::mem::replace(&mut c.crafting_term_open, crafting), std::mem::replace(&mut c.term_open, open), s)
+    });
+    if was_crafting && !crafting && s[5] {
+        CLIENT.with_borrow_mut(|c| c.ui_out.push("cleargrid".to_owned()));
+    }
+    if !open {
+        return;
+    }
+    use super::native_panel::port_ae2_panel as panel;
+    if !was_open && s[6] && s[8] {
+        panel::set_search(game, "");
+    }
+    if s[6] {
+        // The terminal's list follows JEI's box.
+        let text = panel::search_text(game);
+        CLIENT.with_borrow_mut(|c| {
+            if c.search != text {
+                c.search = text;
+                c.view.take();
+                c.scroll = 0;
+            }
+            c.search_focus = false;
+        });
+    } else if s[7] {
+        // syncWithExternalSearch: "when either is changed".
+        let (mine, last) = CLIENT.with_borrow(|c| (c.search.clone(), c.synced_search.clone()));
+        let theirs = panel::search_text(game);
+        if mine != last {
+            panel::set_search(game, &mine);
+            CLIENT.with_borrow_mut(|c| c.synced_search = mine);
+        } else if theirs != last {
+            CLIENT.with_borrow_mut(|c| {
+                c.search = theirs.clone();
+                c.synced_search = theirs;
+                c.view.take();
+                c.scroll = 0;
+            });
+        }
+    }
+}
+
 /// `native_frame`: the held-back press asks JEI's panel what it was on (a `Key` event over the item, the pointer
 /// put back where it was pressed); not an item (the page arrows, the search box), the panel has the press as it was.
 /// A click let go in place is the panel's too.
 pub fn ghost_frame(game: &mut Game<'_>) {
     wireless_jei_frame(game);
+    terminal_frame(game);
     let (probe, replay) = GHOST_DRAG.with_borrow_mut(|g| (g.probe.take(), g.replay.take()));
     if let Some(at) = replay {
         press_panel_at(game, at);
@@ -13532,6 +16263,40 @@ fn with_panel<R>(game: &mut Game<'_>, f: impl FnOnce(&mut Game<'_>) -> R) -> R {
     out
 }
 
+/// FinishedJobToast: top right for 2.5 seconds, when no terminal is open and the player carries a wireless terminal
+/// (PendingCraftingJobs.hasNotificationEnablingItem).
+pub fn job_toast_draw(game: &Game<'_>, batch: &mut HudBatch) {
+    let Some((id, amount, shown)) = CLIENT.with_borrow(|c| c.job_toast.clone()) else { return };
+    let since = match shown {
+        Some(at) => at.elapsed().as_secs_f32(),
+        None => {
+            let terminal = CLIENT.with_borrow(|c| c.term_origin.is_some() && c.wireless_open == 0) && game.native_screen_height().is_some();
+            let carries = game.inventory.iter().flatten().any(|s| is_wireless_terminal(&s.item));
+            if terminal || !carries {
+                CLIENT.with_borrow_mut(|c| c.job_toast = None);
+                return;
+            }
+            CLIENT.with_borrow_mut(|c| c.job_toast = Some((id.clone(), amount, Some(std::time::Instant::now()))));
+            0.0
+        }
+    };
+    if since >= 2.5 {
+        CLIENT.with_borrow_mut(|c| c.job_toast = None);
+        return;
+    }
+    let (w, _) = game.gui_size();
+    // Slides in and out over a quarter of a second, as toasts do.
+    let slide = (since / 0.25).min((2.5 - since) / 0.25).clamp(0.0, 1.0);
+    let x = w - 160.0 * slide;
+    if !game.native_sprite(batch, "gui/sprites/toast/recipe", [0.0, 0.0, 160.0, 32.0], [x, 0.0, 160.0, 32.0]) {
+        horizon_client::toasts::background(&game.gui.atlas, batch, x, 0.0, 160.0);
+    }
+    game.native_text(batch, "Auto-Crafting Complete", [x + 30.0, 7.0], 0x500050, false);
+    let text = format!("{} {}", key_amount(&id, amount, super::port_ae2_core::AmountFormat::Slot), key_words(game, &id));
+    game.native_text(batch, &text, [x + 30.0, 18.0], 0x000000, false);
+    draw_key(game, batch, &id, [x + 8.0, 8.0], 16.0);
+}
+
 /// `hud_layers`, once the frame's screen has drawn: the panel, its tooltips on top.
 pub fn wireless_jei_draw(game: &mut Game<'_>, batch: &mut HudBatch) {
     if !wireless_open(game) {
@@ -13663,5 +16428,6 @@ pub fn panel_clearance(game: &Game<'_>) -> f32 {
     let mut shown = None;
     screen(game, &block, &mut shown);
     let Some(s) = shown else { return 0.0 };
-    s.slots.iter().flatten().filter(|at| at[0] >= s.width).map(|at| at[0] + 18.0 + 6.0 - s.width).fold(0.0, f32::max)
+    let toolbelt = CLIENT.with_borrow(|c| c.toolbelt_at.map_or(0.0, |_| c.toolbelt_right + 6.0 - s.width));
+    s.slots.iter().flatten().filter(|at| at[0] >= s.width).map(|at| at[0] + 18.0 + 6.0 - s.width).fold(toolbelt, f32::max)
 }

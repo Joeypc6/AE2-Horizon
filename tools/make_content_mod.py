@@ -184,15 +184,15 @@ MENUS = {
     "crafting_terminal": {"slots": 16, "data_slots": 4, "results": [10]},
     "pattern_encoding_terminal": {"slots": 7, "data_slots": 4, "results": [1]},
     "pattern_provider": {"slots": 18, "data_slots": 4},
-    "interface": {"slots": 9, "data_slots": 1},
+    "interface": {"slots": 10, "data_slots": 2},
     "io_port": {"slots": 15, "data_slots": 4},
-    "io_bus": {"slots": 4, "data_slots": 4},
-    "storage_bus": {"slots": 5, "data_slots": 4},
-    "vibration_chamber": {"slots": 1, "data_slots": 2},
-    "inscriber": {"slots": 7, "data_slots": 2, "results": [3]},
+    "io_bus": {"slots": 5, "data_slots": 9},
+    "storage_bus": {"slots": 5, "data_slots": 9},
+    "vibration_chamber": {"slots": 4, "data_slots": 2},
+    "inscriber": {"slots": 8, "data_slots": 3, "results": [3]},
     "molecular_assembler": {"slots": 6, "data_slots": 2},
     "sky_chest": {"slots": 36, "data_slots": 0},
-    "level_emitter": {"slots": 1, "data_slots": 2},
+    "level_emitter": {"slots": 2, "data_slots": 5},
     "wireless_access_point": {"slots": 3, "data_slots": 2},
     "info": {"slots": 1, "data_slots": 1},
     "spatial_io_port": {"slots": 2, "data_slots": 4},
@@ -352,6 +352,10 @@ def device_decl(name, state):
     decl = {"template": "minecraft:barrel", "properties": {"hardness": 2.2, "sounds": "minecraft:iron_block"}}
     if name in SEE_THROUGH:
         decl = {"template": "minecraft:beacon", "properties": {"hardness": 2.2, "light": 0, "sounds": "minecraft:iron_block"}, **SEE_THROUGH_STATE}
+    if name == "molecular_assembler":
+        decl["state_properties"] = {**decl["state_properties"], "powered": {"type": "boolean"}}
+        decl["default_state"] = {**decl["default_state"], "powered": "false"}
+        return decl, facing_variants(look, upright=False, powered=(look, look))
     powered = None
     if name in POWERED_LOOKS:
         decl.update(POWERED_STATE)
@@ -364,7 +368,17 @@ def device_decl(name, state):
                                     **{f"side_{d}": {"type": "boolean"} for d in CUBE_SIDES}, "structure": {"type": "boolean"}}
         decl["default_state"] = {**decl.get("default_state", {}), **{f"side_{d}": "false" for d in CUBE_SIDES}, "structure": "false"}
         if name == "crafting_monitor":
-            return decl, facing_variants(look, upright=False, powered=powered)
+            # MonitorBakedModel: the unit's chassis with its ring on five sides, the monitor's base on the front. The
+            # lights (in the monitor's colour) and the job's item the native mod draws over it.
+            decl["state_properties"]["powered"] = {"type": "boolean"}
+            decl["default_state"]["powered"] = "false"
+            parts = []
+            for facing, rot in FACING_ROTATIONS.items():
+                parts.append({"when": {"structure": "false", "facing": facing}, "apply": {**look, **rot}})
+                for mask in range(64):
+                    when = {f"side_{d}": "true" if mask >> i & 1 else "false" for i, d in enumerate(CUBE_SIDES)}
+                    parts.append({"when": {**when, "structure": "true", "facing": facing}, "apply": {"model": f"{ID}:block/hz/crafting/monitor_{facing}_{mask}"}})
+            return decl, {"multipart": parts}
         parts = [{"when": {"structure": "false"}, "apply": look}]
         for mask in range(64):
             when = {f"side_{d}": "true" if mask >> i & 1 else "false" for i, d in enumerate(CUBE_SIDES)}
@@ -573,6 +587,26 @@ def crafting_cube_models(write, read):
 
     for name, look in CRAFTING_CUBE.items():
         if look == "monitor":
+            base = tex("monitor_base")
+            for edges in range(16):
+                rows = [bytearray(base[2][y]) for y in range(16)]
+                for qy in (0, 1):
+                    for qx in (0, 1):
+                        v = edges >> qy & 1
+                        h = edges >> (2 + qx) & 1
+                        src = corner if v and h else hor if v else ver if h else None
+                        if src:
+                            over(rows, src, qx * 8, qy * 8, qx * 8 + 8, qy * 8 + 8)
+                write(f"assets/{ID}/textures/block/hz/crafting/monitor_{edges}.png", write_png(16, 16, rows))
+            for facing in FACE_EDGES:
+                for mask in range(64):
+                    joined = {d: mask >> i & 1 for i, d in enumerate(CUBE_SIDES)}
+                    faces = {}
+                    for face, (top, bottom, left, right) in FACE_EDGES.items():
+                        edges = sum((not joined[d]) << i for i, d in enumerate((top, bottom, left, right)))
+                        faces[face] = f"{ID}:block/hz/crafting/{'monitor' if face == facing else 'unit'}_{edges}"
+                    write(f"assets/{ID}/models/block/hz/crafting/monitor_{facing}_{mask}.json",
+                          {"parent": "minecraft:block/cube", "textures": {**faces, "particle": faces[facing]}})
             continue
         base = tex("unit_base" if look == "unit" else "light_base")
         light_name = None if look == "unit" else f"{look}_light"
@@ -1472,6 +1506,12 @@ def main(jar, out):
     # The storage monitors' amount font (a GUI texture: the native mod draws it on the screen).
     from monitor_font import sheet
     write(f"assets/{ID}/textures/gui/hz/monitor_font.png", write_png(256, 8, sheet()))
+    # What the native mod draws on blocks with the GUI atlas: the monitor's lights, the assembler's powered light
+    # and its crafting sparks (CraftingFx's sprite).
+    for light in ("bright", "medium", "dark"):
+        write(f"assets/{ID}/textures/gui/hz/monitor_light_{light}.png", read(f"assets/{ID}/textures/block/crafting/monitor_light_{light}.png"))
+    write(f"assets/{ID}/textures/gui/hz/molecular_assembler_lights.png", read(f"assets/{ID}/textures/block/molecular_assembler_lights.png"))
+    write(f"assets/{ID}/textures/gui/hz/crafting_fx.png", read(f"assets/{ID}/textures/particle/energy.png"))
     charger_models(write, read)
     compass_pointers(write, read)
     facades(write, read, has)

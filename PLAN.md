@@ -400,3 +400,38 @@ Performance, same world and same build, one 30 s sample each, all mods on agains
 against 178 fps, tick 10.5 ms against 10.3 ms (P99 14.9 against 21.5 ms), both at 20 TPS: the differences are about the
 size of the noise. An AE2 base idle: 3.2 ms a tick, with a job running 3.3 ms. No comparison with Java was made.
 
+## Round 17 (2026-11-04): AE2's screens and settings against the jar
+
+Built as `native-c9d474d-69a66f904089`, tested in my offscreen game unless noted.
+
+Done and tested:
+- Crafting Status and Crafting Plan rebuilt on AE2's own textures and layout; the plan's CPU button (Automatic, or a
+  CPU) with CraftingService's choice; the status screen on crafting blocks with the CPU's auto-selection mode.
+- Crafting monitor: the job's item and what is left on the block, its lights in the monitor's colour.
+- Molecular assembler: the animated power light, sparks while crafting, the item still in the glass.
+- Terminal: the six toolbar buttons with AE2's icons, the crafting status tab, the terminal style resizing live, the
+  settings screen, pinned items, the search syntax (`@ # $ * |`), expressions in number fields.
+- Upgrade Toolbelt under the upgrades with a network tool; Compatible Upgrades on the panel, from InitUpgrades.
+- Crafting cards on the interface and level emitter (including emit-to-craft); craft only and fuzzy on the export bus;
+  fuzzy modes on buses, emitter and interface.
+- Storage bus: clear, partition, access mode, filtered operations, report inaccessible, what it's attached to.
+- Formation plane drop mode; annihilation plane on fluids and on blocks with block entities.
+- Pattern encoding: substitutions, cycle outputs, 81 inputs and 27 outputs with the scrollbar.
+- Pattern Access Terminal's display modes and output search. Spatial IO port's power, efficiency and cost.
+- Vibration chamber's cards and its speed following the network; inscriber's speeds, power and Auto-Export.
+- Fluids count 1000 mB a bucket everywhere. Fluid amounts are typed in buckets to the millibucket (0.01 B). Patterns
+  take fluids (right-click with a bucket), providers fill tanks, and the CPU collects exact amounts: tested with
+  10 mB water in, 5 mB lava out, 0.015 B requested (30 mB pushed, 15 mB collected).
+- Finished-job toast. Measured: 20 TPS, tick 3.3 ms idle, 2.0 ms during a job (different views; no Java comparison).
+
+Left, not 1:1:
+- Inscriber: Automation Access Mode (Horizon's container faces are fixed per block) and input stack size.
+- Fluid Substitutions on crafting patterns; fluids in the interface's stock.
+- Storage bus onto an ME Interface (subnetworks); parts of a plane's fluid placement.
+- Spatial: cells hold their contents instead of a dimension, no Serial, blocks with block entities stay behind.
+- Spatial Anchor: Horizon has no chunk forcing, so no chunk loading or overlay.
+- Transparent facades with the network tool (block entity drawing has no alpha here, and facades are block models).
+- Cell tooltips list contents as words, not icons. Wireless slot hints and Invalid Singularity text aren't there.
+- ETA checked with several CPUs on one machine, speed cards and furnaces; not with P2P between provider and machine,
+  other channel modes, or modded machines.
+- Dedicated servers: Horizon doesn't build native mods for them, so "server" means a LAN host.

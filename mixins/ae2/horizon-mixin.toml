@@ -3,6 +3,10 @@ id = "ae2"
 version = "15.4.12"
 priority = 100
 
+# The Horizon commit this bundle was built and tested on.
+[compatibility]
+horizon_revision = "c9d474dd9116e84c243f8992d75c11314df56f06"
+
 [[module]]
 id = "runtime"
 file = "crates/horizon-client/src/game.rs"
@@ -904,3 +908,39 @@ bindings = [
   { name = "game", ty = "&Game<'_>", value = "&*self" },
   { name = "layout", ty = "Option<Layout>", value = "$value" },
 ]
+
+# /ae2 chunklogger.
+[[injection]]
+id = "me-chunk-load"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_chunk_load"
+helper = "me_chunk_load.rs"
+bindings = [
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "chunk", ty = "[i32; 2]", value = "chunk" },
+]
+
+[[injection]]
+id = "me-chunk-unload"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_chunk_unload"
+helper = "me_chunk_unload.rs"
+bindings = [
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "chunk", ty = "[i32; 2]", value = "chunk" },
+]
+
+# The terminal settings' JEI search options.
+[[module]]
+id = "panel-search"
+file = "crates/horizon-client/src/game/native_panel.rs"
+name = "port_ae2_panel"
+source = "panel_search.rs"
+
+# The open screen stands back for AE2's crafting status, amount and plan screens.
+[[module]]
+id = "screen-hidden"
+file = "crates/horizon-client/src/game/native_hooks.rs"
+name = "port_ae2_screen"
+source = "screen_hidden.rs"
+

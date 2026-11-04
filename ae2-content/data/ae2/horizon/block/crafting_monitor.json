@@ -25,6 +25,9 @@
     },
     "structure": {
       "type": "boolean"
+    },
+    "powered": {
+      "type": "boolean"
     }
   },
   "default_state": {
@@ -34,6 +37,7 @@
     "side_west": "false",
     "side_up": "false",
     "side_down": "false",
-    "structure": "false"
+    "structure": "false",
+    "powered": "false"
   }
 }

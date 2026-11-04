@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "north": "ae2:block/hz/crafting/unit_14",
+    "south": "ae2:block/hz/crafting/unit_14",
+    "east": "ae2:block/hz/crafting/unit_2",
+    "west": "ae2:block/hz/crafting/unit_2",
+    "up": "ae2:block/hz/crafting/unit_12",
+    "down": "ae2:block/hz/crafting/monitor_12",
+    "particle": "ae2:block/hz/crafting/monitor_12"
+  }
+}

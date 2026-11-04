@@ -1,25 +1,50 @@
 {
   "variants": {
-    "facing=north": {
+    "facing=north,powered=false": {
       "model": "ae2:block/molecular_assembler"
     },
-    "facing=south": {
+    "facing=south,powered=false": {
       "model": "ae2:block/molecular_assembler",
       "y": 180
     },
-    "facing=west": {
+    "facing=west,powered=false": {
       "model": "ae2:block/molecular_assembler",
       "y": 270
     },
-    "facing=east": {
+    "facing=east,powered=false": {
       "model": "ae2:block/molecular_assembler",
       "y": 90
     },
-    "facing=up": {
+    "facing=up,powered=false": {
+      "model": "ae2:block/molecular_assembler",
+      "x": 270
+    },
+    "facing=down,powered=false": {
+      "model": "ae2:block/molecular_assembler",
+      "x": 90
+    },
+    "facing=north,powered=true": {
       "model": "ae2:block/molecular_assembler"
     },
-    "facing=down": {
-      "model": "ae2:block/molecular_assembler"
+    "facing=south,powered=true": {
+      "model": "ae2:block/molecular_assembler",
+      "y": 180
+    },
+    "facing=west,powered=true": {
+      "model": "ae2:block/molecular_assembler",
+      "y": 270
+    },
+    "facing=east,powered=true": {
+      "model": "ae2:block/molecular_assembler",
+      "y": 90
+    },
+    "facing=up,powered=true": {
+      "model": "ae2:block/molecular_assembler",
+      "x": 270
+    },
+    "facing=down,powered=true": {
+      "model": "ae2:block/molecular_assembler",
+      "x": 90
     }
   }
 }

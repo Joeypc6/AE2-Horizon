@@ -109,18 +109,18 @@ impl KeyType {
         }
     }
 
-    /// Fluids count in droplets (81000 a bucket, Fabric's unit); items one by one.
+    /// Fluids count in mB (1000 a bucket, as Horizon's tanks do); items one by one.
     pub fn amount_per_unit(self) -> i64 {
         match self {
             Self::Items => 1,
-            Self::Fluids => 81_000,
+            Self::Fluids => 1_000,
         }
     }
 
     pub fn amount_per_operation(self) -> i64 {
         match self {
             Self::Items => 1,
-            Self::Fluids => 10_125,
+            Self::Fluids => 125,
         }
     }
 
@@ -128,7 +128,7 @@ impl KeyType {
     pub fn amount_per_byte(self) -> i64 {
         match self {
             Self::Items => 8,
-            Self::Fluids => 648_000,
+            Self::Fluids => 8_000,
         }
     }
 
@@ -1135,12 +1135,12 @@ mod tests {
     }
 
     #[test]
-    fn fluid_cells_count_in_droplets() {
+    fn fluid_cells_count_in_millibuckets() {
         let cell = CellType::fluid_cell(StorageTier::SIZE_1K);
         let water = AeKey::fluid("minecraft:water", "");
         let mut inv = BasicCellInventory::new(cell, &[], FuzzyMode::IgnoreAll, CellUpgrades::default(), &CellContents::default());
         assert_eq!(inv.insert(&AeKey::item("minecraft:dirt", "", 0, 0), 1, Actionable::Modulate), 0);
         // (1024 - 8) bytes of 8 buckets each.
-        assert_eq!(inv.insert(&water, i64::MAX / 4, Actionable::Modulate), 1016 * 648_000);
+        assert_eq!(inv.insert(&water, i64::MAX / 4, Actionable::Modulate), 1016 * 8_000);
     }
 }

@@ -1,27 +1,5823 @@
 {
-  "variants": {
-    "facing=north": {
-      "model": "ae2:block/crafting/monitor"
+  "multipart": [
+    {
+      "when": {
+        "structure": "false",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/crafting/monitor"
+      }
     },
-    "facing=south": {
-      "model": "ae2:block/crafting/monitor",
-      "y": 180
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_0"
+      }
     },
-    "facing=west": {
-      "model": "ae2:block/crafting/monitor",
-      "y": 270
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_1"
+      }
     },
-    "facing=east": {
-      "model": "ae2:block/crafting/monitor",
-      "y": 90
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_2"
+      }
     },
-    "facing=up": {
-      "model": "ae2:block/crafting/monitor",
-      "x": 270
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_3"
+      }
     },
-    "facing=down": {
-      "model": "ae2:block/crafting/monitor",
-      "x": 90
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_4"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_5"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_6"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_7"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_8"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_9"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_10"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_11"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_12"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_13"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_14"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_15"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_16"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_17"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_18"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_19"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_20"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_21"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_22"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_23"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_24"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_25"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_26"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_27"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_28"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_29"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_30"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_31"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_32"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_33"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_34"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_35"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_36"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_37"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_38"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_39"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_40"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_41"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_42"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_43"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_44"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_45"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_46"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_47"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_48"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_49"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_50"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_51"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_52"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_53"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_54"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_55"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_56"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_57"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_58"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_59"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_60"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_61"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_62"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_north_63"
+      }
+    },
+    {
+      "when": {
+        "structure": "false",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/crafting/monitor",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_0"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_1"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_2"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_3"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_4"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_5"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_6"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_7"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_8"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_9"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_10"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_11"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_12"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_13"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_14"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_15"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_16"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_17"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_18"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_19"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_20"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_21"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_22"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_23"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_24"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_25"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_26"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_27"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_28"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_29"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_30"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_31"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_32"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_33"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_34"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_35"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_36"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_37"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_38"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_39"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_40"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_41"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_42"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_43"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_44"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_45"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_46"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_47"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_48"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_49"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_50"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_51"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_52"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_53"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_54"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_55"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_56"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_57"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_58"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_59"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_60"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_61"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_62"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_south_63"
+      }
+    },
+    {
+      "when": {
+        "structure": "false",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/crafting/monitor",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_0"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_1"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_2"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_3"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_4"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_5"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_6"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_7"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_8"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_9"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_10"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_11"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_12"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_13"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_14"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_15"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_16"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_17"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_18"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_19"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_20"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_21"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_22"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_23"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_24"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_25"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_26"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_27"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_28"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_29"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_30"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_31"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_32"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_33"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_34"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_35"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_36"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_37"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_38"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_39"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_40"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_41"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_42"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_43"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_44"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_45"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_46"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_47"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_48"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_49"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_50"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_51"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_52"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_53"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_54"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_55"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_56"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_57"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_58"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_59"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_60"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_61"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_62"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_west_63"
+      }
+    },
+    {
+      "when": {
+        "structure": "false",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/crafting/monitor",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_0"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_1"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_2"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_3"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_4"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_5"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_6"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_7"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_8"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_9"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_10"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_11"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_12"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_13"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_14"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_15"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_16"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_17"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_18"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_19"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_20"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_21"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_22"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_23"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_24"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_25"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_26"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_27"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_28"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_29"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_30"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_31"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_32"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_33"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_34"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_35"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_36"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_37"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_38"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_39"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_40"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_41"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_42"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_43"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_44"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_45"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_46"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_47"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_48"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_49"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_50"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_51"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_52"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_53"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_54"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_55"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_56"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_57"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_58"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_59"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_60"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_61"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_62"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_east_63"
+      }
+    },
+    {
+      "when": {
+        "structure": "false",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/crafting/monitor",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_0"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_1"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_2"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_3"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_4"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_5"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_6"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_7"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_8"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_9"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_10"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_11"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_12"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_13"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_14"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_15"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_16"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_17"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_18"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_19"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_20"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_21"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_22"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_23"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_24"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_25"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_26"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_27"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_28"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_29"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_30"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_31"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_32"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_33"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_34"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_35"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_36"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_37"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_38"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_39"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_40"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_41"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_42"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_43"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_44"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_45"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_46"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_47"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_48"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_49"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_50"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_51"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_52"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_53"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_54"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_55"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_56"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_57"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_58"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_59"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_60"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_61"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_62"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "up"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_up_63"
+      }
+    },
+    {
+      "when": {
+        "structure": "false",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/crafting/monitor",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_0"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_1"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_2"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_3"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_4"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_5"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_6"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_7"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_8"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_9"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_10"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_11"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_12"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_13"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_14"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_15"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_16"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_17"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_18"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_19"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_20"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_21"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_22"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_23"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_24"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_25"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_26"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_27"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_28"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_29"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_30"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_31"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_32"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_33"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_34"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_35"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_36"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_37"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_38"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_39"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_40"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_41"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_42"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_43"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_44"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_45"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_46"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_47"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_48"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_49"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_50"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_51"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_52"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_53"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_54"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_55"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_56"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_57"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_58"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_59"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_60"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_61"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_62"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true",
+        "facing": "down"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/monitor_down_63"
+      }
     }
-  }
+  ]
 }

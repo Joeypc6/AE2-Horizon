@@ -14,12 +14,12 @@ Start the game with the content mod: `--dev-mod path/to/ae2-content`.
 
 The Java mod was rewritten in Rust for Horizon's hooks, so no original code runs. Some parts work differently inside to
 behave the same in play. A cable with facades is one of 768 helper blocks, because Horizon sets a block's collision per
-block state. Parts on a cable are separate blocks. No difference in play is known beyond what `PLAN.md` lists under Left.
+block state. Parts on a cable are separate blocks. What is still not 1:1 is listed under Left in `PLAN.md` (Round 17 has the current list).
 
 ## Build
 
 This is a [Horizon](https://github.com/horizon-rust/horizon) native mod bundle: Rust mixins compiled into the game.
-It was built and tested on Horizon commit `c9d474d` (Minecraft 26.3, native hooks API 80), as `native-c9d474d-fafa5c3981b4`.
+It was built and tested on Horizon commit `c9d474d` (Minecraft 26.3, native hooks API 80), as `native-c9d474d-69a66f904089`.
 Native mods are unsandboxed code that runs with your rights, so read what you build.
 
 Put each bundle's `mixins/<id>` folder in one folder, then:
