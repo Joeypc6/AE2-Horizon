@@ -411,6 +411,7 @@ struct Server {
     /// The enchantments on what they held then (an annihilation plane keeps them).
     last_enchants: HashMap<u128, Vec<(Arc<str>, u32)>>,
     last_settings: HashMap<u128, Tag>,
+    last_power: HashMap<u128, f64>,
     /// When a tool last took a click on a block.
     tool_tick: u64,
     /// Planes just placed and the enchantments they get on their first tick.
@@ -497,6 +498,13 @@ struct Server {
     /// in the player's inventory tick, where the held item can change), stacks on their way into the held item,
     /// and what the screen was last sent (keys by index, and a hash).
     item_screens: HashMap<u128, String>,
+    /// The slot of an item screen a hotkey opened (otherwise the held one).
+    item_screen_slot: HashMap<u128, i32>,
+    hotkeys: HashMap<u128, (String, u64)>,
+    /// Applicator colour steps from the wheel: forward or back.
+    wheels: HashMap<u128, bool>,
+    /// Energy cells placed with a charge, until their network is known.
+    pending_power: Vec<(Pos, f64)>,
     item_ops: Vec<(u128, String)>,
     item_carry: HashMap<u128, Vec<ItemStack>>,
     portable_sent: HashMap<u128, (Vec<AeKey>, u64)>,
@@ -1468,6 +1476,14 @@ pub fn server_tick(game: &mut Game<'_>) {
     load_channel_mode();
     deliver_gives(game);
     transform_tick(game);
+    SERVER.with_borrow_mut(|s| {
+        for (pos, power) in std::mem::take(&mut s.pending_power) {
+            match s.grid_of.get(&pos).copied().and_then(|g| s.grids.get(g)).and_then(|g| g.nodes.iter().min().copied()) {
+                Some(root) => *s.energy.entry(root).or_insert(0.0) += power,
+                None => s.pending_power.push((pos, power)),
+            }
+        }
+    });
     migrate_legacy_twins(game);
     tiny_tnt_tick(game);
     for (pos, key, value) in SERVER.with_borrow_mut(|s| std::mem::take(&mut s.prop_sets)) {
@@ -2437,6 +2453,10 @@ pub fn right_click(game: &mut Game<'_>, pos: Pos, face: Pos, canceled: &mut bool
     if let Some(player) = game.native_acting_player() {
         let enchants = game.held().and_then(|h| h.extra.as_ref()).map(|d| d.enchantments.clone()).unwrap_or_default();
         let settings = game.held().and_then(|h| custom_tag(h, "ae2:settings").cloned());
+        if let Some(h) = game.held().filter(|h| matches!(ae2_name(&h.item), Some("energy_cell" | "dense_energy_cell"))) {
+            let power = portable_power(h);
+            SERVER.with_borrow_mut(|s| s.last_power.insert(player.uuid, power));
+        }
         SERVER.with_borrow_mut(|s| match settings {
             Some(tag) => {
                 s.last_settings.insert(player.uuid, tag);
@@ -3101,6 +3121,50 @@ pub fn use_item(game: &mut Game<'_>, stack: &ItemStack, claimed: &mut bool) {
         return;
     }
     *claimed = true;
+    open_wireless(game, stack, game.selected as i32);
+}
+
+/// A key pressed with no screen open (`Hotkeys.checkHotkeys`): the server looks for the item.
+pub fn hotkey(game: &Game<'_>, name: &str) {
+    if matches!(game.screen, super::Screen::Playing) {
+        CLIENT.with_borrow_mut(|c| c.ui_out.push(format!("hotkey {name}")));
+    }
+}
+
+/// `InventoryHotkeyAction`, at the inventory tick that has the player's state: true when this slot's item opened.
+fn hotkey_slot(game: &mut Game<'_>, slot: i32) {
+    let Some(player) = game.native_acting_player() else { return };
+    let tick = SERVER.with_borrow(|s| s.tick);
+    let Some(name) = SERVER.with_borrow_mut(|s| {
+        s.hotkeys.retain(|_, (_, at)| tick.saturating_sub(*at) <= 2);
+        s.hotkeys.get(&player.uuid).map(|(n, _)| n.clone())
+    }) else {
+        return;
+    };
+    if !(0..36).contains(&slot) {
+        return;
+    }
+    let Some(stack) = game.native_carried_stack(slot).map(|s| s.clone()) else { return };
+    let item = ae2_name(&stack.item).unwrap_or("");
+    let fits = match name.as_str() {
+        "wireless_terminal" => is_wireless_terminal(&stack.item),
+        "portable_item_cell" => item.starts_with("portable_item_cell_"),
+        "portable_fluid_cell" => item.starts_with("portable_fluid_cell_"),
+        _ => false,
+    };
+    if !fits {
+        return;
+    }
+    SERVER.with_borrow_mut(|s| s.hotkeys.remove(&player.uuid));
+    if is_wireless_terminal(&stack.item) {
+        open_wireless(game, &stack, slot);
+    } else if open_item_screen(game, &stack) {
+        SERVER.with_borrow_mut(|s| s.item_screen_slot.insert(player.uuid, slot));
+    }
+}
+
+/// `WirelessTerminalItem.openFromInventory`: the terminal in that slot.
+fn open_wireless(game: &mut Game<'_>, stack: &ItemStack, slot: i32) {
     let Some(player) = game.native_acting_player() else { return };
     let say = |game: &mut Game<'_>, t: &str| {
         game.native_action_bar(player.uuid, horizon_client::text::Text::legacy(t));
@@ -3126,7 +3190,6 @@ pub fn use_item(game: &mut Game<'_>, stack: &ItemStack, claimed: &mut bool) {
         return;
     }
     let crafting = &*stack.item == "ae2:wireless_crafting_terminal";
-    let slot = game.selected as i32;
     SERVER.with_borrow_mut(|s| {
         s.viewers.insert(player.uuid, wap);
         s.sent.remove(&player.uuid);
@@ -3141,6 +3204,8 @@ pub fn inventory_tick(game: &mut Game<'_>, slot: i32) {
     if let Some(s) = game.native_carried_stack(slot) {
         give_frequency(s);
     }
+    hotkey_slot(game, slot);
+    applicator_wheel(game, slot);
     inventory_tick_rest(game, slot);
 }
 
@@ -3567,10 +3632,11 @@ fn pattern_machines(game: &Game<'_>, patterns: &[(Pos, Arc<Pattern>)], pattern: 
     let mut latency: f64 = 0.0;
     let processing = pattern.definition.id() == "ae2:processing_pattern";
     for (at, _) in patterns.iter().filter(|(_, p)| **p == *pattern) {
-        for q in SIDES.iter().map(|d| add(*at, *d)) {
+        for q in provider_targets(game, *at) {
+            let q = through_p2p(game, q);
             let block = block_id(game, q);
             let ticks = if processing {
-                if block.starts_with("ae2:") || !game.world.block_entities.contains_key(&(q[0], q[1], q[2])) {
+                if (block.starts_with("ae2:") && !ae2_machine(&block)) || !game.world.block_entities.contains_key(&(q[0], q[1], q[2])) {
                     continue;
                 }
                 let measured = SERVER.with_borrow(|s| s.machine_times.get(&q).map(|m| m.1)).filter(|m| *m > 0.0);
@@ -3578,6 +3644,15 @@ fn pattern_machines(game: &Game<'_>, patterns: &[(Pos, Arc<Pattern>)], pattern: 
                 let ticks = measured.map(|m| m * per).unwrap_or(match block.as_str() {
                     "minecraft:blast_furnace" | "minecraft:smoker" => 100.0,
                     "minecraft:furnace" => 200.0,
+                    // The inscriber: to past 100 by its cards, then the press's 16 ticks.
+                    "ae2:inscriber" => {
+                        let speed = match game.world.block_entities.get(&(q[0], q[1], q[2])) {
+                            Some(horizon_client::containers::BlockEntity::Mod(m)) => [2.0, 3.0, 5.0, 10.0, 50.0][cards(m, 4, "ae2:speed_card").min(4)],
+                            _ => 2.0,
+                        };
+                        (100.0_f64 / speed).floor() + 1.0 + 16.0
+                    }
+                    "ae2:charger" => CHARGE_TICKS as f64,
                     _ => 40.0,
                 });
                 // `push_pattern` feeds the first machine it finds beside the provider.
@@ -3618,7 +3693,22 @@ fn job_seconds_left(game: &Game<'_>, grid: usize, cpu: Pos) -> f64 {
                 let out = p.outputs.iter().find(|o| o.what == *k)?;
                 let (rate, latency) = pattern_machines(game, &patterns, p)?;
                 // A machine's time since its last output is progress on the next.
-                let since = SIDES.iter().map(|d| add(*at, *d)).filter_map(|q| s.machine_times.get(&q).map(|m| tick.saturating_sub(m.0) as f64)).fold(0.0, f64::max);
+                let since = provider_targets(game, *at)
+                    .into_iter()
+                    .map(|q| through_p2p(game, q))
+                    .filter_map(|q| match game.world.block_entities.get(&(q[0], q[1], q[2])) {
+                        // A result still waiting in its output slot is as good as made.
+                        Some(horizon_client::containers::BlockEntity::Furnace(f)) => {
+                            let done = game.world.block_entities.get(&(q[0], q[1], q[2])).is_some_and(|b| b.slots().get(2).is_some_and(Option::is_some));
+                            Some(if done { f64::MAX } else { f64::from(f.cooking_timer) })
+                        }
+                        Some(horizon_client::containers::BlockEntity::Mod(e)) if e.id == "ae2:inscriber" => {
+                            let speed = [2.0, 3.0, 5.0, 10.0, 50.0][cards(e, 4, "ae2:speed_card").min(4)];
+                            Some(f64::from(e.data.first().copied().unwrap_or(0)) / speed + nbt_i64(&e.nbt, "smash") as f64)
+                        }
+                        _ => s.machine_times.get(&q).map(|m| tick.saturating_sub(m.0) as f64),
+                    })
+                    .fold(0.0, f64::max);
                 Some((rate * out.amount as f64, since.min(latency)))
             }).unwrap_or((1.0, 0.0))
         })
@@ -4138,6 +4228,7 @@ struct Client {
     /// The open pattern encoding terminal's ghost cells (grid, then outputs; "" empty) and crafting result.
     ghosts: Vec<(String, i64)>,
     interface_tanks: Vec<(usize, String, i64)>,
+    pat_rows: usize,
     preview: Option<(String, i64)>,
     /// The open encoder's mode, as its screen last drew it (for clicks).
     encoder_crafting: bool,
@@ -4606,14 +4697,20 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             inventory_x: 8.0,
             own_labels: false,
         }),
-        Some("pattern_access_terminal") => Some(NativeScreen {
-            width: 195.0,
-            height: 220.0,
-            slots: vec![Some(HIDDEN_SLOT)],
-            inventory_y: 140.0,
-            inventory_x: 8.0,
-            own_labels: true,
-        }),
+        Some("pattern_access_terminal") => {
+            // PatternAccessTermScreen.init: the style's share of the rows the window has room for.
+            let (_, gui_h) = game.gui_size();
+            let rows = style_rows(((gui_h - 17.0 - 97.0 - 54.0) / 18.0).floor().max(3.0) as usize).max(3);
+            CLIENT.with_borrow_mut(|c| c.pat_rows = rows);
+            Some(NativeScreen {
+                width: 195.0,
+                height: 112.0 + 18.0 * rows as f32,
+                slots: vec![Some(HIDDEN_SLOT)],
+                inventory_y: 32.0 + 18.0 * rows as f32,
+                inventory_x: 8.0,
+                own_labels: true,
+            })
+        }
         // CraftingCPUScreen has no slots of its own or the player's: `status_draw` is all of it.
         Some(_) if is_crafting(block) => Some(NativeScreen {
             width: 2.0,
@@ -5182,22 +5279,26 @@ pub fn screen_draw(game: &Game<'_>, block: &str, data: &[i32], batch: &mut HudBa
         Some("pattern_access_terminal") => {
             // The frame without its printed rows; the rows drawn as the list has them.
             game.native_sprite(batch, "ae2:gui/patternaccessterminal", [0.0, 0.0, 195.0, 17.0], [ox, oy, 195.0, 17.0]);
-            game.native_sprite(batch, "ae2:gui/patternaccessterminal", [0.0, 125.0, 195.0, 95.0], [ox, oy + 125.0, 195.0, 95.0]);
+            let pat_rows = CLIENT.with_borrow(|c| c.pat_rows.max(3));
+            let foot = 17.0 + 18.0 * pat_rows as f32;
+            game.native_sprite(batch, "ae2:gui/patternaccessterminal", [0.0, 125.0, 195.0, 95.0], [ox, oy + foot, 195.0, 95.0]);
             game.native_text(batch, "Pattern Access", [ox + 8.0, oy + 6.0], 0x404040, false);
-            game.native_text(batch, "Inventory", [ox + 8.0, oy + 129.0], 0x404040, false);
+            game.native_text(batch, "Inventory", [ox + 8.0, oy + foot + 4.0], 0x404040, false);
             // The search box (AE2's at 104, 4).
             let (search, focus) = CLIENT.with_borrow(|c| (c.search.clone(), c.search_focus));
             game.native_fill(batch, [ox + 103.0, oy + 3.0, 67.0, 14.0], if focus { 0xFFFFFFFF } else { 0xFFA0A0A0 });
             game.native_fill(batch, [ox + 104.0, oy + 4.0, 65.0, 12.0], 0xFF000000);
             game.native_text(batch, &if focus { format!("{search}_") } else { search }, [ox + 106.0, oy + 6.0], 0xFFFFFF, false);
+            draw_state_button(game, batch, [ox + TOOLBAR[0][0], oy + TOOLBAR[0][1]], PAT_BUTTON[data.get(1).copied().unwrap_or(0).clamp(0, 2) as usize].0);
+            let style_icon = [[0.0, 208.0], [16.0, 208.0], [32.0, 208.0], [48.0, 208.0]][usize::from(CLIENT.with_borrow(|c| c.term_style).min(3))];
+            draw_state_button(game, batch, [ox + TOOLBAR[1][0], oy + TOOLBAR[1][1]], style_icon);
             if data.first().copied().unwrap_or(0) == 0 {
                 game.native_text(batch, "Network offline", [ox + 8.0, oy + 30.0], 0xFF5555, true);
                 return;
             }
-            draw_state_button(game, batch, [ox + TOOLBAR[0][0], oy + TOOLBAR[0][1]], PAT_BUTTON[data.get(1).copied().unwrap_or(0).clamp(0, 2) as usize].0);
             let rows = CLIENT.with_borrow(provider_rows_shown);
-            let scroll = CLIENT.with_borrow(|c| c.scroll).min(rows.len().saturating_sub(6));
-            for (r, row) in rows.iter().skip(scroll).take(6).enumerate() {
+            let scroll = CLIENT.with_borrow(|c| c.scroll).min(rows.len().saturating_sub(pat_rows));
+            for (r, row) in rows.iter().skip(scroll).take(pat_rows).enumerate() {
                 let y = oy + 17.0 + 18.0 * r as f32;
                 match row {
                     ProviderRow::Group(name, n) => {
@@ -5808,6 +5909,15 @@ fn screen_click_inner(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, b
             *button = Some(PAT_SHOW);
             return;
         }
+        if on([TOOLBAR[1][0], TOOLBAR[1][1], 16.0, 16.0]) {
+            CLIENT.with_borrow_mut(|c| {
+                c.term_style = (c.term_style + 1) % 4;
+                save_settings(c);
+                c.relayout = true;
+                c.scroll = 0;
+            });
+            return;
+        }
         let in_search = at[0] >= 104.0 && at[0] < 169.0 && at[1] >= 4.0 && at[1] < 16.0;
         CLIENT.with_borrow_mut(|c| {
             c.search_focus = in_search;
@@ -5819,7 +5929,8 @@ fn screen_click_inner(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, b
             return;
         }
         let rows = CLIENT.with_borrow(provider_rows_shown);
-        let scroll = CLIENT.with_borrow(|c| c.scroll).min(rows.len().saturating_sub(6));
+        let shown = CLIENT.with_borrow(|c| c.pat_rows.max(3));
+        let scroll = CLIENT.with_borrow(|c| c.scroll).min(rows.len().saturating_sub(shown));
         let r = ((at[1] - 17.0) / 18.0) as usize;
         if let Some(ProviderRow::Slots(index, _)) = rows.get(scroll + r) {
             let slot = ((at[0] - 8.0) / 18.0) as i32;
@@ -5961,6 +6072,12 @@ pub fn screen_tooltip(block: &str, at: [f32; 2], lines: &mut Vec<String>) {
         let show = CLIENT.with_borrow(|c| c.screen_data.get(1).copied().unwrap_or(0));
         lines.push("Display Mode".to_owned());
         lines.push(format!("§7{}", PAT_BUTTON[show.clamp(0, 2) as usize].1));
+        return;
+    }
+    if block == "ae2:pattern_access_terminal" && at[0] >= TOOLBAR[1][0] && at[0] < TOOLBAR[1][0] + 16.0 && at[1] >= TOOLBAR[1][1] && at[1] < TOOLBAR[1][1] + 16.0 {
+        let style = CLIENT.with_borrow(|c| c.term_style).min(3);
+        lines.push("Terminal Style".to_owned());
+        lines.push(format!("§7{}", ["Small Centered Terminal", "Medium Centered Terminal", "Tall Centered Terminal", "Full-Height Terminal"][usize::from(style)]));
         return;
     }
     if block == "ae2:inscriber" {
@@ -6184,7 +6301,7 @@ pub fn scrolled(menu: Option<&str>, scroll: [f64; 2], canceled: &mut bool) {
     }
     if menu == Some("ae2:pattern_access_terminal") {
         CLIENT.with_borrow_mut(|c| {
-            let most = provider_rows_shown(c).len().saturating_sub(6);
+            let most = provider_rows_shown(c).len().saturating_sub(c.pat_rows.max(3));
             c.scroll = if scroll[1] > 0.0 { c.scroll.saturating_sub(1) } else { (c.scroll + 1).min(most) };
         });
         *canceled = true;
@@ -7569,7 +7686,8 @@ impl CpuNetwork for CpuNet<'_, '_> {
             .filter(|q| {
                 let b = block_id(&*self.game, *q);
                 let tanks = self.game.native_fluid_tanks(&self.game.dim.id().to_owned(), *q, face_toward(*q, at)).is_some();
-                !is_network_block(&b) && (tanks || self.game.world.block_entities.contains_key(&(q[0], q[1], q[2])))
+                let open = !is_network_block(&b) || ae2_machine(&b) || p2p_input(&*self.game, &b, *q);
+                open && (tanks || self.game.world.block_entities.contains_key(&(q[0], q[1], q[2])))
             })
             .collect();
         // PatternProviderTargetCache: an interface on another network takes the inputs into that network's
@@ -8291,6 +8409,65 @@ fn chance(game: &mut Game<'_>, p: f64) -> bool {
     game.native_level_random(&dim).is_some_and(|r| (r.next_float() as f64) < p)
 }
 
+/// `native_dispense_item`: Tiny TNT comes out lit; an entropy manipulator works the block in front, heat then cool.
+pub fn dispense(game: &mut Game<'_>, pos: Pos, facing: horizon_core::geometry::Direction, stack: &ItemStack, answer: &mut Option<super::dispenser::NativeDispensed>) {
+    let front = {
+        use horizon_core::geometry::Direction;
+        add(
+            pos,
+            match facing {
+                Direction::Down => [0, -1, 0],
+                Direction::Up => [0, 1, 0],
+                Direction::North => [0, 0, -1],
+                Direction::South => [0, 0, 1],
+                Direction::West => [-1, 0, 0],
+                Direction::East => [1, 0, 0],
+            },
+        )
+    };
+    match &*stack.item {
+        "ae2:tiny_tnt" => {
+            let at = horizon_core::geometry::Vec3::new(f64::from(front[0]) + 0.5, f64::from(front[1]), f64::from(front[2]) + 0.5);
+            SERVER.with_borrow_mut(|s| {
+                s.tiny_tnts.push(super::tnt::PrimedTnt {
+                    id: 0,
+                    position: at,
+                    previous: at,
+                    velocity: horizon_core::geometry::Vec3::new(0.0, 0.2, 0.0),
+                    fuse: 80,
+                    on_ground: false,
+                    owner: None,
+                    guest: None,
+                })
+            });
+            let mut rest = stack.clone();
+            rest.count -= 1;
+            *answer = Some(((rest.count > 0).then_some(rest), 1000));
+        }
+        "ae2:entropy_manipulator" if portable_power(stack) > 1600.0 => {
+            let here = block_id(game, front);
+            let found = entropy_recipe(game, &here, false).or_else(|| entropy_recipe(game, &here, true));
+            let mut rest = stack.clone();
+            let mut event = 1001;
+            if let Some((out, drops)) = found {
+                let dim = game.dim.id().to_owned();
+                if let Some(state) = game.pack.assets.registry.default_state(&out) {
+                    game.native_set_block(&dim, front, state, 3);
+                }
+                let at = [f64::from(front[0]) + 0.5, f64::from(front[1]) + 0.5, f64::from(front[2]) + 0.5];
+                for d in drops {
+                    game.spawn_item(ItemStack::new(&d, 1), at, [0.0, 0.1, 0.0], 10);
+                }
+                let power = portable_power(&rest) - 1600.0;
+                set_custom(&mut rest, "internalCurrentPower", Tag::Double(power.to_bits()));
+                event = 1000;
+            }
+            *answer = Some((Some(rest), event));
+        }
+        _ => {}
+    }
+}
+
 /// `AETags.GROWTH_ACCELERATABLE`'s vanilla blocks (AE2's own grow by their own tick).
 fn accelerated_block(block: &str) -> bool {
     matches!(
@@ -8481,6 +8658,24 @@ fn tooltip_inner(stack: &ItemStack, lines: &mut Vec<(horizon_client::text::Text,
             first.0 = horizon_client::text::Text::legacy(&format!("{} - {}", first.0.plain(), item_words(&block)));
         }
         return;
+    }
+    if is_creative_cell(&stack.item) {
+        let keys = cell_config(stack);
+        if !keys.is_empty() {
+            if CLIENT.with_borrow(|c| c.shift) {
+                for k in keys {
+                    lines.push(line(format!("§7{}", item_words(k.id()))));
+                }
+            } else {
+                lines.push(line("§7Press Shift for full list".to_owned()));
+            }
+        }
+        return;
+    }
+    if matches!(&*stack.item, "ae2:matter_cannon" | "ae2:color_applicator") {
+        let c = read_cell(stack);
+        lines.push(line(format!("§7{} Items", c.item_count)));
+        lines.push(line(format!("§7{} Types", c.keys.len())));
     }
     if &*stack.item == "ae2:color_applicator" {
         let color = applicator_color(stack).map_or_else(String::new, |c| if c == "fluix" { "Fluix".to_owned() } else { item_words(c) });
@@ -9412,9 +9607,46 @@ fn tool_use(game: &mut Game<'_>, tool: &str, pos: Pos, block: &str) -> bool {
                     "minecraft:ice" | "minecraft:packed_ice" | "minecraft:snow_block" => Some("minecraft:water".into()),
                     "minecraft:water" => Some("minecraft:air".into()),
                     "minecraft:obsidian" => Some("minecraft:lava".into()),
-                    _ => game.res.recipes().cook("minecraft:smelting", &ItemStack::new(block, 1)).map(|r| r.result.item.to_string()).filter(|r| game.pack.assets.registry.default_state(r).is_some()),
+                    _ => None,
                 }
             };
+            if !cool && to.is_none() {
+                let at = horizon_core::position::BlockPos::new(pos[0], pos[1], pos[2]);
+                if block == "minecraft:tnt" {
+                    game.spawn_primed_tnt(at, false, None, None);
+                    if let Some(air) = game.pack.assets.registry.default_state("minecraft:air") {
+                        let dim = game.dim.id().to_owned();
+                        game.native_set_block(&dim, pos, air, 3);
+                    }
+                    return true;
+                }
+                if block == "ae2:tiny_tnt" {
+                    SERVER.with_borrow_mut(|s| s.tnt_primes.push(pos));
+                    return true;
+                }
+                let dim = game.dim.id().to_owned();
+                // performInWorldSmelting: what it would drop, smelted, on the ground.
+                if let Some(result) = game.res.recipes().cook("minecraft:smelting", &ItemStack::new(block, 1)).map(|r| r.result.clone()) {
+                    if let Some(air) = game.pack.assets.registry.default_state("minecraft:air") {
+                        game.native_set_block(&dim, pos, air, 3);
+                    }
+                    game.spawn_item(result, [f64::from(pos[0]) + 0.5, f64::from(pos[1]) + 0.5, f64::from(pos[2]) + 0.5], [0.0, 0.1, 0.0], 10);
+                    return true;
+                }
+                // applyFlintAndSteelEffect: a campfire lit, or fire on the clicked face.
+                if game.native_block_property(pos, "lit").as_deref() == Some("false") {
+                    return game.native_set_block_property_with(pos, "lit", "true", 3);
+                }
+                let face = SERVER.with_borrow(|s| s.last_click.get(&player.uuid).map(|c| c.1)).unwrap_or([0, 1, 0]);
+                let front = add(pos, face);
+                if block_id(game, front) == "minecraft:air"
+                    && let Some(fire) = game.pack.assets.registry.default_state("minecraft:fire")
+                {
+                    game.native_set_block(&dim, front, fire, 3);
+                    return true;
+                }
+                return false;
+            }
             let Some(to) = to else { return false };
             let dim = game.dim.id().to_owned();
             if let Some(state) = game.pack.assets.registry.default_state(&to) {
@@ -9531,7 +9763,7 @@ fn p2p_click(game: &mut Game<'_>, pos: Pos, block: &str, item: &str) -> bool {
     let (freq, output) = game.native_with_mod_block_entity(pos, |e| (nbt_i64(&e.nbt, "freq"), nbt_i64(&e.nbt, "output") != 0)).unwrap_or((0, false));
     if item == "ae2:memory_card" {
         if sneaking(game) {
-            let freq = if freq != 0 {
+            let freq = if freq != 0 && !output {
                 freq
             } else {
                 (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(1, |d| d.as_nanos() as i64) & 0x7FFF_FFFF_FFFF) | 1
@@ -9633,6 +9865,37 @@ fn p2p_input_tick(game: &mut Game<'_>, pos: Pos, kind: &str, freq: i64, tick: u6
                 }
             }
             set_interface_tanks(&mut entity.nbt, &[(if amount > 0 { Some(fluid) } else { None }, amount)]);
+        }
+        "ae2:light_p2p_tunnel" => {
+            if tick % 10 != 0 {
+                return;
+            }
+            let facing = game.native_block_property(pos, "facing");
+            let (block_light, sky) = game.native_light(add(pos, facing_dir(facing.as_deref())));
+            let level = block_light.max(sky);
+            let dim = game.dim.id().to_owned();
+            for out in &outputs {
+                let facing = game.native_block_property(*out, "facing");
+                let front = add(*out, facing_dir(facing.as_deref()));
+                let here = block_id(game, front);
+                if !matches!(here.as_str(), "minecraft:air" | "minecraft:light") {
+                    continue;
+                }
+                if level == 0 {
+                    if here == "minecraft:light"
+                        && let Some(air) = game.pack.assets.registry.default_state("minecraft:air")
+                    {
+                        game.native_set_block(&dim, front, air, 3);
+                    }
+                    continue;
+                }
+                if here == "minecraft:air"
+                    && let Some(light) = game.pack.assets.registry.default_state("minecraft:light")
+                {
+                    game.native_set_block(&dim, front, light, 3);
+                }
+                game.native_set_block_property_with(front, "level", &level.to_string(), 3);
+            }
         }
         "ae2:redstone_p2p_tunnel" => {
             let dim = game.dim.id().to_owned();
@@ -10089,6 +10352,29 @@ fn applicator_color(stack: &ItemStack) -> Option<&'static str> {
 
 /// ColorApplicatorItem.cycleColors: the next paint it holds, by colour.
 fn cycle_applicator(stack: &mut ItemStack) {
+    cycle_applicator_by(stack, false);
+}
+
+/// `native_wheel`: sneaking with an applicator, the wheel picks its colour instead of the hotbar slot.
+pub fn wheel(game: &Game<'_>, steps: f32, claimed: &mut bool) {
+    if steps != 0.0 && sneaking(game) && game.held().is_some_and(|h| &*h.item == "ae2:color_applicator") {
+        *claimed = true;
+        CLIENT.with_borrow_mut(|c| c.ui_out.push(format!("wheel {}", if steps > 0.0 { "up" } else { "down" })));
+    }
+}
+
+fn applicator_wheel(game: &mut Game<'_>, slot: i32) {
+    let Some(player) = game.native_acting_player() else { return };
+    if slot != game.selected as i32 {
+        return;
+    }
+    let Some(back) = SERVER.with_borrow_mut(|s| s.wheels.remove(&player.uuid)) else { return };
+    if let Some(stack) = game.native_carried_stack(slot).filter(|s| &*s.item == "ae2:color_applicator") {
+        cycle_applicator_by(stack, back);
+    }
+}
+
+fn cycle_applicator_by(stack: &mut ItemStack, back: bool) {
     let contents = read_cell(stack);
     let mut held: Vec<String> = contents.keys.iter().zip(&contents.amounts).filter(|(_, n)| **n > 0).map(|(k, _)| k.id().to_string()).collect();
     if held.is_empty() {
@@ -10097,7 +10383,8 @@ fn cycle_applicator(stack: &mut ItemStack) {
     let order = |id: &String| paint_color(id).and_then(|c| APPLICATOR_COLORS.iter().position(|x| *x == c)).map_or(usize::MAX, |i| (i + 16) % 17);
     held.sort_by_key(order);
     let now = applicator_paint(stack);
-    let at = now.and_then(|n| held.iter().position(|h| *h == n)).map_or(0, |i| (i + 1) % held.len());
+    let step = if back { held.len() - 1 } else { 1 };
+    let at = now.and_then(|n| held.iter().position(|h| *h == n)).map_or(0, |i| (i + step) % held.len());
     set_custom(stack, "ae2:color_item", Tag::String(java(&held[at])));
 }
 
@@ -12364,7 +12651,15 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
                 });
             }
         }
+        ["hotkey", name] => {
+            let tick = SERVER.with_borrow(|s| s.tick);
+            SERVER.with_borrow_mut(|s| s.hotkeys.insert(player, ((*name).to_owned(), tick)));
+        }
+        ["wheel", dir] => {
+            SERVER.with_borrow_mut(|s| s.wheels.insert(player, *dir == "down"));
+        }
         ["close"] => SERVER.with_borrow_mut(|s| {
+            s.item_screen_slot.remove(&player);
             s.item_screens.remove(&player);
             s.portable_sent.remove(&player);
             s.item_ops.retain(|(u, _)| *u != player);
@@ -12514,6 +12809,7 @@ fn open_item_screen(game: &mut Game<'_>, stack: &ItemStack) -> bool {
     };
     let Some(player) = game.native_acting_player() else { return false };
     SERVER.with_borrow_mut(|s| {
+        s.item_screen_slot.remove(&player.uuid);
         s.item_screens.insert(player.uuid, kind.to_owned());
         s.portable_sent.remove(&player.uuid);
         s.item_ops.retain(|(u, _)| *u != player.uuid);
@@ -12562,7 +12858,7 @@ fn item_screen_tick(game: &mut Game<'_>, slot: i32) {
     let Some(player) = game.native_acting_player() else { return };
     let uuid = player.uuid;
     let Some(kind) = SERVER.with_borrow(|s| s.item_screens.get(&uuid).cloned()) else { return };
-    let selected = game.selected as i32;
+    let selected = SERVER.with_borrow(|s| s.item_screen_slot.get(&uuid).copied()).unwrap_or(game.selected as i32);
     // `put <slot>`: that slot's stack, taken out now, goes into the held item at its tick.
     let put = SERVER.with_borrow_mut(|s| {
         let want = format!("put {slot}");
@@ -12603,6 +12899,7 @@ fn item_screen_tick(game: &mut Game<'_>, slot: i32) {
 
 fn close_item_screen(game: &mut Game<'_>, uuid: u128) {
     let carry = SERVER.with_borrow_mut(|s| {
+        s.item_screen_slot.remove(&uuid);
         s.item_screens.remove(&uuid);
         s.portable_sent.remove(&uuid);
         s.item_carry.remove(&uuid).unwrap_or_default()
@@ -12898,7 +13195,8 @@ fn toolbelt_stream(game: &mut Game<'_>, uuid: u128) {
 fn knife_tick(game: &mut Game<'_>, uuid: u128, slot: i32, mut knife: ItemStack) {
     for op in take_ops(uuid) {
         let Some(name) = op.strip_prefix("knife ").map(str::trim).filter(|n| !n.is_empty()) else { continue };
-        if game.native_take_items("minecraft:iron_ingot", 1) != 1 {
+        let ingots: Vec<String> = game.res.items().item_tags.get("ae2:metal_ingots").map_or_else(|| vec!["minecraft:iron_ingot".to_owned()], |t| t.iter().map(|i| i.to_string()).collect());
+        if !ingots.iter().any(|i| game.native_take_items(i, 1) == 1) {
             continue;
         }
         let mut press = ItemStack::new("ae2:name_press", 1);
@@ -13000,7 +13298,7 @@ fn wb_toolbar(fuzzy: bool) -> Vec<(i32, [f32; 2])> {
 fn cell_upgrade_slots(stack: &ItemStack) -> usize {
     match ae2_name(&stack.item) {
         Some("matter_cannon") => return 4,
-        Some("color_applicator") => return 2,
+        Some("color_applicator" | "wireless_terminal" | "wireless_crafting_terminal") => return 2,
         Some(n) if n.starts_with("portable_item_cell_") => return 4,
         Some(n) if n.starts_with("portable_fluid_cell_") => return 3,
         _ => {}
@@ -13172,7 +13470,7 @@ fn workbench_button(game: &Game<'_>, entity: &mut ModBlockEntity, id: i32, carri
         set_nbt_i64(&mut entity.nbt, "copy", 1 - m);
         return;
     }
-    let cell = entity.items.first().cloned().flatten().filter(|s| cell_type(&s.item).is_some() || portable_type(&s.item).is_some() || is_creative_cell(&s.item) || ae2_name(&s.item) == Some("view_cell"));
+    let cell = entity.items.first().cloned().flatten().filter(|s| matches!(&*s.item, "ae2:matter_cannon" | "ae2:color_applicator") || is_wireless_terminal(&s.item) || cell_type(&s.item).is_some() || portable_type(&s.item).is_some() || is_creative_cell(&s.item) || ae2_name(&s.item) == Some("view_cell"));
     if id == WB_FUZZY {
         if let Some(mut c) = cell {
             let next = FuzzyMode::VALUES[(FuzzyMode::VALUES.iter().position(|m| *m == cell_fuzzy(&c)).unwrap_or(0) + 1) % 5];
@@ -13362,6 +13660,11 @@ fn transform_tick(game: &mut Game<'_>) {
             *n = if valid { *n + 1 } else { 0 };
             *n
         });
+        // EffectType.Lightning, now and then, on what is changing.
+        if valid && time % 30 == 29 {
+            let spark = horizon_client::particles::ParticleOptions::simple(horizon_client::particles::ParticleType::ElectricSpark);
+            game.particles.add(&spark, at, [0.0; 3]);
+        }
         if time > 60 && !try_transform(game, &recipes, fluid, id, at, &item) {
             TRANSFORM_TIMES.with_borrow_mut(|t| {
                 t.insert(id, 0);
@@ -13876,7 +14179,7 @@ fn run_buses(game: &mut Game<'_>) {
     for (grid, bus, target, import) in buses {
         let target_block = block_id(game, target);
         // AE2's own blocks: only an interface's storage is a container to a bus.
-        if target_block.starts_with("ae2:") && canon(&target_block) != "ae2:interface" {
+        if target_block.starts_with("ae2:") && canon(&target_block) != "ae2:interface" && !ae2_machine(&target_block) {
             continue;
         }
         if !bus_enabled(game, bus) {
@@ -14406,6 +14709,11 @@ fn placed_inner(game: &mut Game<'_>, pos: Pos) {
     }
     let Some(name) = ae2_name(&block).map(str::to_owned) else { return };
     let Some(player) = game.native_acting_player() else { return };
+    if matches!(name.as_str(), "energy_cell" | "dense_energy_cell")
+        && let Some(power) = SERVER.with_borrow_mut(|s| s.last_power.remove(&player.uuid)).filter(|p| *p > 0.0)
+    {
+        SERVER.with_borrow_mut(|s| s.pending_power.push((pos, power)));
+    }
     if let Some(Tag::Compound(settings)) = SERVER.with_borrow_mut(|s| s.last_settings.remove(&player.uuid)) {
         game.native_with_mod_block_entity(pos, |e| {
             for (k, v) in settings {
@@ -14487,6 +14795,25 @@ fn machine_settings(e: &ModBlockEntity) -> Compound {
     e.nbt.iter().filter(|(k, _)| !NOT.iter().any(|n| java(n) == **k)).map(|(k, v)| (k.clone(), v.clone())).collect()
 }
 
+/// An energy cell leaving the network: its item, with the cell's share of what the network stores.
+fn charged_cell(pos: Pos, block: &str) -> ItemStack {
+    let mut stack = ItemStack::new(block, 1);
+    let capacity = if block == "ae2:dense_energy_cell" { 1_600_000.0 } else { 200_000.0 };
+    let power = SERVER.with_borrow_mut(|s| {
+        let g = s.grid_of.get(&pos).copied()?;
+        let total = grid_capacity(s.grids.get(g)?, &s.devices).max(1.0);
+        let root = s.grids.get(g)?.nodes.iter().min().copied()?;
+        let e = s.energy.entry(root).or_insert(0.0);
+        let share = *e * capacity / total;
+        *e -= share;
+        Some(share)
+    });
+    if let Some(power) = power.filter(|p| *p > 0.0) {
+        set_custom(&mut stack, "internalCurrentPower", Tag::Double(power.to_bits()));
+    }
+    stack
+}
+
 /// `disassembleWithWrench`: the block's item with its settings on it, and all it held, in the player's inventory.
 fn wrench_dismantle(game: &mut Game<'_>, pos: Pos, block: &str) {
     let Some(player) = game.native_acting_player() else { return };
@@ -14494,7 +14821,11 @@ fn wrench_dismantle(game: &mut Game<'_>, pos: Pos, block: &str) {
     let dim = game.dim.id().to_owned();
     let Some(air) = game.pack.assets.registry.default_state("minecraft:air") else { return };
     game.native_set_block(&dim, pos, air, 3);
-    let mut stack = ItemStack::new(block, 1);
+    let mut stack = if matches!(ae2_name(block), Some("energy_cell" | "dense_energy_cell")) {
+        charged_cell(pos, block)
+    } else {
+        ItemStack::new(block, 1)
+    };
     if !settings.is_empty() {
         set_custom(&mut stack, "ae2:settings", Tag::Compound(settings));
     }
@@ -14536,6 +14867,41 @@ fn provider_set_side(game: &mut Game<'_>, pos: Pos) {
         Some(s) => dir_name([s[1] * face[2] - s[2] * face[1], s[2] * face[0] - s[0] * face[2], s[0] * face[1] - s[1] * face[0]]),
     };
     game.native_set_block_property_with(pos, "push_direction", next.unwrap_or("all"), 3);
+}
+
+/// AE2's own machines that expose an inventory, as any machine does to a provider or a bus.
+fn ae2_machine(block: &str) -> bool {
+    matches!(ae2_name(block), Some("inscriber" | "charger" | "condenser" | "vibration_chamber" | "sky_stone_chest" | "smooth_sky_stone_chest" | "sky_stone_tank"))
+}
+
+/// The input of an item or fluid tunnel is a way into what its output faces.
+fn p2p_input(game: &Game<'_>, block: &str, pos: Pos) -> bool {
+    matches!(block, "ae2:item_p2p_tunnel" | "ae2:fluid_p2p_tunnel")
+        && match game.world.block_entities.get(&(pos[0], pos[1], pos[2])) {
+            Some(horizon_client::containers::BlockEntity::Mod(e)) => nbt_i64(&e.nbt, "freq") != 0 && nbt_i64(&e.nbt, "output") == 0,
+            _ => false,
+        }
+}
+
+/// What a provider's target really is: through a tunnel, the machine the tunnel's first output faces.
+fn through_p2p(game: &Game<'_>, q: Pos) -> Pos {
+    let block = block_id(game, q);
+    if !p2p_input(game, &block, q) {
+        return q;
+    }
+    let Some(Some(freq)) = SERVER.with_borrow(|s| s.p2p.get(&q).map(|p| Some(p.0))) else { return q };
+    let out = SERVER.with_borrow(|s| {
+        let mut all: Vec<Pos> = s.p2p.iter().filter(|(_, (f, o, k, _))| *f == freq && *o && *k == block).map(|(p, _)| *p).collect();
+        all.sort();
+        all.first().copied()
+    });
+    match out {
+        Some(out) => {
+            let facing = game.native_block_property(out, "facing");
+            add(out, facing_dir(facing.as_deref()))
+        }
+        None => q,
+    }
 }
 
 /// The sides a pattern provider pushes through (`getTargets`): the block's set side or all, the part's own.
@@ -14721,6 +15087,8 @@ fn item_battery(item: &str) -> Option<(f64, f64)> {
     }
     match ae2_name(item)? {
         "wireless_terminal" | "wireless_crafting_terminal" => Some((1_600_000.0, 800.0)),
+        "energy_cell" => Some((200_000.0, 800.0)),
+        "dense_energy_cell" => Some((1_600_000.0, 800.0)),
         "entropy_manipulator" => Some((200_000.0, 800.0)),
         "matter_cannon" => Some((200_000.0, 800.0)),
         "charged_staff" => Some((8_000.0, 32.0)),
@@ -14901,6 +15269,7 @@ fn monitor_click(game: &mut Game<'_>, pos: Pos) -> bool {
         return true;
     }
     let conversion = ae2_name(&block) == Some("conversion_monitor");
+    let held_fluid = held.as_ref().and_then(|s| bucket_fluid(&s.item));
     let held_key = held.as_ref().map(|s| key_of(game, s));
     let matches = held_key.is_some() && held_key == shown;
     if conversion && (matches || (locked && held.is_none())) {
@@ -14929,7 +15298,8 @@ fn monitor_click(game: &mut Game<'_>, pos: Pos) -> bool {
             }
         }
     } else if !locked {
-        let item = held_key.map(|k| key_to_string(&k)).unwrap_or_default();
+        let fluid = held_fluid.map(|f| AeKey::fluid(&f, ""));
+        let item = fluid.or(held_key).map(|k| key_to_string(&k)).unwrap_or_default();
         game.native_with_mod_block_entity(pos, |e| {
             e.nbt.insert(java("item"), Tag::String(java(&item)));
         });
@@ -15611,6 +15981,15 @@ fn interface_fluids(game: &mut Game<'_>, grid: usize, entity: &mut ModBlockEntit
 
 /// `native_block_entity_fluids`: the tank, reached from every side.
 pub fn block_entity_fluids(block: &str, fluids: &mut Option<horizon_client::containers::ModFluidTanks>) {
+    if canon(block) == "ae2:pattern_provider" {
+        let all: Vec<usize> = (0..9).collect();
+        *fluids = Some(horizon_client::containers::ModFluidTanks {
+            tanks: vec![INTERFACE_TANK_MB; 9],
+            faces: std::array::from_fn(|_| all.clone()),
+            inputs: all,
+            outputs: vec![],
+        });
+    }
     // An input takes fluids from every side, for its outputs.
     if block == "ae2:fluid_p2p_tunnel" {
         *fluids = Some(horizon_client::containers::ModFluidTanks {
@@ -15797,6 +16176,19 @@ fn pattern_provider_tick(game: &mut Game<'_>, pos: Pos, grid: Option<usize>, ent
                 entity.items[slot] = Some(ItemStack { count: left, ..stack });
             }
         }
+        if entity.nbt.get(&java("fluids")).is_some() {
+            let mut tanks = interface_tanks(&entity.nbt);
+            for tank in tanks.iter_mut() {
+                let (Some(fluid), amount) = tank.clone() else { continue };
+                let key = AeKey::fluid(&fluid, "");
+                let stored = with_storage(game, g, None, |st| st.insert(&key, i64::from(amount), Actionable::Modulate));
+                if stored > 0 && event == 2 {
+                    event = returned_to(entity, &key, stored);
+                }
+                *tank = if stored >= i64::from(amount) { (None, 0) } else { (Some(fluid), amount - stored as i32) };
+            }
+            set_interface_tanks(&mut entity.nbt, &tanks);
+        }
     }
     set_nbt_i64(&mut entity.nbt, "unlock_event", event);
     let mode = nbt_i64(&entity.nbt, "lock_mode");
@@ -15901,6 +16293,14 @@ static STAFF_HITS: std::sync::Mutex<Vec<i32>> = std::sync::Mutex::new(Vec::new()
 
 /// `native_attack_entity`.
 pub fn attack_entity(game: &mut Game<'_>, entity: i32, pos: [f64; 3]) {
+    // EntropyManipulatorItem.hurtEnemy: 1 600 AE, and eight seconds alight.
+    if game.held().map(|h| &*h.item) == Some("ae2:entropy_manipulator") && held_power(game) > 1600.0 {
+        spend_held_power(game, 1600.0);
+        if let Some(m) = game.mobs.iter_mut().find(|m| m.id as i32 == entity) {
+            m.fire_ticks = 160;
+        }
+        return;
+    }
     if game.held().map(|h| &*h.item) != Some("ae2:charged_staff") || held_power(game) <= 300.0 {
         return;
     }
@@ -16678,7 +17078,22 @@ fn facade_submit(game: &Game<'_>, entity: &ModBlockEntity, draw: &mut super::nat
 
 /// `native_destroy_block`: a cable broken drops its facades (FacadeContainer's drops).
 pub fn destroyed(game: &mut Game<'_>, pos: Pos) {
-    if cable(&block_id(game, pos)).is_none() {
+    let here = block_id(game, pos);
+    if matches!(ae2_name(&here), Some("energy_cell" | "dense_energy_cell")) && !game.native_acting_player().is_some_and(|p| p.game_mode == 1) {
+        let stack = charged_cell(pos, &here);
+        game.spawn_item(stack, [f64::from(pos[0]) + 0.5, f64::from(pos[1]) + 0.5, f64::from(pos[2]) + 0.5], [0.0, 0.1, 0.0], 10);
+    }
+    if here == "ae2:light_p2p_tunnel" {
+        let facing = game.native_block_property(pos, "facing");
+        let front = add(pos, facing_dir(facing.as_deref()));
+        if block_id(game, front) == "minecraft:light"
+            && let Some(air) = game.pack.assets.registry.default_state("minecraft:air")
+        {
+            let dim = game.dim.id().to_owned();
+            game.native_set_block(&dim, front, air, 3);
+        }
+    }
+    if cable(&here).is_none() {
         return;
     }
     let facades = game.native_with_mod_block_entity(pos, |e| cable_facades(&e.nbt)).unwrap_or_default();

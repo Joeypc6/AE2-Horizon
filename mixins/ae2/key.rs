@@ -55,6 +55,11 @@ fn ae2_key(game: &mut crate::game::Game<'_>, key: &str, pressed: bool) {
     if pressed && key == game.native_mod_key(m::ID, "guide", "key.keyboard.g") {
         // TODO: what `key.ae2.guide` did when pressed.
     }
+    for name in ["wireless_terminal", "portable_item_cell", "portable_fluid_cell"] {
+        if pressed && key == game.native_mod_key(m::ID, name, "key.keyboard.unknown") && key != "key.keyboard.unknown" {
+            crate::game::port_ae2_me::hotkey(game, name);
+        }
+    }
     // TODO: port what the Java code did on key presses.
     let _ = (game, key, pressed, &m::ID);
 }

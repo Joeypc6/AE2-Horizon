@@ -14,6 +14,9 @@ pub const DESCRIPTION: &str = "A Mod about matter, energy and using them to conq
 pub const KEYS: &[[&str; 3]] = &[
     ["category", "Applied Energistics 2", "key.keyboard.unknown"],
     ["guide", "Open Guide for Items", "key.keyboard.g"],
+    ["wireless_terminal", "Open Wireless Terminal", "key.keyboard.unknown"],
+    ["portable_item_cell", "Open Portable Item Cell", "key.keyboard.unknown"],
+    ["portable_fluid_cell", "Open Portable Fluid Cell", "key.keyboard.unknown"],
 ];
 
 /// The mod's own Java that doesn't need the game, translated to Rust by horizon-port.

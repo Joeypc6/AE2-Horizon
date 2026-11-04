@@ -886,6 +886,9 @@ def cable_parts(kind, color, lights):
 
 
 def self_drop(name):
+    if name in ("energy_cell", "dense_energy_cell"):
+        # The native mod drops them, with their charge.
+        return {"type": "minecraft:block", "pools": []}
     return {"type": "minecraft:block", "pools": [{"rolls": 1, "entries": [{"type": "minecraft:item", "name": f"{ID}:{name}"}]}]}
 
 
@@ -1295,6 +1298,8 @@ def add_registries(write, blocks, items):
             f"data/{ID}/tags/block/cable_connects_{color}.json",
             {"values": [f"{ID}:{b}" for b in devices + cables + TWINS]},
         )
+    # DynamicLadderMixin: a cable anchor can be climbed.
+    write("data/minecraft/tags/block/climbable.json", {"replace": False, "values": [f"{ID}:cable_anchor"]})
     for name, menu in MENUS.items():
         write(f"data/{ID}/horizon/menu/{name}.json", menu)
     listed = [f"{ID}:{b}" for b in blocks if b not in NO_ITEM and not b.startswith("hz_")] + [f"{ID}:{i}" for i in items if i not in blocks]

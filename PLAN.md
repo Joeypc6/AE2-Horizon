@@ -471,16 +471,21 @@ Left from Round 17's list, still not 1:1:
   that horizon-mixins won't patch. Hand-placed stacks aren't held to the stack size setting.
 - Water poured by a plane in the Nether evaporates silently.
 
-Open after the audit of the jar against the port (2026-11-04), by how much a player would notice:
-- Your call: a provider's machine output comes back without a return path (the CPU reaches into the machine, and into
-  a chest target). AE2 needs a hopper or pipe into the provider or an interface. Providers have no fluid return yet.
+Also done after the audit: hotkeys (wireless terminal tested from any slot), Pattern Access Terminal's style button,
+monitors show a bucket's fluid, knife takes any metal ingot, energy cells keep their share of the charge as items,
+entropy manipulator (TNT, Tiny TNT, smelting into drops, fire, alight on hit), fluix tools' fortune and looting
+(15 coal from 12 ores), dispensers (Tiny TNT, entropy manipulator), climbable cable anchor, applicator on the wheel,
+provider fluid returns, light P2P through a light block before the output, wireless terminals in the workbench,
+providers and buses on AE2's own machines (inscriber tested), P2P as a provider's target.
+Estimate through item P2P with a hopper return: mean 3.3%, worst 4.3% over 49 s. Channel modes change no timings.
+Measured on this build: 19.98 ticks/s, tick 2.43 ms average, P99 6.20 ms; no Java comparison.
+
+Open, by how much a player would notice:
+- Your call: a provider's machine output comes back without a return path when the machine is beside it (the CPU
+  reaches into the machine, and into a chest target). AE2 needs a hopper or pipe into a provider or an interface.
 - One part per block: no cable bus holding six parts. Parts are separate blocks, facades on cables only.
-- Light P2P (needs one block per light level) and FE P2P, Energy Acceptor FE (Horizon has no energy API).
-- P2P: no extraction through an output, no power tax, sneak on a frequency doesn't make a new one.
-- Energy cells as items keep no charge. Wireless terminals have no upgrades panel.
-- Hotkeys for the wireless terminal and portable cells. Pattern Access Terminal's style button.
-- Entropy manipulator: lighting TNT and fire, smelting drops. Fluix tools' intrinsic enchant. Dispenser behaviours.
-- Portable cell: right-clicking items into it. Cable anchor. Storage monitor with a filled bucket.
-- Applicator mouse wheel and pick colour. Tooltips of cannon, applicator, creative cell, network tool.
-- Knife takes only iron. Sky stone break speed. Lightning effect on transforming items. Provider send list.
-- Interface priority shows on the screen but only orders storage. Item tunnel holds items for outputs that refuse.
+- FE: Energy Acceptor, FE P2P, powered items: API 142 and 307, on a newer Horizon than this revision.
+- P2P: no extraction through an output, no power tax. Wireless terminals' cards go in the workbench, no panel.
+- Portable cell: right-clicking items into it. Applicator pick colour. Network tool tooltip. Matter cannon in a
+  dispenser. Sky stone break speed. Provider send list. Interface priority only orders storage.
+- Inscriber separate sides: hoppers can't take presses out; hand-placed stacks ignore the stack size setting.
