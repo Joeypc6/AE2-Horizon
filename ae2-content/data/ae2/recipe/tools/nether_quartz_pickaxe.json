@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "#c:quartz",
+    "b": "#c:wooden_rods"
+  },
+  "pattern": [
+    "aaa",
+    " b ",
+    " b "
+  ],
+  "result": {
+    "id": "ae2:nether_quartz_pickaxe"
+  },
+  "show_notification": true
+}

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "ae2:cut_quartz_block"
+  },
+  "pattern": [
+    "a",
+    "a"
+  ],
+  "result": {
+    "id": "ae2:quartz_pillar",
+    "count": 2
+  },
+  "show_notification": true
+}

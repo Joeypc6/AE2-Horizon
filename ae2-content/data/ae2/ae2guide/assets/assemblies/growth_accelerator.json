@@ -1,0 +1,138 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      1,
+      "minecraft:farmland",
+      {
+        "moisture": "4"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "minecraft:dirt",
+      {}
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:creative_energy_cell",
+      {}
+    ],
+    [
+      1,
+      0,
+      2,
+      "minecraft:dirt",
+      {}
+    ],
+    [
+      2,
+      0,
+      1,
+      "minecraft:smooth_stone",
+      {}
+    ],
+    [
+      0,
+      1,
+      1,
+      "minecraft:wheat",
+      {
+        "age": "7"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "minecraft:oak_sapling",
+      {
+        "stage": "1"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:growth_accelerator",
+      {
+        "facing": "up",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      2,
+      "minecraft:bamboo",
+      {
+        "age": "0",
+        "leaves": "none",
+        "stage": "0"
+      }
+    ],
+    [
+      2,
+      1,
+      0,
+      "ae2:quartz_cluster",
+      {
+        "facing": "north",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      2,
+      1,
+      1,
+      "ae2:flawless_budding_quartz",
+      {}
+    ],
+    [
+      2,
+      1,
+      2,
+      "ae2:quartz_cluster",
+      {
+        "facing": "south",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      3,
+      1,
+      1,
+      "ae2:quartz_cluster",
+      {
+        "facing": "east",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      1,
+      2,
+      2,
+      "minecraft:bamboo",
+      {
+        "age": "0",
+        "leaves": "small",
+        "stage": "0"
+      }
+    ],
+    [
+      2,
+      2,
+      1,
+      "ae2:quartz_cluster",
+      {
+        "facing": "up",
+        "waterlogged": "false"
+      }
+    ]
+  ]
+}

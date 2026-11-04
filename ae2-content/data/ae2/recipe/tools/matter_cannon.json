@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "#c:iron_ingots",
+    "b": "ae2:formation_core",
+    "c": "ae2:cell_component_4k",
+    "d": "ae2:energy_cell"
+  },
+  "pattern": [
+    "aab",
+    "cd ",
+    "a  "
+  ],
+  "result": {
+    "id": "ae2:matter_cannon"
+  },
+  "show_notification": true
+}

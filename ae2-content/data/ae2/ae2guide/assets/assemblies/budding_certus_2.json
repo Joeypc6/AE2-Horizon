@@ -1,0 +1,61 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      1,
+      "ae2:growth_accelerator",
+      {
+        "facing": "up",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:quartz_cluster",
+      {
+        "facing": "north",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:flawless_budding_quartz",
+      {}
+    ],
+    [
+      1,
+      0,
+      2,
+      "ae2:quartz_cluster",
+      {
+        "facing": "south",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      2,
+      0,
+      1,
+      "ae2:quartz_cluster",
+      {
+        "facing": "east",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:quartz_cluster",
+      {
+        "facing": "up",
+        "waterlogged": "false"
+      }
+    ]
+  ]
+}

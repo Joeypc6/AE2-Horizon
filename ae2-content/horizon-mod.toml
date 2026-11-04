@@ -1,0 +1,10 @@
+# AE2's blocks and items, carried over from appliedenergistics2-fabric-15.4.12.jar by
+# ae2-horizon/tools/make_content_mod.py. Licences: code LGPL-3.0, textures and models CC BY-NC-SA 3.0 (TeamAppliedEnergistics, Ridanisaurus).
+id = "ae2"
+name = "Applied Energistics 2 (blocks and items)"
+version = "15.4.12"
+description = "AE2's blocks, items, recipes and textures. Blocks behave like the vanilla block they copy."
+authors = ["TeamAppliedEnergistics"]
+api = "0.2"
+side = "both"
+capabilities = ["registries"]

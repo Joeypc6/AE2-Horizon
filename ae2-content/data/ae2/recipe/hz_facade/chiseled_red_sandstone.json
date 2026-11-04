@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " A ",
+    "ABA",
+    " A "
+  ],
+  "key": {
+    "A": "ae2:cable_anchor",
+    "B": "minecraft:chiseled_red_sandstone"
+  },
+  "result": {
+    "id": "ae2:facade",
+    "count": 4,
+    "components": {
+      "minecraft:custom_data": {
+        "item": "minecraft:chiseled_red_sandstone"
+      },
+      "minecraft:item_model": "ae2:hz_facade_chiseled_red_sandstone"
+    }
+  }
+}

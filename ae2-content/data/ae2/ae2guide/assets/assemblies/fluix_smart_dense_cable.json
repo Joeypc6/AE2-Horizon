@@ -1,0 +1,49 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:fluix_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "6"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:fluix_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "6"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:fluix_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "6"
+      }
+    ]
+  ]
+}

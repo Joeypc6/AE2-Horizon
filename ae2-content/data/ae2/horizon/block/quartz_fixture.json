@@ -1,0 +1,11 @@
+{
+  "template": "minecraft:end_rod",
+  "state_properties": {
+    "odd": {
+      "type": "boolean"
+    }
+  },
+  "default_state": {
+    "odd": "false"
+  }
+}

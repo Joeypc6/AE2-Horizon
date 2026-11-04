@@ -1,0 +1,70 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "down": "minecraft:block/cracked_deepslate_tiles",
+    "up": "minecraft:block/cracked_deepslate_tiles",
+    "north": "minecraft:block/cracked_deepslate_tiles",
+    "south": "minecraft:block/cracked_deepslate_tiles",
+    "west": "minecraft:block/cracked_deepslate_tiles",
+    "east": "minecraft:block/cracked_deepslate_tiles",
+    "particle": "minecraft:block/cracked_deepslate_tiles"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        7
+      ],
+      "to": [
+        16,
+        16,
+        9
+      ],
+      "faces": {
+        "down": {
+          "texture": "#down",
+          "uv": [
+            0,
+            7,
+            16,
+            9
+          ]
+        },
+        "up": {
+          "texture": "#up",
+          "uv": [
+            0,
+            7,
+            16,
+            9
+          ]
+        },
+        "north": {
+          "texture": "#north"
+        },
+        "south": {
+          "texture": "#south"
+        },
+        "west": {
+          "texture": "#west",
+          "uv": [
+            7,
+            0,
+            9,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#east",
+          "uv": [
+            7,
+            0,
+            9,
+            16
+          ]
+        }
+      }
+    }
+  ]
+}

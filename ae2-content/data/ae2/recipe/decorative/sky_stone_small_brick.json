@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "ae2:sky_stone_brick"
+  },
+  "pattern": [
+    "aa",
+    "aa"
+  ],
+  "result": {
+    "id": "ae2:sky_stone_small_brick",
+    "count": 4
+  },
+  "show_notification": true
+}

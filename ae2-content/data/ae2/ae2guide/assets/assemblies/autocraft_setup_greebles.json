@@ -1,0 +1,689 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      2,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      3,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      1,
+      0,
+      2,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      1,
+      0,
+      3,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      3,
+      0,
+      0,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      3,
+      0,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      3,
+      0,
+      2,
+      "ae2:1k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      0,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      5,
+      0,
+      0,
+      "ae2:drive",
+      {
+        "facing": "north",
+        "spin": "0"
+      }
+    ],
+    [
+      5,
+      0,
+      2,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      5,
+      0,
+      3,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      6,
+      0,
+      0,
+      "ae2:energy_acceptor",
+      {}
+    ],
+    [
+      7,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      7,
+      0,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      7,
+      0,
+      2,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      8,
+      0,
+      0,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "up"
+      }
+    ],
+    [
+      8,
+      0,
+      2,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      9,
+      0,
+      0,
+      "minecraft:hopper",
+      {
+        "enabled": "true",
+        "facing": "west"
+      }
+    ],
+    [
+      9,
+      0,
+      2,
+      "ae2:inscriber",
+      {
+        "facing": "east",
+        "spin": "1",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      0,
+      1,
+      2,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      0,
+      1,
+      3,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      2,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      3,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      3,
+      1,
+      2,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      1,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "5"
+      }
+    ],
+    [
+      4,
+      1,
+      -1,
+      "ae2:blank_pattern",
+      {
+        "facing": "north",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      4,
+      1,
+      2,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      5,
+      1,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "4"
+      }
+    ],
+    [
+      5,
+      1,
+      -1,
+      "ae2:crafting_terminal",
+      {
+        "facing": "north",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      5,
+      1,
+      2,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      5,
+      1,
+      3,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      6,
+      1,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "3"
+      }
+    ],
+    [
+      6,
+      1,
+      -1,
+      "ae2:pattern_access_terminal",
+      {
+        "facing": "north",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      7,
+      1,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "2"
+      }
+    ],
+    [
+      8,
+      1,
+      0,
+      "ae2:quartz_fiber",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      7,
+      1,
+      2,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      8,
+      1,
+      2,
+      "ae2:quartz_fiber",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      8,
+      1,
+      0,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "true",
+        "x_lights": "3"
+      }
+    ],
+    [
+      8,
+      0,
+      0,
+      "ae2:cable_interface",
+      {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      9,
+      1,
+      0,
+      "ae2:storage_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      9,
+      1,
+      0,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "3"
+      }
+    ],
+    [
+      8,
+      1,
+      2,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "2"
+      }
+    ],
+    [
+      8,
+      0,
+      2,
+      "ae2:storage_bus",
+      {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      8,
+      0,
+      2,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      9,
+      1,
+      0,
+      "minecraft:furnace",
+      {
+        "facing": "north",
+        "lit": "false"
+      }
+    ],
+    [
+      9,
+      1,
+      2,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "2"
+      }
+    ],
+    [
+      9,
+      0,
+      2,
+      "ae2:import_bus",
+      {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      9,
+      0,
+      2,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      5,
+      2,
+      2,
+      "ae2:crafting_monitor",
+      {
+        "facing": "north",
+        "formed": "true",
+        "powered": "true",
+        "spin": "0"
+      }
+    ],
+    [
+      5,
+      2,
+      3,
+      "ae2:16k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      8,
+      2,
+      0,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "3"
+      }
+    ],
+    [
+      9,
+      2,
+      0,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "3"
+      }
+    ],
+    [
+      9,
+      1,
+      0,
+      "ae2:storage_bus",
+      {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      9,
+      1,
+      0,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "3"
+      }
+    ]
+  ]
+}

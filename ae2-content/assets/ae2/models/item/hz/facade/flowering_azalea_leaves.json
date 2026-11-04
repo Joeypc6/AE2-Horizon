@@ -1,0 +1,70 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "down": "minecraft:block/flowering_azalea_leaves",
+    "up": "minecraft:block/flowering_azalea_leaves",
+    "north": "minecraft:block/flowering_azalea_leaves",
+    "south": "minecraft:block/flowering_azalea_leaves",
+    "west": "minecraft:block/flowering_azalea_leaves",
+    "east": "minecraft:block/flowering_azalea_leaves",
+    "particle": "minecraft:block/flowering_azalea_leaves"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        7
+      ],
+      "to": [
+        16,
+        16,
+        9
+      ],
+      "faces": {
+        "down": {
+          "texture": "#down",
+          "uv": [
+            0,
+            7,
+            16,
+            9
+          ]
+        },
+        "up": {
+          "texture": "#up",
+          "uv": [
+            0,
+            7,
+            16,
+            9
+          ]
+        },
+        "north": {
+          "texture": "#north"
+        },
+        "south": {
+          "texture": "#south"
+        },
+        "west": {
+          "texture": "#west",
+          "uv": [
+            7,
+            0,
+            9,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#east",
+          "uv": [
+            7,
+            0,
+            9,
+            16
+          ]
+        }
+      }
+    }
+  ]
+}

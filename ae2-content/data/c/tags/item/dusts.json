@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    "ae2:certus_quartz_dust",
+    "ae2:ender_dust",
+    "ae2:fluix_dust",
+    "ae2:sky_dust",
+    {
+      "id": "#c:dusts/glowstone",
+      "required": false
+    },
+    {
+      "id": "#c:dusts/redstone",
+      "required": false
+    }
+  ]
+}

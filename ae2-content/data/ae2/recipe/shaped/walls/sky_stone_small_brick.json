@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "#": "ae2:sky_stone_small_brick"
+  },
+  "pattern": [
+    "###",
+    "###"
+  ],
+  "result": {
+    "id": "ae2:sky_stone_small_brick_wall",
+    "count": 6
+  },
+  "show_notification": true
+}

@@ -1,0 +1,18 @@
+fn ae2_mouse_pressed(game: &crate::game::Game<'_>, screen: &crate::game::native_hooks::NativeScreenView<'_>, button: i32, canceled: &mut bool) {
+    crate::game::port_ae2_guide::click(game, screen.mouse, canceled);
+    if !*canceled {
+        crate::game::port_ae2_me::dialog_click(game, screen.mouse, button, canceled);
+    }
+    if !*canceled {
+        crate::game::port_ae2_me::item_screen_click(game, screen.mouse, button, canceled);
+    }
+    if !*canceled {
+        crate::game::port_ae2_me::terminal_middle_click(game, screen.menu, screen.mouse, button, canceled);
+    }
+    if !*canceled {
+        crate::game::port_ae2_me::wireless_click(game, screen.mouse, button, canceled);
+    }
+    if !*canceled {
+        crate::game::port_ae2_me::ghost_press(game, screen, button, canceled);
+    }
+}

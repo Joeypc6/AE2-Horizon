@@ -1,0 +1,198 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:import_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      0,
+      0,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:storage_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      0,
+      0,
+      2,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      1,
+      0,
+      2,
+      "ae2:cable_interface",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      3,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      1,
+      0,
+      3,
+      "ae2:crafting_terminal",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      1,
+      0,
+      2,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      1,
+      0,
+      3,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ]
+  ]
+}

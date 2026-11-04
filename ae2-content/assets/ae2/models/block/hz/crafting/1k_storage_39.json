@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "north": "ae2:block/hz/crafting/1k_storage_9",
+    "south": "ae2:block/hz/crafting/1k_storage_5",
+    "east": "ae2:block/hz/crafting/1k_storage_1",
+    "west": "ae2:block/hz/crafting/1k_storage_1",
+    "up": "ae2:block/hz/crafting/1k_storage_4",
+    "down": "ae2:block/hz/crafting/1k_storage_4",
+    "particle": "ae2:block/hz/crafting/1k_storage_9"
+  }
+}

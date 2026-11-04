@@ -1,0 +1,35 @@
+{
+  "template": "minecraft:barrel",
+  "properties": {
+    "hardness": 2.2,
+    "sounds": "minecraft:iron_block"
+  },
+  "state_properties": {
+    "span": {
+      "type": "enum",
+      "values": [
+        "none",
+        "x_start",
+        "x_middle",
+        "x_end",
+        "y_start",
+        "y_middle",
+        "y_end",
+        "z_start",
+        "z_middle",
+        "z_end"
+      ]
+    },
+    "state": {
+      "type": "enum",
+      "values": [
+        "offline",
+        "online"
+      ]
+    }
+  },
+  "default_state": {
+    "span": "none",
+    "state": "offline"
+  }
+}

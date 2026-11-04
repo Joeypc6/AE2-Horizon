@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "#ae2:metal_ingots",
+    "#ae2:knife"
+  ],
+  "result": {
+    "id": "ae2:cable_anchor",
+    "count": 4
+  }
+}

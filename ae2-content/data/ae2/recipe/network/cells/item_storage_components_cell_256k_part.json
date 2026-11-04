@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "ae2:sky_dust",
+    "b": "ae2:calculation_processor",
+    "c": "ae2:cell_component_64k",
+    "d": "ae2:quartz_glass"
+  },
+  "pattern": [
+    "aba",
+    "cdc",
+    "aca"
+  ],
+  "result": {
+    "id": "ae2:cell_component_256k"
+  },
+  "show_notification": true
+}

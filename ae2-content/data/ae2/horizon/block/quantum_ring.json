@@ -1,0 +1,70 @@
+{
+  "template": "minecraft:beacon",
+  "properties": {
+    "hardness": 2.2,
+    "sounds": "minecraft:iron_block",
+    "light": 0
+  },
+  "state_properties": {
+    "facing": {
+      "type": "enum",
+      "values": [
+        "north",
+        "south",
+        "west",
+        "east",
+        "up",
+        "down"
+      ]
+    },
+    "power": {
+      "type": "enum",
+      "values": [
+        "off",
+        "on"
+      ]
+    },
+    "qnb": {
+      "type": "enum",
+      "values": [
+        "none",
+        "link",
+        "corner",
+        "edge"
+      ]
+    },
+    "side_down": {
+      "type": "boolean"
+    },
+    "side_east": {
+      "type": "boolean"
+    },
+    "side_north": {
+      "type": "boolean"
+    },
+    "side_south": {
+      "type": "boolean"
+    },
+    "side_up": {
+      "type": "boolean"
+    },
+    "side_west": {
+      "type": "boolean"
+    },
+    "update": {
+      "type": "boolean"
+    }
+  },
+  "default_state": {
+    "facing": "north",
+    "power": "off",
+    "qnb": "none",
+    "side_down": "false",
+    "side_east": "false",
+    "side_north": "false",
+    "side_south": "false",
+    "side_up": "false",
+    "side_west": "false",
+    "update": "false"
+  }
+}

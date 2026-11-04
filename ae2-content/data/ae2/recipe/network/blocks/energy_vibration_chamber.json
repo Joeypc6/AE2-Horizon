@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "#c:iron_ingots",
+    "b": "minecraft:furnace",
+    "c": "ae2:energy_acceptor",
+    "d": "#c:copper_ingots",
+    "e": "#c:fluix"
+  },
+  "pattern": [
+    "ded",
+    "aba",
+    "aca"
+  ],
+  "result": {
+    "id": "ae2:vibration_chamber"
+  },
+  "show_notification": true
+}

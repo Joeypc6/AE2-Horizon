@@ -1,0 +1,184 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      4,
+      0,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      5,
+      0,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      6,
+      0,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "ae2:quantum_link",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      2,
+      1,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      4,
+      1,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      5,
+      1,
+      0,
+      "ae2:quantum_link",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      6,
+      1,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      0,
+      2,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      1,
+      2,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      2,
+      2,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      4,
+      2,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      5,
+      2,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      6,
+      2,
+      0,
+      "ae2:quantum_ring",
+      {
+        "formed": "true",
+        "waterlogged": "false"
+      }
+    ]
+  ]
+}

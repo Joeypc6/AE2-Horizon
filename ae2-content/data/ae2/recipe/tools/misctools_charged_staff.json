@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "ae2:charged_certus_quartz_crystal",
+    "b": "#c:iron_ingots"
+  },
+  "pattern": [
+    "a  ",
+    " b ",
+    "  b"
+  ],
+  "result": {
+    "id": "ae2:charged_staff"
+  },
+  "show_notification": true
+}

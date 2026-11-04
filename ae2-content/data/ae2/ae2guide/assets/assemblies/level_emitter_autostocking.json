@@ -1,0 +1,123 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:interface",
+      {}
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      3,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "minecraft:glass",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "minecraft:glass",
+      {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      2,
+      1,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ]
+  ]
+}

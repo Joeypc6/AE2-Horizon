@@ -1,0 +1,22 @@
+{
+  "template": "minecraft:barrel",
+  "properties": {
+    "hardness": 2.2,
+    "sounds": "minecraft:iron_block"
+  },
+  "state_properties": {
+    "stage": {
+      "type": "enum",
+      "values": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    }
+  },
+  "default_state": {
+    "stage": "0"
+  }
+}

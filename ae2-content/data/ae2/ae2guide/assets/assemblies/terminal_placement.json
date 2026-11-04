@@ -1,0 +1,79 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      1,
+      "ae2:drive",
+      {
+        "facing": "north",
+        "spin": "0"
+      }
+    ],
+    [
+      3,
+      0,
+      1,
+      "ae2:drive",
+      {
+        "facing": "north",
+        "spin": "0"
+      }
+    ],
+    [
+      0,
+      1,
+      1,
+      "ae2:cyan_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "2"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:crafting_terminal",
+      {
+        "facing": "north",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      2,
+      "ae2:cable_energy_acceptor",
+      {
+        "facing": "south",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      3,
+      1,
+      1,
+      "ae2:crafting_terminal",
+      {
+        "facing": "south",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      3,
+      1,
+      1,
+      "ae2:energy_acceptor",
+      {}
+    ]
+  ]
+}

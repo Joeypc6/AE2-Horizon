@@ -1,0 +1,94 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "bus": "ae2:block/part/toggle_bus",
+    "sides": "ae2:block/part/monitor_sides_status",
+    "particle": "ae2:block/part/toggle_bus"
+  },
+  "elements": [
+    {
+      "from": [
+        6,
+        6,
+        5.5
+      ],
+      "to": [
+        10,
+        10,
+        7.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#bus"
+        },
+        "up": {
+          "texture": "#bus"
+        },
+        "east": {
+          "texture": "#bus"
+        },
+        "north": {
+          "texture": "#bus"
+        },
+        "west": {
+          "texture": "#bus"
+        }
+      }
+    },
+    {
+      "from": [
+        6,
+        6,
+        8.5
+      ],
+      "to": [
+        10,
+        10,
+        10.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#bus"
+        },
+        "up": {
+          "texture": "#bus"
+        },
+        "south": {
+          "texture": "#bus"
+        },
+        "east": {
+          "texture": "#bus"
+        },
+        "west": {
+          "texture": "#bus"
+        }
+      }
+    },
+    {
+      "from": [
+        6,
+        6,
+        7.5
+      ],
+      "to": [
+        10,
+        10,
+        8.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#sides"
+        },
+        "up": {
+          "texture": "#sides"
+        },
+        "east": {
+          "texture": "#sides"
+        },
+        "west": {
+          "texture": "#sides"
+        }
+      }
+    }
+  ]
+}

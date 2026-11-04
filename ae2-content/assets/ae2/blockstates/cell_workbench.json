@@ -1,0 +1,25 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "ae2:block/cell_workbench"
+    },
+    "facing=south": {
+      "model": "ae2:block/cell_workbench",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "ae2:block/cell_workbench",
+      "y": 270
+    },
+    "facing=east": {
+      "model": "ae2:block/cell_workbench",
+      "y": 90
+    },
+    "facing=up": {
+      "model": "ae2:block/cell_workbench"
+    },
+    "facing=down": {
+      "model": "ae2:block/cell_workbench"
+    }
+  }
+}

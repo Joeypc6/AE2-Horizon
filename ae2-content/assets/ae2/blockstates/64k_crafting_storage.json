@@ -1,0 +1,926 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "structure": "false"
+      },
+      "apply": {
+        "model": "ae2:block/crafting/64k_storage"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_0"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_1"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_2"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_3"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_4"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_5"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_6"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_7"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_8"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_9"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_10"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_11"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_12"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_13"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_14"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_15"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_16"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_17"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_18"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_19"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_20"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_21"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_22"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_23"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_24"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_25"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_26"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_27"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_28"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_29"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_30"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "false",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_31"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_32"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_33"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_34"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_35"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_36"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_37"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_38"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_39"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_40"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_41"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_42"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_43"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_44"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_45"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_46"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "false",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_47"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_48"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_49"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_50"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_51"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_52"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_53"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_54"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "false",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_55"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_56"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_57"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_58"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "false",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_59"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_60"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "false",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_61"
+      }
+    },
+    {
+      "when": {
+        "side_north": "false",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_62"
+      }
+    },
+    {
+      "when": {
+        "side_north": "true",
+        "side_south": "true",
+        "side_east": "true",
+        "side_west": "true",
+        "side_up": "true",
+        "side_down": "true",
+        "structure": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_63"
+      }
+    },
+    {
+      "when": {
+        "structure": "true",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_light_off"
+      }
+    },
+    {
+      "when": {
+        "structure": "true",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/crafting/64k_storage_light_on"
+      }
+    }
+  ]
+}

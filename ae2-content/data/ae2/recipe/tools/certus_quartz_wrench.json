@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "#c:certus_quartz"
+  },
+  "pattern": [
+    "a a",
+    " a ",
+    "a a"
+  ],
+  "result": {
+    "id": "ae2:certus_quartz_wrench"
+  },
+  "show_notification": true
+}

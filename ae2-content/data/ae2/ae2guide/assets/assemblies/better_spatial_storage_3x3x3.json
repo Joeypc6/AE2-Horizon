@@ -1,0 +1,465 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      1,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      2,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      3,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      4,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "6"
+      }
+    ],
+    [
+      1,
+      0,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      2,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      3,
+      0,
+      0,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      3,
+      0,
+      2,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      3,
+      0,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      4,
+      0,
+      0,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      4,
+      0,
+      2,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      4,
+      0,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      5,
+      0,
+      0,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      5,
+      0,
+      1,
+      "ae2:orange_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      5,
+      0,
+      2,
+      "ae2:orange_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      5,
+      0,
+      4,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "7"
+      }
+    ],
+    [
+      6,
+      0,
+      1,
+      "ae2:spatial_io_port",
+      {
+        "facing": "north",
+        "powered": "true",
+        "spin": "0"
+      }
+    ],
+    [
+      6,
+      0,
+      2,
+      "ae2:energy_cell",
+      {
+        "fullness": "4"
+      }
+    ],
+    [
+      6,
+      0,
+      3,
+      "ae2:orange_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "3"
+      }
+    ],
+    [
+      6,
+      0,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      0,
+      1,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      6,
+      1,
+      1,
+      "minecraft:oak_button",
+      {
+        "face": "floor",
+        "facing": "south",
+        "powered": "false"
+      }
+    ],
+    [
+      0,
+      2,
+      0,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      0,
+      2,
+      1,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      0,
+      2,
+      2,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      0,
+      2,
+      3,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      0,
+      2,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      1,
+      2,
+      4,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      2,
+      2,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      3,
+      2,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      4,
+      2,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      0,
+      3,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      0,
+      4,
+      0,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      0,
+      4,
+      1,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      0,
+      4,
+      2,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      0,
+      4,
+      3,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      0,
+      4,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      1,
+      4,
+      4,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      2,
+      4,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      3,
+      4,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      4,
+      4,
+      4,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ]
+  ]
+}

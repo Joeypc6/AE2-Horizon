@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "#c:glass_blocks",
+    "b": "ae2:terminal",
+    "c": "ae2:fluix_glass_cable",
+    "d": "#c:iron_ingots",
+    "e": "#c:copper_ingots"
+  },
+  "pattern": [
+    "aba",
+    "c c",
+    "ded"
+  ],
+  "result": {
+    "id": "ae2:chest"
+  },
+  "show_notification": true
+}

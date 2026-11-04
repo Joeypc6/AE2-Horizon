@@ -1,0 +1,137 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "sides": "ae2:block/part/export_bus_sides",
+    "sidesStatus": "ae2:block/part/monitor_sides_status",
+    "back": "ae2:block/part/monitor_back",
+    "front": "ae2:block/part/export_bus",
+    "particle": "ae2:block/part/monitor_back"
+  },
+  "elements": [
+    {
+      "from": [
+        4,
+        4,
+        7.5
+      ],
+      "to": [
+        12,
+        12,
+        9.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#sides"
+        },
+        "up": {
+          "texture": "#sides"
+        },
+        "south": {
+          "texture": "#back"
+        },
+        "east": {
+          "texture": "#sides"
+        },
+        "north": {
+          "texture": "#front"
+        },
+        "west": {
+          "texture": "#sides"
+        }
+      }
+    },
+    {
+      "from": [
+        5,
+        5,
+        6.5
+      ],
+      "to": [
+        11,
+        11,
+        7.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#sides"
+        },
+        "up": {
+          "texture": "#sides"
+        },
+        "south": {
+          "texture": "#back"
+        },
+        "east": {
+          "texture": "#sides"
+        },
+        "north": {
+          "texture": "#front"
+        },
+        "west": {
+          "texture": "#sides"
+        }
+      }
+    },
+    {
+      "from": [
+        6,
+        6,
+        5.5
+      ],
+      "to": [
+        10,
+        10,
+        6.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#sides"
+        },
+        "up": {
+          "texture": "#sides"
+        },
+        "south": {
+          "texture": "#back"
+        },
+        "east": {
+          "texture": "#sides"
+        },
+        "north": {
+          "texture": "#front"
+        },
+        "west": {
+          "texture": "#sides"
+        }
+      }
+    },
+    {
+      "from": [
+        6,
+        6,
+        9.5
+      ],
+      "to": [
+        10,
+        10,
+        10.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#sidesStatus"
+        },
+        "up": {
+          "texture": "#sidesStatus"
+        },
+        "south": {
+          "texture": "#back"
+        },
+        "east": {
+          "texture": "#sidesStatus"
+        },
+        "west": {
+          "texture": "#sidesStatus"
+        }
+      }
+    }
+  ]
+}

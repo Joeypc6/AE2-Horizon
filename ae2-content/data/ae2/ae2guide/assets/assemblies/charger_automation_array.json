@@ -1,0 +1,359 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "5"
+      }
+    ],
+    [
+      0,
+      0,
+      1,
+      "ae2:orange_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "5"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:import_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "5"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      0,
+      0,
+      0,
+      "ae2:quartz_fiber",
+      {
+        "facing": "west",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:charger",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "5"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "ae2:import_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "5"
+      }
+    ],
+    [
+      0,
+      1,
+      1,
+      "ae2:orange_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "5"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:storage_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "5"
+      }
+    ],
+    [
+      0,
+      1,
+      2,
+      "ae2:orange_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "5"
+      }
+    ],
+    [
+      1,
+      1,
+      2,
+      "ae2:import_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      2,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "5"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "ae2:charger",
+      {
+        "facing": "east",
+        "spin": "1"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      1,
+      1,
+      2,
+      "ae2:charger",
+      {
+        "facing": "east",
+        "spin": "1"
+      }
+    ],
+    [
+      2,
+      1,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      2,
+      1,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      3,
+      1,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      0,
+      2,
+      1,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "5"
+      }
+    ],
+    [
+      1,
+      2,
+      1,
+      "ae2:import_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      2,
+      1,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "5"
+      }
+    ],
+    [
+      1,
+      2,
+      1,
+      "ae2:charger",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ]
+  ]
+}

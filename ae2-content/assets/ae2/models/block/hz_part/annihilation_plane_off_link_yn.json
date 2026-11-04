@@ -1,0 +1,39 @@
+{
+  "textures": {
+    "plane": "ae2:block/part/annihilation_plane",
+    "sides": "ae2:block/part/plane_sides",
+    "back": "ae2:block/part/transition_plane_back",
+    "particle": "ae2:block/part/plane_sides"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        0.01,
+        0.01
+      ],
+      "to": [
+        15,
+        1,
+        1
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plane"
+        },
+        "south": {
+          "texture": "#back"
+        },
+        "down": {
+          "texture": "#sides"
+        },
+        "east": {
+          "texture": "#sides"
+        },
+        "west": {
+          "texture": "#sides"
+        }
+      }
+    }
+  ]
+}

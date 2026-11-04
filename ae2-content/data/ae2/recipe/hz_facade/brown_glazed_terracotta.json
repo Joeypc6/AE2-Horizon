@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " A ",
+    "ABA",
+    " A "
+  ],
+  "key": {
+    "A": "ae2:cable_anchor",
+    "B": "minecraft:brown_glazed_terracotta"
+  },
+  "result": {
+    "id": "ae2:facade",
+    "count": 4,
+    "components": {
+      "minecraft:custom_data": {
+        "item": "minecraft:brown_glazed_terracotta"
+      },
+      "minecraft:item_model": "ae2:hz_facade_brown_glazed_terracotta"
+    }
+  }
+}

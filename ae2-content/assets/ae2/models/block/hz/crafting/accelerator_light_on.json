@@ -1,0 +1,47 @@
+{
+  "textures": {
+    "light": "ae2:block/crafting/accelerator_light",
+    "particle": "ae2:block/crafting/accelerator_light"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#light",
+          "cullface": "north"
+        },
+        "south": {
+          "texture": "#light",
+          "cullface": "south"
+        },
+        "east": {
+          "texture": "#light",
+          "cullface": "east"
+        },
+        "west": {
+          "texture": "#light",
+          "cullface": "west"
+        },
+        "up": {
+          "texture": "#light",
+          "cullface": "up"
+        },
+        "down": {
+          "texture": "#light",
+          "cullface": "down"
+        }
+      },
+      "light_emission": 15
+    }
+  ]
+}

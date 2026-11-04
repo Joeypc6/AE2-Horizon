@@ -1,0 +1,86 @@
+{
+  "blocks": [
+    [
+      1,
+      0,
+      0,
+      "minecraft:hopper",
+      {
+        "enabled": "true",
+        "facing": "down"
+      }
+    ],
+    [
+      4,
+      0,
+      0,
+      "minecraft:hopper",
+      {
+        "enabled": "true",
+        "facing": "down"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "minecraft:hopper",
+      {
+        "enabled": "true",
+        "facing": "east"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "ae2:inscriber",
+      {
+        "facing": "north",
+        "spin": "1",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      2,
+      1,
+      0,
+      "minecraft:hopper",
+      {
+        "enabled": "true",
+        "facing": "west"
+      }
+    ],
+    [
+      4,
+      1,
+      0,
+      "ae2:inscriber",
+      {
+        "facing": "north",
+        "spin": "1",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      1,
+      2,
+      0,
+      "minecraft:hopper",
+      {
+        "enabled": "true",
+        "facing": "down"
+      }
+    ],
+    [
+      4,
+      2,
+      0,
+      "minecraft:hopper",
+      {
+        "enabled": "true",
+        "facing": "down"
+      }
+    ]
+  ]
+}

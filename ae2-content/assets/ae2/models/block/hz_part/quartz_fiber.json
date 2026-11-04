@@ -1,0 +1,127 @@
+{
+  "textures": {
+    "fiber": "ae2:block/part/quartz_fiber",
+    "particle": "ae2:block/part/quartz_fiber"
+  },
+  "elements": [
+    {
+      "from": [
+        6,
+        6,
+        0.01
+      ],
+      "to": [
+        10,
+        10,
+        15.99
+      ],
+      "faces": {
+        "down": {
+          "texture": "#fiber"
+        },
+        "up": {
+          "texture": "#fiber"
+        },
+        "south": {
+          "texture": "#fiber"
+        },
+        "east": {
+          "texture": "#fiber"
+        },
+        "north": {
+          "texture": "#fiber"
+        },
+        "west": {
+          "texture": "#fiber"
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        160,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        180,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

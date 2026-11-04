@@ -1,0 +1,180 @@
+{
+  "textures": {
+    "bus": "ae2:block/part/toggle_bus",
+    "sides": "ae2:block/part/monitor_sides_status",
+    "particle": "ae2:block/part/toggle_bus"
+  },
+  "elements": [
+    {
+      "from": [
+        6,
+        6,
+        0.01
+      ],
+      "to": [
+        10,
+        10,
+        2
+      ],
+      "faces": {
+        "down": {
+          "texture": "#bus"
+        },
+        "up": {
+          "texture": "#bus"
+        },
+        "east": {
+          "texture": "#bus"
+        },
+        "north": {
+          "texture": "#bus"
+        },
+        "west": {
+          "texture": "#bus"
+        }
+      }
+    },
+    {
+      "from": [
+        6,
+        6,
+        3
+      ],
+      "to": [
+        10,
+        10,
+        5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#bus"
+        },
+        "up": {
+          "texture": "#bus"
+        },
+        "south": {
+          "texture": "#bus"
+        },
+        "east": {
+          "texture": "#bus"
+        },
+        "west": {
+          "texture": "#bus"
+        }
+      }
+    },
+    {
+      "from": [
+        6,
+        6,
+        2
+      ],
+      "to": [
+        10,
+        10,
+        3
+      ],
+      "faces": {
+        "down": {
+          "texture": "#sides"
+        },
+        "up": {
+          "texture": "#sides"
+        },
+        "east": {
+          "texture": "#sides"
+        },
+        "west": {
+          "texture": "#sides"
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        160,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        180,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

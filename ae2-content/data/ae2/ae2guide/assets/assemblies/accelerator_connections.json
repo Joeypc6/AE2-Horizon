@@ -1,0 +1,44 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:growth_accelerator",
+      {
+        "facing": "west",
+        "powered": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ]
+  ]
+}

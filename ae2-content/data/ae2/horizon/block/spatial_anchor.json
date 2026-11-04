@@ -1,0 +1,7 @@
+{
+  "template": "minecraft:barrel",
+  "properties": {
+    "hardness": 2.2,
+    "sounds": "minecraft:iron_block"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "variants": {
+    "facing=north,left=false,right=false": {
+      "model": "ae2:block/hz/charger_body"
+    },
+    "facing=north,left=false,right=true": {
+      "model": "ae2:block/hz/charger_body_right"
+    },
+    "facing=north,left=true,right=false": {
+      "model": "ae2:block/hz/charger_body_left"
+    },
+    "facing=north,left=true,right=true": {
+      "model": "ae2:block/hz/charger_body_left_right"
+    },
+    "facing=south,left=false,right=false": {
+      "model": "ae2:block/hz/charger_body",
+      "y": 180
+    },
+    "facing=south,left=false,right=true": {
+      "model": "ae2:block/hz/charger_body_right",
+      "y": 180
+    },
+    "facing=south,left=true,right=false": {
+      "model": "ae2:block/hz/charger_body_left",
+      "y": 180
+    },
+    "facing=south,left=true,right=true": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "y": 180
+    },
+    "facing=west,left=false,right=false": {
+      "model": "ae2:block/hz/charger_body",
+      "y": 270
+    },
+    "facing=west,left=false,right=true": {
+      "model": "ae2:block/hz/charger_body_right",
+      "y": 270
+    },
+    "facing=west,left=true,right=false": {
+      "model": "ae2:block/hz/charger_body_left",
+      "y": 270
+    },
+    "facing=west,left=true,right=true": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "y": 270
+    },
+    "facing=east,left=false,right=false": {
+      "model": "ae2:block/hz/charger_body",
+      "y": 90
+    },
+    "facing=east,left=false,right=true": {
+      "model": "ae2:block/hz/charger_body_right",
+      "y": 90
+    },
+    "facing=east,left=true,right=false": {
+      "model": "ae2:block/hz/charger_body_left",
+      "y": 90
+    },
+    "facing=east,left=true,right=true": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "y": 90
+    },
+    "facing=up,left=false,right=false": {
+      "model": "ae2:block/hz/charger_body"
+    },
+    "facing=up,left=false,right=true": {
+      "model": "ae2:block/hz/charger_body_right"
+    },
+    "facing=up,left=true,right=false": {
+      "model": "ae2:block/hz/charger_body_left"
+    },
+    "facing=up,left=true,right=true": {
+      "model": "ae2:block/hz/charger_body_left_right"
+    },
+    "facing=down,left=false,right=false": {
+      "model": "ae2:block/hz/charger_body"
+    },
+    "facing=down,left=false,right=true": {
+      "model": "ae2:block/hz/charger_body_right"
+    },
+    "facing=down,left=true,right=false": {
+      "model": "ae2:block/hz/charger_body_left"
+    },
+    "facing=down,left=true,right=true": {
+      "model": "ae2:block/hz/charger_body_left_right"
+    }
+  }
+}

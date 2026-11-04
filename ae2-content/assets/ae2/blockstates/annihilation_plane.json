@@ -1,0 +1,1210 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "facing": "north",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_middle"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "false",
+        "link_xn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "false",
+        "link_xp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "false",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_yn"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "false",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_yp"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "false",
+        "link_xn": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn_link_yn"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "false",
+        "link_xp": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp_link_yn"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "false",
+        "link_xn": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn_link_yp"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "false",
+        "link_xp": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp_link_yp"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_middle"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true",
+        "link_xn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true",
+        "link_xp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_yn"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_yp"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true",
+        "link_xn": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn_link_yn"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true",
+        "link_xp": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp_link_yn"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true",
+        "link_xn": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn_link_yp"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true",
+        "link_xp": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp_link_yp"
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_middle",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "false",
+        "link_xn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "false",
+        "link_xp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "false",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_yn",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "false",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_yp",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "false",
+        "link_xn": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn_link_yn",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "false",
+        "link_xp": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp_link_yn",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "false",
+        "link_xn": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn_link_yp",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "false",
+        "link_xp": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp_link_yp",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_middle",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true",
+        "link_xn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true",
+        "link_xp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_yn",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_yp",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true",
+        "link_xn": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn_link_yn",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true",
+        "link_xp": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp_link_yn",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true",
+        "link_xn": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn_link_yp",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true",
+        "link_xp": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp_link_yp",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_middle",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "false",
+        "link_xn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "false",
+        "link_xp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "false",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_yn",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "false",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_yp",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "false",
+        "link_xn": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn_link_yn",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "false",
+        "link_xp": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp_link_yn",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "false",
+        "link_xn": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn_link_yp",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "false",
+        "link_xp": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp_link_yp",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_middle",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true",
+        "link_xn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true",
+        "link_xp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_yn",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_yp",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true",
+        "link_xn": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn_link_yn",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true",
+        "link_xp": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp_link_yn",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true",
+        "link_xn": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn_link_yp",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true",
+        "link_xp": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp_link_yp",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_middle",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "false",
+        "link_xn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "false",
+        "link_xp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "false",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_yn",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "false",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_yp",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "false",
+        "link_xn": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn_link_yn",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "false",
+        "link_xp": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp_link_yn",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "false",
+        "link_xn": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn_link_yp",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "false",
+        "link_xp": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp_link_yp",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_middle",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true",
+        "link_xn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true",
+        "link_xp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_yn",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_yp",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true",
+        "link_xn": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn_link_yn",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true",
+        "link_xp": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp_link_yn",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true",
+        "link_xn": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn_link_yp",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true",
+        "link_xp": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp_link_yp",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_middle",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "false",
+        "link_xn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "false",
+        "link_xp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "false",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_yn",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "false",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_yp",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "false",
+        "link_xn": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn_link_yn",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "false",
+        "link_xp": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp_link_yn",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "false",
+        "link_xn": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn_link_yp",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "false",
+        "link_xp": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp_link_yp",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_middle",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true",
+        "link_xn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true",
+        "link_xp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_yn",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_yp",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true",
+        "link_xn": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn_link_yn",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true",
+        "link_xp": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp_link_yn",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true",
+        "link_xn": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn_link_yp",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true",
+        "link_xp": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp_link_yp",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_middle",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "false",
+        "link_xn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "false",
+        "link_xp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "false",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_yn",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "false",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_yp",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "false",
+        "link_xn": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn_link_yn",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "false",
+        "link_xp": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp_link_yn",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "false",
+        "link_xn": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xn_link_yp",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "false",
+        "link_xp": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_off_link_xp_link_yp",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_middle",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true",
+        "link_xn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true",
+        "link_xp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_yn",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_yp",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true",
+        "link_xn": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn_link_yn",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true",
+        "link_xp": "true",
+        "link_yn": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp_link_yn",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true",
+        "link_xn": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xn_link_yp",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true",
+        "link_xp": "true",
+        "link_yp": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/annihilation_plane_on_link_xp_link_yp",
+        "x": 90
+      }
+    }
+  ]
+}

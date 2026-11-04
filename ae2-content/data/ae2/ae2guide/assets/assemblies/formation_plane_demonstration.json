@@ -1,0 +1,211 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      13,
+      "ae2:green_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      0,
+      0,
+      12,
+      "ae2:formation_plane",
+      {
+        "facing": "north",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      12,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      0,
+      0,
+      14,
+      "ae2:green_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      0,
+      0,
+      15,
+      "ae2:interface",
+      {}
+    ],
+    [
+      1,
+      0,
+      14,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      2,
+      0,
+      14,
+      "ae2:quartz_fiber",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      15,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      0,
+      0,
+      15,
+      "ae2:quartz_fiber",
+      {
+        "facing": "west",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      13,
+      "ae2:green_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      2,
+      0,
+      12,
+      "ae2:formation_plane",
+      {
+        "facing": "north",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      12,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      2,
+      0,
+      14,
+      "ae2:green_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      2,
+      0,
+      15,
+      "ae2:import_bus",
+      {
+        "facing": "south",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      15,
+      "ae2:green_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      2,
+      0,
+      15,
+      "minecraft:barrel",
+      {
+        "facing": "up",
+        "open": "false"
+      }
+    ]
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "template": "minecraft:beacon",
+  "properties": {
+    "hardness": 0.0,
+    "light": 0
+  }
+}

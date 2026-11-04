@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "#": "ae2:smooth_quartz_block"
+  },
+  "pattern": [
+    "###",
+    "###"
+  ],
+  "result": {
+    "id": "ae2:smooth_quartz_wall",
+    "count": 6
+  },
+  "show_notification": true
+}

@@ -1,0 +1,62 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:growth_accelerator",
+      {
+        "facing": "up",
+        "powered": "false"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:inscriber",
+      {
+        "facing": "north",
+        "spin": "0",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      4,
+      0,
+      0,
+      "ae2:charger",
+      {
+        "facing": "north",
+        "spin": "0"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:crank",
+      {
+        "facing": "up"
+      }
+    ],
+    [
+      2,
+      1,
+      0,
+      "ae2:crank",
+      {
+        "facing": "up"
+      }
+    ],
+    [
+      4,
+      1,
+      0,
+      "ae2:crank",
+      {
+        "facing": "up"
+      }
+    ]
+  ]
+}

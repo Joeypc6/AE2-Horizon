@@ -1,0 +1,25 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "ae2:block/condenser"
+    },
+    "facing=south": {
+      "model": "ae2:block/condenser",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "ae2:block/condenser",
+      "y": 270
+    },
+    "facing=east": {
+      "model": "ae2:block/condenser",
+      "y": 90
+    },
+    "facing=up": {
+      "model": "ae2:block/condenser"
+    },
+    "facing=down": {
+      "model": "ae2:block/condenser"
+    }
+  }
+}

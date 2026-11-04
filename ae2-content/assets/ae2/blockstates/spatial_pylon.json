@@ -1,0 +1,64 @@
+{
+  "variants": {
+    "span=none,state=offline": {
+      "model": "ae2:block/hz/pylon/none"
+    },
+    "span=none,state=online": {
+      "model": "ae2:block/hz/pylon/none"
+    },
+    "span=x_start,state=offline": {
+      "model": "ae2:block/hz/pylon/x_start_offline"
+    },
+    "span=x_start,state=online": {
+      "model": "ae2:block/hz/pylon/x_start_online"
+    },
+    "span=x_middle,state=offline": {
+      "model": "ae2:block/hz/pylon/x_middle_offline"
+    },
+    "span=x_middle,state=online": {
+      "model": "ae2:block/hz/pylon/x_middle_online"
+    },
+    "span=x_end,state=offline": {
+      "model": "ae2:block/hz/pylon/x_end_offline"
+    },
+    "span=x_end,state=online": {
+      "model": "ae2:block/hz/pylon/x_end_online"
+    },
+    "span=y_start,state=offline": {
+      "model": "ae2:block/hz/pylon/y_start_offline"
+    },
+    "span=y_start,state=online": {
+      "model": "ae2:block/hz/pylon/y_start_online"
+    },
+    "span=y_middle,state=offline": {
+      "model": "ae2:block/hz/pylon/y_middle_offline"
+    },
+    "span=y_middle,state=online": {
+      "model": "ae2:block/hz/pylon/y_middle_online"
+    },
+    "span=y_end,state=offline": {
+      "model": "ae2:block/hz/pylon/y_end_offline"
+    },
+    "span=y_end,state=online": {
+      "model": "ae2:block/hz/pylon/y_end_online"
+    },
+    "span=z_start,state=offline": {
+      "model": "ae2:block/hz/pylon/z_start_offline"
+    },
+    "span=z_start,state=online": {
+      "model": "ae2:block/hz/pylon/z_start_online"
+    },
+    "span=z_middle,state=offline": {
+      "model": "ae2:block/hz/pylon/z_middle_offline"
+    },
+    "span=z_middle,state=online": {
+      "model": "ae2:block/hz/pylon/z_middle_online"
+    },
+    "span=z_end,state=offline": {
+      "model": "ae2:block/hz/pylon/z_end_offline"
+    },
+    "span=z_end,state=online": {
+      "model": "ae2:block/hz/pylon/z_end_online"
+    }
+  }
+}

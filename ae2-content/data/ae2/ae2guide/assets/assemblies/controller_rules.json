@@ -1,0 +1,178 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "conflicted",
+        "type": "block"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:fluix_glass_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false"
+      }
+    ],
+    [
+      2,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "conflicted",
+        "type": "block"
+      }
+    ],
+    [
+      5,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "conflicted",
+        "type": "block"
+      }
+    ],
+    [
+      8,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      9,
+      0,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      9,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      12,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      4,
+      1,
+      1,
+      "ae2:controller",
+      {
+        "state": "conflicted",
+        "type": "block"
+      }
+    ],
+    [
+      5,
+      1,
+      1,
+      "ae2:controller",
+      {
+        "state": "conflicted",
+        "type": "inside_b"
+      }
+    ],
+    [
+      6,
+      1,
+      1,
+      "ae2:controller",
+      {
+        "state": "conflicted",
+        "type": "block"
+      }
+    ],
+    [
+      9,
+      1,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      12,
+      1,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      12,
+      1,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      12,
+      1,
+      2,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      13,
+      1,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      5,
+      2,
+      1,
+      "ae2:controller",
+      {
+        "state": "conflicted",
+        "type": "block"
+      }
+    ]
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "#c:iron_ingots",
+    "b": "minecraft:sticky_piston",
+    "c": "#c:copper_ingots"
+  },
+  "pattern": [
+    "aba",
+    "c a",
+    "aba"
+  ],
+  "result": {
+    "id": "ae2:inscriber"
+  },
+  "show_notification": true
+}

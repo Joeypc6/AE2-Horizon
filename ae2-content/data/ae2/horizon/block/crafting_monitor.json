@@ -1,0 +1,39 @@
+{
+  "template": "minecraft:barrel",
+  "properties": {
+    "hardness": 2.2,
+    "sounds": "minecraft:iron_block"
+  },
+  "state_properties": {
+    "side_north": {
+      "type": "boolean"
+    },
+    "side_south": {
+      "type": "boolean"
+    },
+    "side_east": {
+      "type": "boolean"
+    },
+    "side_west": {
+      "type": "boolean"
+    },
+    "side_up": {
+      "type": "boolean"
+    },
+    "side_down": {
+      "type": "boolean"
+    },
+    "structure": {
+      "type": "boolean"
+    }
+  },
+  "default_state": {
+    "side_north": "false",
+    "side_south": "false",
+    "side_east": "false",
+    "side_west": "false",
+    "side_up": "false",
+    "side_down": "false",
+    "structure": "false"
+  }
+}

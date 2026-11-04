@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "#c:fluix_dusts",
+    "b": "#ae2:all_certus_quartz",
+    "c": "#c:ender_pearl_dusts",
+    "d": "#c:iron_ingots"
+  },
+  "pattern": [
+    "abc",
+    "ddd"
+  ],
+  "result": {
+    "id": "ae2:wireless_booster",
+    "count": 2
+  },
+  "show_notification": true
+}

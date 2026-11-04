@@ -1,0 +1,25 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "ae2:block/molecular_assembler"
+    },
+    "facing=south": {
+      "model": "ae2:block/molecular_assembler",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "ae2:block/molecular_assembler",
+      "y": 270
+    },
+    "facing=east": {
+      "model": "ae2:block/molecular_assembler",
+      "y": 90
+    },
+    "facing=up": {
+      "model": "ae2:block/molecular_assembler"
+    },
+    "facing=down": {
+      "model": "ae2:block/molecular_assembler"
+    }
+  }
+}

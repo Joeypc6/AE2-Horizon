@@ -1,0 +1,29 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:fluix_glass_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:cable_energy_acceptor",
+      {
+        "facing": "up",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ]
+  ]
+}

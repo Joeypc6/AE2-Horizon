@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " A ",
+    "ABA",
+    " A "
+  ],
+  "key": {
+    "A": "ae2:cable_anchor",
+    "B": "minecraft:cartography_table"
+  },
+  "result": {
+    "id": "ae2:facade",
+    "count": 4,
+    "components": {
+      "minecraft:custom_data": {
+        "item": "minecraft:cartography_table"
+      },
+      "minecraft:item_model": "ae2:hz_facade_cartography_table"
+    }
+  }
+}

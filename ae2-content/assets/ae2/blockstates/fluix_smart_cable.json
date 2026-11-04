@@ -1,0 +1,3226 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch0",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "west": "true",
+        "north": "false",
+        "south": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch0",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "up": "true",
+        "down": "true",
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "x_lights": "0"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch0",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "0"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_center_ch0"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "north": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "0"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch0",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "south": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "0"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch0",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "west": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "0"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch0",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "east": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "0"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch0",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "up": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "0"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch0",
+        "x": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "down": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "0"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch0",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch1",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "west": "true",
+        "north": "false",
+        "south": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch1",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "up": "true",
+        "down": "true",
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "x_lights": "1"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch1",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "1"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_center_ch1"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "north": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "1"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch1",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "south": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "1"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch1",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "west": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "1"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch1",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "east": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "1"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch1",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "up": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "1"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch1",
+        "x": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "down": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "1"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch1",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch2",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "west": "true",
+        "north": "false",
+        "south": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch2",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "up": "true",
+        "down": "true",
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "x_lights": "2"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch2",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "2"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_center_ch2"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "north": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "2"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch2",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "south": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "2"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch2",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "west": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "2"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch2",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "east": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "2"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch2",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "up": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "2"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch2",
+        "x": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "down": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "2"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch2",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "3"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch3",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "west": "true",
+        "north": "false",
+        "south": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "3"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch3",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "up": "true",
+        "down": "true",
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "x_lights": "3"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch3",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "3"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_center_ch3"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "north": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "3"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch3",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "south": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "3"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch3",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "west": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "3"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch3",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "east": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "3"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch3",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "up": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "3"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch3",
+        "x": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "down": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "3"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch3",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch4",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "west": "true",
+        "north": "false",
+        "south": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch4",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "up": "true",
+        "down": "true",
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "x_lights": "4"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch4",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "4"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_center_ch4"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "north": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "4"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch4",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "south": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "4"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch4",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "west": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "4"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch4",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "east": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "4"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch4",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "up": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "4"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch4",
+        "x": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "down": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "4"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch4",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "5"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch5",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "west": "true",
+        "north": "false",
+        "south": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "5"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch5",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "up": "true",
+        "down": "true",
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "x_lights": "5"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch5",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "5"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_center_ch5"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "north": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "5"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch5",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "south": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "5"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch5",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "west": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "5"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch5",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "east": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "5"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch5",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "up": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "5"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch5",
+        "x": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "down": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "5"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch5",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "6"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch6",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "west": "true",
+        "north": "false",
+        "south": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "6"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch6",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "up": "true",
+        "down": "true",
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "x_lights": "6"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch6",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "6"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_center_ch6"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "north": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "6"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch6",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "south": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "6"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch6",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "west": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "6"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch6",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "east": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "6"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch6",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "up": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "6"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch6",
+        "x": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "down": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "6"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch6",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "7"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch7",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "west": "true",
+        "north": "false",
+        "south": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "7"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch7",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "up": "true",
+        "down": "true",
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "x_lights": "7"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch7",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "7"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_center_ch7"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "north": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "7"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch7",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "south": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "7"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch7",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "west": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "7"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch7",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "east": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "7"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch7",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "up": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "7"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch7",
+        "x": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "down": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "7"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch7",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch8",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "west": "true",
+        "north": "false",
+        "south": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch8",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "up": "true",
+        "down": "true",
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "x_lights": "8"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_straight_ch8",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "8"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_center_ch8"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "north": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "8"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch8",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "south": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "8"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch8",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "west": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "8"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch8",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "east": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "8"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch8",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "up": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "8"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch8",
+        "x": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "down": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          },
+          {
+            "x_lights": "8"
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/smart_fluix_connection_ch8",
+        "x": 90,
+        "uvlock": true
+      }
+    }
+  ]
+}

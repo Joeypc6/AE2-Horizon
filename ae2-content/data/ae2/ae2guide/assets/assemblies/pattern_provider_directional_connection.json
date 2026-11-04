@@ -1,0 +1,52 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "east"
+      }
+    ],
+    [
+      0,
+      0,
+      1,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ]
+  ]
+}

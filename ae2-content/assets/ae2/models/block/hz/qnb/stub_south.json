@@ -1,0 +1,41 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "particle": "ae2:block/part/cable/glass/transparent",
+    "t0": "ae2:block/part/cable/glass/transparent"
+  },
+  "elements": [
+    {
+      "from": [
+        6,
+        6,
+        14
+      ],
+      "to": [
+        10,
+        10,
+        16
+      ],
+      "faces": {
+        "down": {
+          "texture": "#t0"
+        },
+        "up": {
+          "texture": "#t0"
+        },
+        "north": {
+          "texture": "#t0"
+        },
+        "south": {
+          "texture": "#t0"
+        },
+        "west": {
+          "texture": "#t0"
+        },
+        "east": {
+          "texture": "#t0"
+        }
+      }
+    }
+  ]
+}

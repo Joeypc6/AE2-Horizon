@@ -1,0 +1,21 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:flawless_budding_quartz",
+      {}
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:small_quartz_bud",
+      {
+        "facing": "up",
+        "waterlogged": "false"
+      }
+    ]
+  ]
+}

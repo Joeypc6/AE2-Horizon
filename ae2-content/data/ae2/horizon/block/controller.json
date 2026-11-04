@@ -1,0 +1,36 @@
+{
+  "template": "minecraft:barrel",
+  "properties": {
+    "hardness": 2.2,
+    "sounds": "minecraft:iron_block"
+  },
+  "state_properties": {
+    "powered": {
+      "type": "boolean"
+    },
+    "state": {
+      "type": "enum",
+      "values": [
+        "offline",
+        "online",
+        "conflicted"
+      ]
+    },
+    "type": {
+      "type": "enum",
+      "values": [
+        "block",
+        "column_x",
+        "column_y",
+        "column_z",
+        "inside_a",
+        "inside_b"
+      ]
+    }
+  },
+  "default_state": {
+    "powered": "false",
+    "state": "offline",
+    "type": "block"
+  }
+}

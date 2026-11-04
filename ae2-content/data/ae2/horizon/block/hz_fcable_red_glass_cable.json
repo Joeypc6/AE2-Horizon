@@ -1,0 +1,38 @@
+{
+  "template": "minecraft:beacon",
+  "item": false,
+  "properties": {
+    "hardness": 0.3,
+    "sounds": "minecraft:glass",
+    "requires_tool": false,
+    "light": 0
+  },
+  "state_properties": {
+    "x_down": {
+      "type": "boolean"
+    },
+    "x_east": {
+      "type": "boolean"
+    },
+    "x_north": {
+      "type": "boolean"
+    },
+    "x_south": {
+      "type": "boolean"
+    },
+    "x_up": {
+      "type": "boolean"
+    },
+    "x_west": {
+      "type": "boolean"
+    }
+  },
+  "default_state": {
+    "x_down": "false",
+    "x_east": "false",
+    "x_north": "false",
+    "x_south": "false",
+    "x_up": "false",
+    "x_west": "false"
+  }
+}

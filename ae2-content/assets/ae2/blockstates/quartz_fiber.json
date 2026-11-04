@@ -1,0 +1,122 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "facing": "north",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/quartz_fiber"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/quartz_fiber"
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/quartz_fiber",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/quartz_fiber",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/quartz_fiber",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/quartz_fiber",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/quartz_fiber",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/quartz_fiber",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/quartz_fiber",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/quartz_fiber",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/quartz_fiber",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/quartz_fiber",
+        "x": 90
+      }
+    }
+  ]
+}

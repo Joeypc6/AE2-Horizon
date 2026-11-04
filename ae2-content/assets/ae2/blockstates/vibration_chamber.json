@@ -1,0 +1,46 @@
+{
+  "variants": {
+    "facing=north,powered=false": {
+      "model": "ae2:block/vibration_chamber"
+    },
+    "facing=south,powered=false": {
+      "model": "ae2:block/vibration_chamber",
+      "y": 180
+    },
+    "facing=west,powered=false": {
+      "model": "ae2:block/vibration_chamber",
+      "y": 270
+    },
+    "facing=east,powered=false": {
+      "model": "ae2:block/vibration_chamber",
+      "y": 90
+    },
+    "facing=up,powered=false": {
+      "model": "ae2:block/vibration_chamber"
+    },
+    "facing=down,powered=false": {
+      "model": "ae2:block/vibration_chamber"
+    },
+    "facing=north,powered=true": {
+      "model": "ae2:block/vibration_chamber_on"
+    },
+    "facing=south,powered=true": {
+      "model": "ae2:block/vibration_chamber_on",
+      "y": 180
+    },
+    "facing=west,powered=true": {
+      "model": "ae2:block/vibration_chamber_on",
+      "y": 270
+    },
+    "facing=east,powered=true": {
+      "model": "ae2:block/vibration_chamber_on",
+      "y": 90
+    },
+    "facing=up,powered=true": {
+      "model": "ae2:block/vibration_chamber_on"
+    },
+    "facing=down,powered=true": {
+      "model": "ae2:block/vibration_chamber_on"
+    }
+  }
+}

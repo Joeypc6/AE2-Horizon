@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "#c:quartz",
+    "b": "#c:wooden_rods"
+  },
+  "pattern": [
+    "a",
+    "a",
+    "b"
+  ],
+  "result": {
+    "id": "ae2:nether_quartz_sword"
+  },
+  "show_notification": true
+}

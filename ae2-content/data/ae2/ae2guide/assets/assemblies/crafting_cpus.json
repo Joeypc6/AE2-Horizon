@@ -1,0 +1,156 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:16k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      1,
+      "ae2:16k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:16k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:16k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      3,
+      0,
+      1,
+      "ae2:1k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      5,
+      0,
+      1,
+      "ae2:1k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:crafting_unit",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      1,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "ae2:crafting_unit",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      3,
+      1,
+      1,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      2,
+      0,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      2,
+      1,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      2,
+      0,
+      "ae2:crafting_monitor",
+      {
+        "facing": "north",
+        "formed": "true",
+        "powered": "true",
+        "spin": "0"
+      }
+    ],
+    [
+      1,
+      2,
+      1,
+      "ae2:1k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ]
+  ]
+}

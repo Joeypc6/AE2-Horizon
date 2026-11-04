@@ -1,0 +1,33 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "minecraft:hopper",
+      {
+        "enabled": "true",
+        "facing": "down"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "minecraft:hopper",
+      {
+        "enabled": "true",
+        "facing": "west"
+      }
+    ]
+  ]
+}

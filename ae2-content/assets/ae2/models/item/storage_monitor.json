@@ -1,0 +1,9 @@
+{
+  "parent": "ae2:item/display_base",
+  "textures": {
+    "front": "ae2:block/part/storage_monitor",
+    "front_bright": "ae2:block/part/storage_monitor_bright",
+    "front_medium": "ae2:block/part/storage_monitor_medium",
+    "front_dark": "ae2:block/part/storage_monitor_dark"
+  }
+}

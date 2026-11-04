@@ -1,0 +1,72 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "sides": "ae2:block/part/monitor_sides",
+    "back": "ae2:block/part/monitor_back",
+    "front": "ae2:block/hz/semi_dark_monitor_front",
+    "particle": "ae2:block/part/monitor_back"
+  },
+  "elements": [
+    {
+      "from": [
+        2,
+        2,
+        6.5
+      ],
+      "to": [
+        14,
+        14,
+        8.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#sides"
+        },
+        "up": {
+          "texture": "#sides"
+        },
+        "south": {
+          "texture": "#back"
+        },
+        "east": {
+          "texture": "#sides"
+        },
+        "north": {
+          "texture": "#front"
+        },
+        "west": {
+          "texture": "#sides"
+        }
+      }
+    },
+    {
+      "from": [
+        4,
+        4,
+        8.5
+      ],
+      "to": [
+        12,
+        12,
+        9.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#sides"
+        },
+        "up": {
+          "texture": "#sides"
+        },
+        "south": {
+          "texture": "#back"
+        },
+        "east": {
+          "texture": "#sides"
+        },
+        "west": {
+          "texture": "#sides"
+        }
+      }
+    }
+  ]
+}

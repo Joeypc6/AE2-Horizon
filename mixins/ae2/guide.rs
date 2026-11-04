@@ -1,0 +1,1526 @@
+// AE2's guide (`appeng.client.guidebook`): its Markdown pages, shipped in the content mod under
+// data/ae2/ae2guide/ with an index of the items each page is about, its navigation and categories, shown over any
+// screen. Hold the guide key (W) over an item, in a slot or JEI's panel, to open its page; links move between
+// pages, Backspace and Back go back, Escape and x close it.
+//
+// The pages are AE2's own Markdown with its tags: headings, paragraphs (bold, italic, code, links, item links,
+// line breaks, config values), lists (nested, numbered), tables, quotes, code blocks, pictures, notes (`<div>`),
+// item pictures and grids (`<ItemImage>`, `<BlockImage>`, `<ItemGrid>`, `<Row>`, `<Column>`), recipes
+// (`<RecipeFor>`, `<Recipe>`), page lists (`<SubPages>`, `<CategoryIndex>`) and scenes (`<GameScene>`).
+use crate::game::Game;
+use horizon_client::hud::HudBatch;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::sync::Arc;
+
+const LINE: f32 = 11.0;
+/// The page's margin inside the panel.
+const PAD: f32 = 12.0;
+const TEXT: u32 = 0x3A3A3A;
+const LINK: u32 = 0x2050C8;
+
+#[derive(Clone)]
+enum Link {
+    Page(String),
+    Item(String),
+}
+
+/// One laid-out band of the page: text (legacy-styled), item icons, filled boxes, pictures and scene blocks, each
+/// placed from the band's top left.
+#[derive(Clone, Default)]
+struct Line {
+    texts: Vec<(f32, f32, String, u32, Option<Link>)>,
+    icons: Vec<(f32, f32, String, f32)>,
+    fills: Vec<([f32; 4], u32)>,
+    sprites: Vec<([f32; 4], String)>,
+    /// A scene's blocks (AE2's GameScene): each one's place (x, y), size and item, back to front, as last drawn.
+    scene: Vec<(f32, f32, f32, String)>,
+    /// The scene in 3D: each block's place about the scene's middle and item, the size of a block on the page,
+    /// where the middle is drawn and the view's turn (yaw, pitch in radians; dragging turns it).
+    scene3d: Option<Scene3d>,
+    height: f32,
+}
+
+#[derive(Clone, Default)]
+struct Scene3d {
+    blocks: Vec<([f32; 3], String)>,
+    unit: f32,
+    center: [f32; 2],
+    yaw: f32,
+    pitch: f32,
+}
+
+#[derive(Default)]
+struct Guide {
+    /// Item id → page, page → title, and the navigation (parent, position, icon, categories) from index.json.
+    items: HashMap<String, String>,
+    titles: HashMap<String, String>,
+    parents: HashMap<String, String>,
+    positions: HashMap<String, i64>,
+    icons: HashMap<String, String>,
+    categories: HashMap<String, Vec<String>>,
+    loaded: bool,
+    open: Option<String>,
+    history: Vec<String>,
+    lines: Vec<Line>,
+    scroll: f32,
+    /// The panel's size, set as a page opens (it fits the window).
+    size: [f32; 2],
+    /// The item under the pointer and when (a tooltip shows it), for the guide key.
+    hovered: Option<(String, std::time::Instant)>,
+    /// A scene being dragged: its line, and whether the pointer moved (a press without a move opens the block's page).
+    drag: Option<(usize, bool, String)>,
+}
+
+thread_local! {
+    static GUIDE: RefCell<Guide> = RefCell::new(Guide::default());
+    /// The window's recipes (crafting, cooking, smithing...), refreshed by the frame (it can't be made while
+    /// drawing): what `<RecipeFor>` shows.
+    static RECIPES: RefCell<Option<Arc<crate::game::native_hooks::NativeRecipes>>> = const { RefCell::new(None) };
+}
+
+/// The frame's part: the recipes the guide draws from.
+pub fn set_recipes(recipes: Option<Arc<crate::game::native_hooks::NativeRecipes>>) {
+    if recipes.is_some() {
+        RECIPES.with_borrow_mut(|r| *r = recipes);
+    }
+}
+
+pub fn needs_recipes() -> bool {
+    RECIPES.with_borrow(|r| r.is_none())
+}
+
+fn load_index(game: &Game<'_>) {
+    if GUIDE.with_borrow(|g| g.loaded) {
+        return;
+    }
+    let Some(bytes) = game.native_data("data/ae2/ae2guide/index.json") else { return };
+    let Ok(v) = serde_json::from_slice::<serde_json::Value>(&bytes) else { return };
+    let map = |key: &str| -> HashMap<String, String> {
+        v.get(key)
+            .and_then(|o| o.as_object())
+            .into_iter()
+            .flatten()
+            .filter_map(|(k, p)| Some((k.clone(), p.as_str()?.to_owned())))
+            .collect()
+    };
+    GUIDE.with_borrow_mut(|g| {
+        g.loaded = true;
+        g.items = map("items");
+        g.titles = map("titles");
+        g.parents = map("parents");
+        g.icons = map("icons");
+        g.positions = map("positions").into_iter().filter_map(|(k, p)| Some((k, p.parse().ok()?))).collect();
+        g.categories = v
+            .get("categories")
+            .and_then(|o| o.as_object())
+            .into_iter()
+            .flatten()
+            .map(|(k, c)| (k.clone(), c.as_array().into_iter().flatten().filter_map(|x| x.as_str().map(str::to_owned)).collect()))
+            .collect();
+    });
+}
+
+/// Whether a page is about `item` (the tooltip's hint).
+pub fn has_page(item: &str) -> bool {
+    GUIDE.with_borrow(|g| g.items.contains_key(item))
+}
+
+/// The tooltip saw `item` under the pointer.
+pub fn hovered(item: &str) {
+    GUIDE.with_borrow_mut(|g| g.hovered = Some((item.to_owned(), std::time::Instant::now())));
+}
+
+pub fn is_open() -> bool {
+    GUIDE.with_borrow(|g| g.open.is_some())
+}
+
+/// Opens the page about `item`, if there is one.
+pub fn open_item(game: &Game<'_>, item: &str) -> bool {
+    load_index(game);
+    let Some(page) = GUIDE.with_borrow(|g| g.items.get(item).cloned()) else { return false };
+    open_page(game, &page, true);
+    true
+}
+
+/// The panel's size for the window: as large as AE2's guide window, never past the window's edges.
+fn panel_size(game: &Game<'_>) -> [f32; 2] {
+    let (w, h) = game.gui_size();
+    [(w - 24.0).clamp(220.0, 430.0), (h - 24.0).clamp(140.0, 330.0)]
+}
+
+fn open_page(game: &Game<'_>, page: &str, push: bool) {
+    load_index(game);
+    let Some(bytes) = game.native_data(&format!("data/ae2/ae2guide/{page}")) else { return };
+    let text = String::from_utf8_lossy(&bytes).into_owned();
+    let size = panel_size(game);
+    let (lines, _) = layout(game, page, &text, size[0] - 2.0 * PAD - 8.0);
+    GUIDE.with_borrow_mut(|g| {
+        if push && let Some(cur) = g.open.take() {
+            g.history.push(cur);
+        }
+        g.open = Some(page.to_owned());
+        g.lines = lines;
+        g.scroll = 0.0;
+        g.size = size;
+    });
+}
+
+/// Back a page, or shut the guide on the first.
+fn back(game: &Game<'_>) {
+    let prev = GUIDE.with_borrow_mut(|g| g.history.pop());
+    match prev {
+        Some(p) => open_page(game, &p, false),
+        None => close(),
+    }
+}
+
+fn close() {
+    GUIDE.with_borrow_mut(|g| {
+        g.open = None;
+        g.lines.clear();
+        g.history.clear();
+    });
+}
+
+/// A page path relative to `from`'s folder, `..` resolved (`ae2:` paths from the guide's root).
+fn resolve(from: &str, target: &str) -> String {
+    let target = target.split('#').next().unwrap_or(target);
+    if let Some(abs) = target.strip_prefix("ae2:") {
+        return abs.to_owned();
+    }
+    let mut parts: Vec<&str> = from.split('/').collect();
+    parts.pop();
+    for t in target.split('/') {
+        match t {
+            ".." => {
+                parts.pop();
+            }
+            "." | "" => {}
+            t => parts.push(t),
+        }
+    }
+    parts.join("/")
+}
+
+fn item_id(id: &str) -> String {
+    if id.contains(':') { id.to_owned() } else { format!("ae2:{id}") }
+}
+
+/// An attribute of a tag: `id="x"` (or `id={x}`).
+fn attr(tag: &str, name: &str) -> Option<String> {
+    for (open, close) in [("=\"", '"'), ("={", '}')] {
+        let key = format!(" {name}{open}");
+        if let Some(at) = tag.find(&key).map(|a| a + key.len())
+            && let Some(end) = tag[at..].find(close)
+        {
+            return Some(tag[at..at + end].to_owned());
+        }
+    }
+    None
+}
+
+/// AE2's config values the pages quote (`<ae2:ConfigValue name=".."/>`), at their defaults.
+fn config_value(name: &str) -> Option<&'static str> {
+    match name {
+        "crystalResonanceGeneratorRate" => Some("20"),
+        _ => None,
+    }
+}
+
+/// A word of running text with its look.
+#[derive(Clone)]
+struct Word {
+    text: String,
+    colour: u32,
+    link: Option<Link>,
+    bold: bool,
+    italic: bool,
+    /// A forced line break after it (`<br/>`).
+    br: bool,
+}
+
+/// Inline Markdown and AE2's inline tags as words: **bold**, *italic*, `code`, [links](page.md), <ItemLink/>,
+/// <ae2:ConfigValue/>, <br/>; other inline tags are left out.
+fn inline(game: &Game<'_>, page: &str, s: &str, base: u32, problems: &mut Vec<String>) -> Vec<Word> {
+    let mut out: Vec<Word> = Vec::new();
+    let (mut bold, mut italic, mut code) = (false, false, false);
+    let mut cur = String::new();
+    let cur_link: Option<Link> = None;
+    let mut colour_override: Option<u32> = None;
+    let push_word = |out: &mut Vec<Word>, cur: &mut String, bold: bool, italic: bool, code: bool, link: &Option<Link>, colour: Option<u32>| {
+        if cur.is_empty() {
+            return;
+        }
+        let colour = colour.unwrap_or(if link.is_some() { LINK } else if code { 0x8A2E7E } else { base });
+        out.push(Word { text: std::mem::take(cur), colour, link: link.clone(), bold, italic, br: false });
+    };
+    let chars: Vec<char> = s.chars().collect();
+    let mut i = 0;
+    let text_at = |i: usize| chars[i..].iter().collect::<String>();
+    while i < chars.len() {
+        let c = chars[i];
+        let rest = || text_at(i);
+        if c == '\\' && i + 1 < chars.len() {
+            cur.push(chars[i + 1]);
+            i += 2;
+            continue;
+        }
+        if c == '`' {
+            push_word(&mut out, &mut cur, bold, italic, code, &cur_link, colour_override);
+            code = !code;
+            i += 1;
+            continue;
+        }
+        if code {
+            if c == ' ' {
+                push_word(&mut out, &mut cur, bold, italic, code, &cur_link, colour_override);
+            } else {
+                cur.push(c);
+            }
+            i += 1;
+            continue;
+        }
+        if c == '*' && chars.get(i + 1) == Some(&'*') {
+            push_word(&mut out, &mut cur, bold, italic, code, &cur_link, colour_override);
+            bold = !bold;
+            i += 2;
+            continue;
+        }
+        if c == '*' || (c == '_' && (i == 0 || chars[i - 1] == ' ' || chars.get(i + 1).is_none_or(|n| *n == ' ' || n.is_ascii_punctuation()))) {
+            push_word(&mut out, &mut cur, bold, italic, code, &cur_link, colour_override);
+            italic = !italic;
+            i += 1;
+            continue;
+        }
+        if c == '[' {
+            let r = rest();
+            if let Some(close) = r.find("](")
+                && let Some(end) = r[close..].find(')')
+            {
+                push_word(&mut out, &mut cur, bold, italic, code, &cur_link, colour_override);
+                let label = &r[1..close];
+                let target = &r[close + 2..close + end];
+                let link = if target.ends_with(".md") || target.contains(".md#") {
+                    Some(Link::Page(resolve(page, target)))
+                } else {
+                    None
+                };
+                let mut words = inline(game, page, label, if link.is_some() || target.starts_with("http") { LINK } else { base }, problems);
+                for w in &mut words {
+                    w.bold |= bold;
+                    w.italic |= italic;
+                    if link.is_some() {
+                        w.link = link.clone();
+                    }
+                }
+                out.extend(words);
+                i += r[..close + end + 1].chars().count();
+                continue;
+            }
+        }
+        if c == '<' {
+            let r = rest();
+            let end = r.find('>').map_or(r.len(), |e| e + 1);
+            let tag = &r[..end];
+            let name: String = tag.trim_start_matches(['<', '/']).chars().take_while(|c| c.is_alphanumeric() || *c == ':').collect();
+            push_word(&mut out, &mut cur, bold, italic, code, &cur_link, colour_override);
+            match name.as_str() {
+                "ItemLink" => {
+                    if let Some(id) = attr(tag, "id") {
+                        let id = item_id(&id);
+                        if game.res.items().get(&id).is_none() {
+                            problems.push(format!("ItemLink to an unknown item {id}"));
+                        }
+                        for w in super::port_ae2_me::item_words(&id).split_whitespace() {
+                            out.push(Word { text: w.to_owned(), colour: LINK, link: Some(Link::Item(id.clone())), bold, italic, br: false });
+                        }
+                    }
+                }
+                "ae2:ConfigValue" => {
+                    let name = attr(tag, "name").unwrap_or_default();
+                    match config_value(&name) {
+                        Some(v) => out.push(Word { text: v.to_owned(), colour: base, link: None, bold, italic, br: false }),
+                        None => problems.push(format!("ConfigValue {name} unknown")),
+                    }
+                }
+                "br" => {
+                    if let Some(last) = out.last_mut() {
+                        last.br = true;
+                    }
+                }
+                "Color" => colour_override = if tag.starts_with("</") { None } else { attr(tag, "color").and_then(|c| u32::from_str_radix(c.trim_start_matches('#'), 16).ok()) },
+                "a" | "span" | "sub" | "sup" | "kbd" | "b" | "i" | "strong" | "em" => {
+                    if matches!(name.as_str(), "b" | "strong") {
+                        bold = !tag.starts_with("</");
+                    }
+                    if matches!(name.as_str(), "i" | "em") {
+                        italic = !tag.starts_with("</");
+                    }
+                }
+                other if !other.is_empty() => problems.push(format!("inline tag <{other}> left out")),
+                _ => cur.push('<'),
+            }
+            i += tag.chars().count().max(1);
+            continue;
+        }
+        if c == ' ' || c == '\n' || c == '\t' {
+            push_word(&mut out, &mut cur, bold, italic, code, &cur_link, colour_override);
+            i += 1;
+            continue;
+        }
+        cur.push(c);
+        i += 1;
+    }
+    push_word(&mut out, &mut cur, bold, italic, code, &cur_link, colour_override);
+    out
+}
+
+fn styled(w: &Word) -> String {
+    let mut s = String::new();
+    if w.bold {
+        s.push_str("§l");
+    }
+    if w.italic {
+        s.push_str("§o");
+    }
+    s.push_str(&w.text);
+    s
+}
+
+fn word_width(game: &Game<'_>, w: &Word) -> f32 {
+    game.native_text_width(&w.text) + if w.bold { w.text.chars().count() as f32 } else { 0.0 }
+}
+
+/// Words flowed into lines from `indent` to `width` (a hanging indent for list items).
+fn flow(game: &Game<'_>, words: &[Word], indent: f32, width: f32, out: &mut Vec<Line>) {
+    if words.is_empty() {
+        return;
+    }
+    let space = game.native_text_width(" ");
+    let mut line = Line { height: LINE, ..Default::default() };
+    let mut x = indent;
+    for w in words {
+        let ww = word_width(game, w);
+        if x + ww > width && x > indent {
+            out.push(std::mem::replace(&mut line, Line { height: LINE, ..Default::default() }));
+            x = indent;
+        }
+        line.texts.push((x, 0.0, styled(w), w.colour, w.link.clone()));
+        x += ww + space;
+        if w.br {
+            out.push(std::mem::replace(&mut line, Line { height: LINE, ..Default::default() }));
+            x = indent;
+        }
+    }
+    if !line.texts.is_empty() {
+        out.push(line);
+    }
+}
+
+fn gap(out: &mut Vec<Line>, h: f32) {
+    if out.last().is_some_and(|l| l.texts.is_empty() && l.icons.is_empty() && l.fills.is_empty() && l.sprites.is_empty() && l.scene.is_empty()) {
+        return;
+    }
+    if !out.is_empty() {
+        out.push(Line { height: h, ..Default::default() });
+    }
+}
+
+/// A slot's frame for recipes and item grids (AE2's guide draws vanilla's slot).
+fn slot(line: &mut Line, x: f32, y: f32) {
+    line.fills.push(([x - 1.0, y - 1.0, 18.0, 18.0], 0xFF373737));
+    line.fills.push(([x, y, 17.0, 17.0], 0xFFFFFFFF));
+    line.fills.push(([x, y, 16.0, 16.0], 0xFF8B8B8B));
+}
+
+/// The ids of an ingredient as a recipe's JSON names it (an item, a tag, a list), the first one shown.
+fn ingredient_ids(game: &Game<'_>, v: &serde_json::Value) -> Vec<String> {
+    horizon_client::crafting::Ingredient::parse(v, game.res.items()).map(|i| i.1).unwrap_or_default()
+}
+
+fn result_of(v: &serde_json::Value) -> Option<(String, i64)> {
+    let r = v.get("result")?;
+    let id = r.get("id").or_else(|| r.get("item")).and_then(|x| x.as_str())?.to_owned();
+    Some((id, r.get("count").and_then(|c| c.as_i64()).unwrap_or(1)))
+}
+
+/// A recipe box: its station's name, its inputs in their layout, an arrow, what it makes.
+fn recipe_box(game: &Game<'_>, title: &str, cells: &[Vec<String>], width: usize, result: &(String, i64)) -> Line {
+    let mut line = Line::default();
+    line.fills.push(([0.0, 0.0, 0.0, 0.0], 0));
+    line.texts.push((2.0, 1.0, format!("§o{title}"), 0x606060, None));
+    let rows = cells.len().div_ceil(width.max(1));
+    let top = 12.0;
+    for (i, ids) in cells.iter().enumerate() {
+        let (x, y) = (3.0 + 18.0 * (i % width) as f32, top + 18.0 * (i / width) as f32);
+        slot(&mut line, x, y);
+        if let Some(id) = ids.first() {
+            line.icons.push((x, y, id.clone(), 16.0));
+        }
+    }
+    let ax = 3.0 + 18.0 * width as f32 + 6.0;
+    let ay = top + 18.0 * (rows.max(1) - 1) as f32 / 2.0;
+    line.texts.push((ax, ay + 4.0, "→".to_owned(), 0x606060, None));
+    let rx = ax + game.native_text_width("→") + 8.0;
+    slot(&mut line, rx, ay);
+    line.icons.push((rx, ay, result.0.clone(), 16.0));
+    if result.1 > 1 {
+        let l = result.1.to_string();
+        line.texts.push((rx + 17.0 - game.native_text_width(&l), ay + 9.0, l, 0xFFFFFF, None));
+    }
+    // The box behind it all.
+    let w = rx + 22.0;
+    let h = top + 18.0 * rows.max(1) as f32 + 4.0;
+    line.fills[0] = ([0.0, 0.0, w, h], 0xFFD6D6CE);
+    line.height = h + 4.0;
+    line
+}
+
+/// AE2's `<RecipeFor id=..>` (every recipe that makes the item) or `<Recipe id=..>` (one recipe by its id).
+fn recipes(game: &Game<'_>, item: Option<&str>, recipe_id: Option<&str>) -> Vec<Line> {
+    let mut out = Vec::new();
+    // `<Recipe id>` names it without its namespace (`network/cables/smart_fluix`); recipes carry theirs.
+    let wanted = |id: &str, rid: &str| item.is_some_and(|i| i == id) || recipe_id.is_some_and(|r| rid == r || rid.ends_with(&format!(":{r}")));
+    RECIPES.with_borrow(|catalog| {
+        let Some(catalog) = catalog else { return };
+        let name = |i: u32| catalog.items.get(i as usize).map(|x| x.id.clone()).unwrap_or_default();
+        for r in &catalog.recipes {
+            let Some(first) = r.results.first() else { continue };
+            let result = name(first.item);
+            if !wanted(&result, &r.id) {
+                continue;
+            }
+            use crate::game::native_hooks::NativeRecipeKind as K;
+            let title = match r.kind {
+                K::CraftingShaped | K::CraftingShapeless => "Crafting",
+                K::Smelting => "Smelting",
+                K::Blasting => "Blasting",
+                K::Smoking => "Smoking",
+                K::Campfire => "Campfire",
+                K::Stonecutting => "Stonecutting",
+                K::Smithing => "Smithing",
+                K::Brewing => "Brewing",
+            };
+            let width = if r.kind == K::CraftingShaped { r.width.max(1) as usize } else if r.slots.len() > 3 { 3 } else { r.slots.len().max(1) };
+            let cells: Vec<Vec<String>> = r.slots.iter().map(|s| s.iter().map(|x| name(x.item)).collect()).collect();
+            out.push(recipe_box(game, title, &cells, width, &(result, i64::from(first.count))));
+        }
+    });
+    // AE2's own machines: the inscriber (top, middle, bottom), the charger, in-world transformations.
+    for (kind, title) in [("ae2:inscriber", "Inscriber"), ("ae2:charger", "Charger"), ("ae2:transform", "Transformation"), ("ae2:entropy", "Entropy Manipulator")] {
+        for r in game.native_recipes_of_type(kind) {
+            let Some(result) = result_of(&r.json) else { continue };
+            if !wanted(&result.0, &r.id) {
+                continue;
+            }
+            let cells: Vec<Vec<String>> = match kind {
+                "ae2:inscriber" => ["top", "middle", "bottom"]
+                    .iter()
+                    .map(|k| r.json.get("ingredients").and_then(|i| i.get(*k)).map(|v| ingredient_ids(game, v)).unwrap_or_default())
+                    .collect(),
+                "ae2:charger" => vec![r.json.get("ingredient").map(|v| ingredient_ids(game, v)).unwrap_or_default()],
+                _ => r.json.get("ingredients").and_then(|i| i.as_array()).into_iter().flatten().map(|v| ingredient_ids(game, v)).collect(),
+            };
+            let width = if kind == "ae2:inscriber" { 1 } else { cells.len().clamp(1, 3) };
+            out.push(recipe_box(game, title, &cells, width, &result));
+        }
+    }
+    out
+}
+
+/// Lines side by side (a `<Row>`): each one's pieces moved right, the row as tall as the tallest.
+fn side_by_side(parts: Vec<Line>, width: f32, out: &mut Vec<Line>) {
+    let mut row = Line::default();
+    let mut x = 0.0f32;
+    for p in parts {
+        let w = p
+            .fills
+            .iter()
+            .map(|(r, _)| r[0] + r[2])
+            .chain(p.icons.iter().map(|i| i.0 + i.3))
+            .chain(p.sprites.iter().map(|(r, _)| r[0] + r[2]))
+            .fold(0.0f32, f32::max)
+            .max(16.0);
+        if x > 0.0 && x + w > width {
+            out.push(std::mem::take(&mut row));
+            x = 0.0;
+        }
+        row.texts.extend(p.texts.into_iter().map(|(px, py, t, c, l)| (px + x, py, t, c, l)));
+        row.icons.extend(p.icons.into_iter().map(|(px, py, id, s)| (px + x, py, id, s)));
+        row.fills.extend(p.fills.into_iter().map(|(r, c)| ([r[0] + x, r[1], r[2], r[3]], c)));
+        row.sprites.extend(p.sprites.into_iter().map(|(r, n)| ([r[0] + x, r[1], r[2], r[3]], n)));
+        row.height = row.height.max(p.height);
+        x += w + 8.0;
+    }
+    if row.height > 0.0 {
+        out.push(row);
+    }
+}
+
+/// A picture of the page (`![alt](path.png)`, shipped as `ae2:gui/guide/<path>`), at most the page's width.
+fn picture(game: &Game<'_>, page: &str, src: &str, width: f32, problems: &mut Vec<String>) -> Option<Line> {
+    let path = resolve(page, src);
+    let name = format!("ae2:gui/guide/{}", path.trim_end_matches(".png"));
+    let Some([w, h]) = game.native_sprite_size(&name) else {
+        problems.push(format!("picture {path} missing"));
+        return None;
+    };
+    let scale = (width / w).min(1.0).min(160.0 / h);
+    let (dw, dh) = (w * scale, h * scale);
+    Some(Line { sprites: vec![([(width - dw) / 2.0, 0.0, dw, dh], name)], height: dh + 4.0, ..Default::default() })
+}
+
+/// Pages listed as links, by position then title (`<SubPages>`, `<CategoryIndex>`).
+fn page_list(game: &Game<'_>, pages: Vec<String>, width: f32, out: &mut Vec<Line>) {
+    let mut pages: Vec<(i64, String, String, Option<String>)> = GUIDE.with_borrow(|g| {
+        pages
+            .into_iter()
+            .map(|p| {
+                let title = g.titles.get(&p).cloned().unwrap_or_else(|| p.clone());
+                (g.positions.get(&p).copied().unwrap_or(i64::MAX), title, p.clone(), g.icons.get(&p).cloned())
+            })
+            .collect()
+    });
+    pages.sort();
+    for (_, title, page, icon) in pages {
+        let mut line = Line { height: 18.0, ..Default::default() };
+        if let Some(icon) = icon {
+            line.icons.push((4.0, 0.0, item_id(&icon), 16.0));
+        }
+        let words: Vec<Word> = title
+            .split_whitespace()
+            .map(|t| Word { text: t.to_owned(), colour: LINK, link: Some(Link::Page(page.clone())), bold: false, italic: false, br: false })
+            .collect();
+        let mut tmp = Vec::new();
+        flow(game, &words, 24.0, width, &mut tmp);
+        for (i, mut l) in tmp.into_iter().enumerate() {
+            if i == 0 {
+                line.texts = l.texts.into_iter().map(|(x, _, t, c, k)| (x, 4.0, t, c, k)).collect();
+                out.push(std::mem::take(&mut line));
+            } else {
+                l.height = LINE;
+                out.push(l);
+            }
+        }
+    }
+}
+
+/// A block of tags and text up to its closing tag (`<Row>`..`</Row>`), from line `i`.
+fn tag_block(lines: &[&str], i: usize, name: &str) -> (String, usize) {
+    let mut body = String::new();
+    let mut j = i;
+    let first = lines[i].trim();
+    if first.ends_with("/>") && first.starts_with(&format!("<{name}")) {
+        return (first.to_owned(), i + 1);
+    }
+    let mut depth = 0;
+    while j < lines.len() {
+        let l = lines[j];
+        depth += l.matches(&format!("<{name}")).count() as i32;
+        depth -= l.matches(&format!("</{name}>")).count() as i32;
+        body.push_str(l);
+        body.push('\n');
+        j += 1;
+        if depth <= 0 {
+            break;
+        }
+    }
+    (body, j)
+}
+
+/// The tags in a block, each `<Tag .../>` or `<Tag ...>` in order.
+fn tags_in(body: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut rest = body;
+    while let Some(a) = rest.find('<') {
+        let Some(e) = rest[a..].find('>') else { break };
+        out.push(rest[a..a + e + 1].to_owned());
+        rest = &rest[a + e + 1..];
+    }
+    out
+}
+
+/// Item pictures and recipes of a `<Row>` or `<ItemGrid>`'s tags, each as a piece placed side by side.
+fn pieces(game: &Game<'_>, page: &str, tags: &[String], width: f32, problems: &mut Vec<String>) -> Vec<Line> {
+    let mut parts = Vec::new();
+    for t in tags {
+        let name: String = t.trim_start_matches('<').chars().take_while(|c| c.is_alphanumeric()).collect();
+        match name.as_str() {
+            "ItemImage" | "BlockImage" | "ItemIcon" => {
+                let Some(id) = attr(t, "id").map(|i| item_id(&i)) else { continue };
+                if game.res.items().get(&id).is_none() {
+                    problems.push(format!("{name} of an unknown item {id}"));
+                }
+                let scale: f32 = attr(t, "scale").and_then(|s| s.parse().ok()).unwrap_or(if name == "BlockImage" { 2.0 } else { 1.0 });
+                let size = if name == "ItemIcon" { 16.0 } else { (16.0 * scale).clamp(16.0, 64.0) };
+                let id = if name == "BlockImage" {
+                    let mut props = Vec::new();
+                    let mut rest = t.as_str();
+                    while let Some(at) = rest.find(" p:") {
+                        rest = &rest[at + 3..];
+                        if let Some((k, after)) = rest.split_once("=\"")
+                            && let Some((v, _)) = after.split_once('"')
+                        {
+                            let k = if k == "fullness" { "stage" } else { k };
+                            props.push(format!("{k}={v}"));
+                        }
+                    }
+                    format!("{id}|{}", props.join(";"))
+                } else {
+                    id
+                };
+                let mut l = Line { height: size + 4.0, ..Default::default() };
+                if name == "ItemIcon" {
+                    slot(&mut l, 1.0, 1.0);
+                    l.icons.push((1.0, 1.0, id, 16.0));
+                } else {
+                    l.icons.push((0.0, 0.0, id, size));
+                }
+                parts.push(l);
+            }
+            "RecipeFor" | "Recipe" => {
+                let found = if name == "RecipeFor" {
+                    recipes(game, attr(t, "id").map(|i| item_id(&i)).as_deref(), None)
+                } else {
+                    recipes(game, None, attr(t, "id").as_deref())
+                };
+                if found.is_empty() {
+                    problems.push(format!("{name} {} found no recipe", attr(t, "id").unwrap_or_default()));
+                }
+                parts.extend(found);
+            }
+            _ => {}
+        }
+    }
+    let _ = (page, width);
+    parts
+}
+
+/// The page's Markdown laid out for a page `width` wide, and what in it couldn't be shown (for the audit).
+fn layout(game: &Game<'_>, page: &str, text: &str, width: f32) -> (Vec<Line>, Vec<String>) {
+    let mut problems = Vec::new();
+    let mut body = text;
+    if let Some(rest) = text.strip_prefix("---")
+        && let Some(end) = rest.find("\n---")
+    {
+        body = &rest[end + 4..];
+    }
+    let lines: Vec<&str> = body.lines().collect();
+    let mut out: Vec<Line> = Vec::new();
+    let mut para: Vec<Word> = Vec::new();
+    // The list item being gathered: indent level, its marker, its words.
+    let mut item: Option<(usize, String, Vec<Word>)> = None;
+    let flush = |para: &mut Vec<Word>, item: &mut Option<(usize, String, Vec<Word>)>, out: &mut Vec<Line>| {
+        if !para.is_empty() {
+            flow(game, para, 0.0, width, out);
+            para.clear();
+            gap(out, 4.0);
+        }
+        if let Some((level, marker, words)) = item.take() {
+            let indent = 10.0 * level as f32;
+            let mut tmp = Vec::new();
+            let mw = game.native_text_width(&marker) + 4.0;
+            flow(game, &words, indent + mw.max(10.0), width, &mut tmp);
+            if let Some(first) = tmp.first_mut() {
+                first.texts.insert(0, (indent, 0.0, marker, 0x606060, None));
+            }
+            out.extend(tmp);
+        }
+    };
+    let mut i = 0;
+    while i < lines.len() {
+        let raw = lines[i];
+        let l = raw.trim();
+        // Code blocks.
+        if l.starts_with("```") {
+            flush(&mut para, &mut item, &mut out);
+            i += 1;
+            while i < lines.len() && !lines[i].trim().starts_with("```") {
+                out.push(Line {
+                    texts: vec![(6.0, 1.0, lines[i].to_owned(), 0x303030, None)],
+                    fills: vec![([0.0, 0.0, width, LINE], 0xFFDCDCD4)],
+                    height: LINE,
+                    ..Default::default()
+                });
+                i += 1;
+            }
+            i += 1;
+            gap(&mut out, 4.0);
+            continue;
+        }
+        if l.is_empty() {
+            flush(&mut para, &mut item, &mut out);
+            i += 1;
+            continue;
+        }
+        // Headings.
+        if l.starts_with('#') {
+            flush(&mut para, &mut item, &mut out);
+            let level = l.chars().take_while(|c| *c == '#').count();
+            let words = inline(game, page, l.trim_start_matches('#').trim(), [0x1E1E5A, 0x1E1E5A, 0x2E2E6A, 0x404040][level.min(3)], &mut problems);
+            let words: Vec<Word> = words.into_iter().map(|w| Word { bold: true, ..w }).collect();
+            gap(&mut out, 4.0);
+            flow(game, &words, 0.0, width, &mut out);
+            if level <= 2
+                && let Some(last) = out.last_mut()
+            {
+                last.fills.push(([0.0, LINE - 1.0, width, 1.0], 0xFF9090B0));
+                last.height = LINE + 3.0;
+            }
+            gap(&mut out, 3.0);
+            i += 1;
+            continue;
+        }
+        // Rules.
+        if l == "---" || l == "***" {
+            flush(&mut para, &mut item, &mut out);
+            out.push(Line { fills: vec![([0.0, 3.0, width, 1.0], 0xFFA0A0A0)], height: 8.0, ..Default::default() });
+            i += 1;
+            continue;
+        }
+        // Tables.
+        if l.starts_with('|') {
+            flush(&mut para, &mut item, &mut out);
+            let mut rows: Vec<Vec<String>> = Vec::new();
+            while i < lines.len() && lines[i].trim().starts_with('|') {
+                let r = lines[i].trim().trim_matches('|');
+                let cells: Vec<String> = r.split('|').map(|c| c.trim().to_owned()).collect();
+                if !cells.iter().all(|c| c.chars().all(|ch| matches!(ch, '-' | ':' | ' '))) {
+                    rows.push(cells);
+                }
+                i += 1;
+            }
+            let cols = rows.iter().map(Vec::len).max().unwrap_or(0);
+            if cols == 0 {
+                continue;
+            }
+            let col_w = width / cols as f32;
+            for (r, row) in rows.iter().enumerate() {
+                let mut cells_lines: Vec<Vec<Line>> = Vec::new();
+                for c in 0..cols {
+                    let mut words = inline(game, page, row.get(c).map_or("", String::as_str), TEXT, &mut problems);
+                    if r == 0 {
+                        words.iter_mut().for_each(|w| w.bold = true);
+                    }
+                    let mut tmp = Vec::new();
+                    flow(game, &words, 0.0, col_w - 6.0, &mut tmp);
+                    cells_lines.push(tmp);
+                }
+                let h = cells_lines.iter().map(|c| c.len()).max().unwrap_or(1).max(1) as f32 * LINE + 4.0;
+                let mut line = Line { height: h, ..Default::default() };
+                line.fills.push(([0.0, 0.0, width, h], if r == 0 { 0xFFCFCFE0 } else if r % 2 == 1 { 0xFFF0F0E8 } else { 0xFFE4E4DC }));
+                line.fills.push(([0.0, h - 1.0, width, 1.0], 0xFFB0B0B0));
+                for (c, cl) in cells_lines.into_iter().enumerate() {
+                    for (k, sub) in cl.into_iter().enumerate() {
+                        for (x, _, t, colour, link) in sub.texts {
+                            line.texts.push((3.0 + col_w * c as f32 + x, 2.0 + LINE * k as f32, t, colour, link));
+                        }
+                    }
+                }
+                out.push(line);
+            }
+            gap(&mut out, 4.0);
+            continue;
+        }
+        // Pictures.
+        if l.starts_with("![") {
+            flush(&mut para, &mut item, &mut out);
+            if let Some(open) = l.find("](")
+                && let Some(close) = l[open..].find(')')
+                && let Some(p) = picture(game, page, &l[open + 2..open + close], width, &mut problems)
+            {
+                out.push(p);
+            }
+            i += 1;
+            continue;
+        }
+        // Quotes.
+        if let Some(q) = l.strip_prefix('>') {
+            flush(&mut para, &mut item, &mut out);
+            let words = inline(game, page, q.trim(), 0x505050, &mut problems);
+            let start = out.len();
+            flow(game, &words, 10.0, width, &mut out);
+            for line in &mut out[start..] {
+                line.fills.push(([2.0, -1.0, 2.0, LINE], 0xFF9090B0));
+            }
+            i += 1;
+            continue;
+        }
+        // AE2's tags.
+        if l.starts_with('<') && !l.starts_with("<ItemLink") && !l.starts_with("<br") && !l.starts_with("<ae2:ConfigValue") && !l.starts_with("<a ") {
+            flush(&mut para, &mut item, &mut out);
+            let name: String = l.trim_start_matches('<').chars().take_while(|c| c.is_alphanumeric()).collect();
+            let (block, next) = tag_block(&lines, i, &name);
+            let tags = tags_in(&block);
+            match name.as_str() {
+                "GameScene" => {
+                    for t in &tags {
+                        if t.starts_with("<ImportStructure")
+                            && let Some(src) = attr(t, "src")
+                        {
+                            let path = resolve(page, &src.replace(".snbt", ".json"));
+                            match scene(game, &path, width) {
+                                Some(line) => out.push(line),
+                                None => problems.push(format!("scene {path} missing")),
+                            }
+                        }
+                    }
+                    gap(&mut out, 4.0);
+                }
+                "Row" | "ItemGrid" => {
+                    let parts = pieces(game, page, &tags, width, &mut problems);
+                    side_by_side(parts, width, &mut out);
+                    gap(&mut out, 4.0);
+                }
+                "Column" => {
+                    let inner: String = block.lines().skip(1).take(block.lines().count().saturating_sub(2)).collect::<Vec<_>>().join("\n");
+                    let (sub, more) = layout(game, page, &inner, width);
+                    out.extend(sub);
+                    problems.extend(more);
+                }
+                "ItemImage" | "BlockImage" | "ItemIcon" | "RecipeFor" | "Recipe" => {
+                    let parts = pieces(game, page, &tags, width, &mut problems);
+                    side_by_side(parts, width, &mut out);
+                    gap(&mut out, 4.0);
+                }
+                "div" => {
+                    // AE2's notes: a tinted box with its text.
+                    let inner: String = block.lines().filter(|l| !l.trim().starts_with("<div") && !l.trim().starts_with("</div")).collect::<Vec<_>>().join(" ");
+                    let words = inline(game, page, &inner, 0x1E3A5A, &mut problems);
+                    let start = out.len();
+                    flow(game, &words, 6.0, width - 6.0, &mut out);
+                    for line in &mut out[start..] {
+                        line.fills.insert(0, ([0.0, -1.0, width, LINE], 0xFFCFE0F0));
+                    }
+                    gap(&mut out, 4.0);
+                }
+                "SubPages" => {
+                    let children: Vec<String> = GUIDE.with_borrow(|g| g.parents.iter().filter(|(_, p)| *p == page).map(|(c, _)| c.clone()).collect());
+                    page_list(game, children, width, &mut out);
+                    gap(&mut out, 4.0);
+                }
+                "CategoryIndex" => {
+                    let cat = attr(&tags[0], "category").unwrap_or_default();
+                    let pages: Vec<String> = GUIDE.with_borrow(|g| g.categories.iter().filter(|(_, c)| c.contains(&cat)).map(|(p, _)| p.clone()).collect());
+                    if pages.is_empty() {
+                        problems.push(format!("CategoryIndex {cat} lists no page"));
+                    }
+                    page_list(game, pages, width, &mut out);
+                    gap(&mut out, 4.0);
+                }
+                "a" | "br" => {}
+                other => problems.push(format!("tag <{other}> left out")),
+            }
+            i = next.max(i + 1);
+            continue;
+        }
+        // Lists: `- `, `* `, `1. ` (nested by their indent), with their following lines.
+        let indent = raw.len() - raw.trim_start().len();
+        let marker = if let Some(r) = l.strip_prefix("- ").or_else(|| l.strip_prefix("* ")) {
+            Some(("•".to_owned(), r))
+        } else {
+            let digits: String = l.chars().take_while(|c| c.is_ascii_digit()).collect();
+            (!digits.is_empty()).then(|| l[digits.len()..].strip_prefix(". ").map(|r| (format!("{digits}."), r))).flatten()
+        };
+        if let Some((m, rest)) = marker {
+            flush(&mut para, &mut item, &mut out);
+            item = Some((indent / 2, m, inline(game, page, rest, TEXT, &mut problems)));
+            i += 1;
+            continue;
+        }
+        if let Some((_, _, words)) = item.as_mut()
+            && indent > 0
+        {
+            words.extend(inline(game, page, l, TEXT, &mut problems));
+            i += 1;
+            continue;
+        }
+        if item.is_some() {
+            flush(&mut para, &mut item, &mut out);
+        }
+        para.extend(inline(game, page, l, TEXT, &mut problems));
+        i += 1;
+    }
+    flush(&mut para, &mut item, &mut out);
+    (out, problems)
+}
+
+/// A structure as an isometric scene (as AE2's guide shows its assemblies): each block's item drawn where it
+/// stands, scaled to fit the page's width, farthest first.
+fn scene(game: &Game<'_>, path: &str, width: f32) -> Option<Line> {
+    let bytes = game.native_data(&format!("data/ae2/ae2guide/{path}"))?;
+    let v: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
+    let mut blocks: Vec<(i64, i64, i64, String)> = v
+        .get("blocks")?
+        .as_array()?
+        .iter()
+        .filter_map(|b| {
+            let b = b.as_array()?;
+            let mut id = b.get(3)?.as_str()?.to_owned();
+            if let Some(props) = b.get(4).and_then(|p| p.as_object()) {
+                let list: Vec<String> = props.iter().filter_map(|(k, v)| Some(format!("{k}={}", v.as_str()?))).collect();
+                id = format!("{id}|{}", list.join(";"));
+            }
+            Some((b.first()?.as_i64()?, b.get(1)?.as_i64()?, b.get(2)?.as_i64()?, id))
+        })
+        .collect();
+    if blocks.is_empty() {
+        return None;
+    }
+    blocks.sort_by_key(|b| (b.0 + b.2, b.1));
+    let at = |b: &(i64, i64, i64, String)| ((b.0 - b.2) as f32, (b.0 + b.2) as f32 * 0.5 - b.1 as f32);
+    let (mut x0, mut x1, mut y0, mut y1) = (f32::MAX, f32::MIN, f32::MAX, f32::MIN);
+    for b in &blocks {
+        let (x, y) = at(b);
+        x0 = x0.min(x);
+        x1 = x1.max(x);
+        y0 = y0.min(y);
+        y1 = y1.max(y);
+    }
+    let steps_w = (x1 - x0) + 2.0;
+    let steps_h = (y1 - y0) + 2.0;
+    let icon = (2.0 * width / steps_w).min(2.0 * 150.0 / steps_h).clamp(8.0, 32.0);
+    let half = icon / 2.0;
+    let left = (width - steps_w * half) / 2.0;
+    let scene = blocks
+        .iter()
+        .map(|b| {
+            let (x, y) = at(b);
+            (left + (x - x0) * half, (y - y0) * half, icon, b.3.clone())
+        })
+        .collect();
+    let h = steps_h * half + 6.0;
+    // GameScene's camera: about the structure's middle, AE2's isometric start (30 degrees down, 225 round).
+    let (mut lo, mut hi) = ([f32::MAX; 3], [f32::MIN; 3]);
+    for b in &blocks {
+        for (i, v) in [b.0, b.1, b.2].into_iter().enumerate() {
+            lo[i] = lo[i].min(v as f32);
+            hi[i] = hi[i].max(v as f32 + 1.0);
+        }
+    }
+    let mid = [(lo[0] + hi[0]) / 2.0, (lo[1] + hi[1]) / 2.0, (lo[2] + hi[2]) / 2.0];
+    let mut scene3d = Scene3d {
+        blocks: blocks.iter().map(|b| ([b.0 as f32 + 0.5 - mid[0], b.1 as f32 + 0.5 - mid[1], b.2 as f32 + 0.5 - mid[2]], b.3.clone())).collect(),
+        unit: 1.0,
+        center: [width / 2.0, h / 2.0],
+        yaw: 225f32.to_radians(),
+        pitch: 30f32.to_radians(),
+    };
+    // The block size that fits the structure's corners, seen from the start view, into the band.
+    let r = scene_rotation(&scene3d);
+    let (mut sx0, mut sx1, mut sy0, mut sy1) = (f32::MAX, f32::MIN, f32::MAX, f32::MIN);
+    for x in [lo[0], hi[0]] {
+        for y in [lo[1], hi[1]] {
+            for z in [lo[2], hi[2]] {
+                let q = r.transform_point3(glam::Vec3::new(x - mid[0], y - mid[1], z - mid[2]));
+                sx0 = sx0.min(q.x);
+                sx1 = sx1.max(q.x);
+                sy0 = sy0.min(q.y);
+                sy1 = sy1.max(q.y);
+            }
+        }
+    }
+    scene3d.unit = ((width * 0.9) / (sx1 - sx0).max(0.5)).min((h - 8.0) / (sy1 - sy0).max(0.5)).clamp(6.0, 48.0);
+    Some(Line { scene, scene3d: Some(scene3d), fills: vec![([0.0, 0.0, width, h], 0xFFD8D8D0)], height: h + 2.0, ..Default::default() })
+}
+
+/// The view's rotation (pitch about x after yaw about y, as an item's display transform turns).
+fn scene_rotation(s: &Scene3d) -> glam::Mat4 {
+    glam::Mat4::from_rotation_x(s.pitch) * glam::Mat4::from_rotation_y(s.yaw)
+}
+
+/// Each block's place on the page (from the line's top left) and depth, with its item, far to near.
+fn scene_projection(s: &Scene3d) -> Vec<(f32, f32, f32, [f32; 3], String)> {
+    let r = scene_rotation(s);
+    let mut out: Vec<(f32, f32, f32, [f32; 3], String)> = s
+        .blocks
+        .iter()
+        .map(|(p, id)| {
+            let q = r.transform_point3(glam::Vec3::from(*p));
+            (s.center[0] + q.x * s.unit, s.center[1] - q.y * s.unit, q.z, *p, id.clone())
+        })
+        .collect();
+    out.sort_by(|a, b| a.2.total_cmp(&b.2));
+    out
+}
+
+/// A block's item model drawn in the scene: its place turned with the view and scaled to the scene's block size
+/// (the model's own display transform replaced by the scene's).
+/// An id with its block state (`id|key=value;...`): the block and its properties.
+fn split_state(id: &str) -> (&str, Vec<(&str, &str)>) {
+    match id.split_once('|') {
+        Some((b, props)) => (b, props.split(';').filter_map(|kv| kv.split_once('=')).collect()),
+        None => (id, Vec::new()),
+    }
+}
+
+/// The item an id stands for (its block state dropped).
+fn item_of(id: &str) -> &str {
+    id.split_once('|').map_or(id, |(b, _)| b)
+}
+
+/// Block `block` in the state its `props` set (those it has), its model under `m` (block units to GUI pixels, +z
+/// toward the viewer) as 3D quads. False when it has no block state.
+fn draw_block_state(game: &Game<'_>, batch: &mut HudBatch, block: &str, props: &[(&str, &str)], m: glam::Mat4) -> bool {
+    let registry = &game.pack.assets.registry;
+    let Some(mut state) = registry.default_state(block).and_then(|id| registry.state(id)).cloned() else { return false };
+    for (k, v) in props {
+        if let Some(slot) = state.properties.get_mut(*k) {
+            *slot = (*v).to_owned();
+        }
+    }
+    let Some(id) = registry.id(&state) else { return false };
+    let mut verts = Vec::new();
+    game.block_model_vertices(id, 42, m, 0xF0F0, false, &mut verts);
+    for q in verts.chunks_exact(4) {
+        // The world's vertex colour is ABGR, the HUD's ARGB: red and blue trade places.
+        let c = q[0].color;
+        let c = (c & 0xFF00_FF00) | ((c >> 16) & 0xFF) | ((c & 0xFF) << 16);
+        batch.quad_3d([q[0].pos, q[1].pos, q[2].pos, q[3].pos], [q[0].uv, q[1].uv, q[2].uv, q[3].uv], c);
+    }
+    true
+}
+
+/// A BlockImage: the block seen as its item would be (30 down, 225 round), `size` pixels.
+fn draw_block_image(game: &Game<'_>, batch: &mut HudBatch, id: &str, at: [f32; 2], size: f32) {
+    let (block, props) = split_state(id);
+    let start = batch.vertices.len();
+    let k = size * 0.625;
+    let m = glam::Mat4::from_translation(glam::Vec3::new(at[0] + size / 2.0, at[1] + size / 2.0, 0.0))
+        * glam::Mat4::from_scale(glam::Vec3::new(k, -k, k))
+        * glam::Mat4::from_rotation_x(30f32.to_radians())
+        * glam::Mat4::from_rotation_y(225f32.to_radians())
+        * glam::Mat4::from_translation(glam::Vec3::splat(-0.5));
+    if draw_block_state(game, batch, block, &props, m) {
+        batch.depth_since(start, [at[0] - size, at[1] - size, at[0] + 2.0 * size, at[1] + 2.0 * size]);
+    } else {
+        game.native_item(batch, block, at, size);
+    }
+}
+
+fn draw_scene_block(game: &Game<'_>, batch: &mut HudBatch, s: &Scene3d, origin: [f32; 2], rel: [f32; 3], id: &str) {
+    let (block, props) = split_state(id);
+    let [cx, cy] = [origin[0] + s.center[0], origin[1] + s.center[1]];
+    let m = glam::Mat4::from_translation(glam::Vec3::new(cx, cy, 0.0))
+        * glam::Mat4::from_scale(glam::Vec3::new(s.unit, -s.unit, s.unit))
+        * scene_rotation(s)
+        * glam::Mat4::from_translation(glam::Vec3::from(rel) - glam::Vec3::splat(0.5));
+    if draw_block_state(game, batch, block, &props, m) {
+        return;
+    }
+    let id = block;
+    let stack = horizon_client::items::ItemStack::new(id, 1);
+    let owner = game.player_owner(Some(&stack));
+    let mut state = game.resolve_item(&stack, horizon_assets::item_model::DisplayContext::Gui, Some(&owner), 0);
+    let m = glam::Mat4::from_scale(glam::Vec3::splat(s.unit / 16.0))
+        * scene_rotation(s)
+        * glam::Mat4::from_translation(glam::Vec3::from(rel) - glam::Vec3::splat(0.5));
+    for layer in &mut state.layers {
+        layer.matrix = m;
+    }
+    state.oversized_in_gui = true;
+    let [cx, cy] = [origin[0] + s.center[0], origin[1] + s.center[1]];
+    horizon_client::item_render::gui::draw(
+        &state,
+        &game.pack.item_renderer,
+        &game.gui.atlas.sprites,
+        &game.item_host(),
+        batch,
+        cx - 8.0,
+        cy - 8.0,
+        0.0,
+        0.0,
+        0.0,
+    );
+}
+
+/// `native_screen_mouse_dragged_pre`: dragging a scene turns it (left-right round, up-down over).
+pub fn drag(delta: [f32; 2], canceled: &mut bool) {
+    GUIDE.with_borrow_mut(|g| {
+        let Some((line, moved, _)) = g.drag.as_mut() else { return };
+        *canceled = true;
+        if delta[0].abs() + delta[1].abs() > 0.0 {
+            *moved = true;
+        }
+        let line = *line;
+        if let Some(s) = g.lines.get_mut(line).and_then(|l| l.scene3d.as_mut()) {
+            s.yaw += delta[0] * 0.02;
+            s.pitch = (s.pitch + delta[1] * 0.02).clamp(-1.5, 1.5);
+        }
+    });
+}
+
+/// `native_screen_mouse_button_released_pre`: the end of a drag; a press that didn't move opens the block's page.
+pub fn release(game: &Game<'_>, canceled: &mut bool) {
+    let Some((_, moved, id)) = GUIDE.with_borrow_mut(|g| g.drag.take()) else { return };
+    *canceled = true;
+    if !moved && !id.is_empty() {
+        let page = GUIDE.with_borrow(|g| g.open.clone());
+        let target = GUIDE.with_borrow(|g| g.items.get(item_of(&id)).cloned());
+        if let Some(t) = target.filter(|t| Some(t) != page.as_ref()) {
+            open_page(game, &t, true);
+        }
+    }
+}
+
+/// Where the panel is: centred in the window.
+fn panel(game: &Game<'_>) -> [f32; 4] {
+    let (w, h) = game.gui_size();
+    let [pw, ph] = GUIDE.with_borrow(|g| g.size);
+    [((w - pw) / 2.0).max(0.0).floor(), ((h - ph) / 2.0).max(0.0).floor(), pw, ph]
+}
+
+/// `native_screen_render_post`: the guide over the screen, the hovered item's tooltip over it.
+pub fn draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
+    let Some(page) = GUIDE.with_borrow(|g| g.open.clone()) else { return };
+    let [x, y, pw, ph] = panel(game);
+    let (sw, sh) = game.gui_size();
+    game.native_fill(batch, [0.0, 0.0, sw, sh], 0x90000000);
+    game.native_fill(batch, [x - 1.0, y - 1.0, pw + 2.0, ph + 2.0], 0xFF000000);
+    game.native_fill(batch, [x, y, pw, ph], 0xFFECECE4);
+    game.native_fill(batch, [x, y, pw, 16.0], 0xFF505070);
+    let title = GUIDE.with_borrow(|g| g.titles.get(&page).cloned()).unwrap_or_else(|| page.clone());
+    game.native_text(batch, &format!("AE2 Guide — {title}"), [x + 6.0, y + 4.0], 0xFFFFFF, false);
+    let can_back = GUIDE.with_borrow(|g| !g.history.is_empty());
+    game.native_text(batch, "< Back", [x + pw - 66.0, y + 4.0], if can_back { 0xFFFFA0 } else { 0x9090A0 }, false);
+    game.native_text(batch, "x", [x + pw - 12.0, y + 4.0], 0xFFFFFF, false);
+    let (lines, scroll) = GUIDE.with_borrow(|g| (g.lines.clone(), g.scroll));
+    let top = y + 20.0;
+    let bottom = y + ph - 4.0;
+    let left = x + PAD;
+    let visible = |a: f32, b: f32| a >= top - 1.0 && b <= bottom + 1.0;
+    let mut tip: Option<String> = None;
+    let mut ly = top - scroll;
+    for line in &lines {
+        if ly + line.height >= top && ly <= bottom {
+            for (r, c) in &line.fills {
+                let (fy, fh) = (ly + r[1], r[3]);
+                let (cy0, cy1) = (fy.max(top), (fy + fh).min(bottom));
+                if cy1 > cy0 && *c != 0 {
+                    game.native_fill(batch, [left + r[0], cy0, r[2], cy1 - cy0], *c);
+                }
+            }
+            for (r, name) in &line.sprites {
+                if visible(ly + r[1], ly + r[1] + r[3])
+                    && let Some([w, h]) = game.native_sprite_size(name)
+                {
+                    game.native_sprite(batch, name, [0.0, 0.0, w, h], [left + r[0], ly + r[1], r[2], r[3]]);
+                }
+            }
+            for (px, py, text, colour, _) in &line.texts {
+                if visible(ly + py, ly + py + 8.0) {
+                    let c = *colour;
+                    let rgba = horizon_client::hud::rgba(((c >> 16) & 0xFF) as u8, ((c >> 8) & 0xFF) as u8, (c & 0xFF) as u8, 255);
+                    batch.text_styled(&game.gui.atlas, &horizon_client::text::Text::legacy(text), left + px, ly + py, rgba, false);
+                }
+            }
+            for (px, py, id, size) in &line.icons {
+                let (ix, iy) = (left + px, ly + py);
+                if visible(iy, iy + size) {
+                    if id.contains('|') {
+                        draw_block_image(game, batch, id, [ix, iy], *size);
+                    } else {
+                        game.native_item(batch, id, [ix, iy], *size);
+                    }
+                    if mouse[0] >= ix && mouse[0] < ix + size && mouse[1] >= iy && mouse[1] < iy + size {
+                        tip = Some(item_of(id).to_owned());
+                    }
+                }
+            }
+            if visible(ly, ly + line.height - 2.0) && let Some(s) = &line.scene3d {
+                let projected = scene_projection(s);
+                let start = batch.vertices.len();
+                for (_, _, _, rel, id) in &projected {
+                    draw_scene_block(game, batch, s, [left, ly], *rel, id);
+                }
+                // One model: the scene's quads depth-tested together, kept to its band.
+                batch.depth_since(start, [left, ly.max(top), left + width_of(line), (ly + line.height).min(bottom)]);
+                let hits: Vec<(f32, f32, f32, String)> = projected.into_iter().map(|(x, y, _, _, id)| (x - s.unit / 2.0, y - s.unit / 2.0, s.unit, id)).collect();
+                let index = lines.iter().position(|l| std::ptr::eq(l, line));
+                GUIDE.with_borrow_mut(|g| {
+                    if let Some(l) = index.and_then(|i| g.lines.get_mut(i)) {
+                        l.scene = hits;
+                    }
+                });
+            } else if visible(ly, ly + line.height - 2.0) {
+                for (px, py, size, id) in &line.scene {
+                    game.native_item(batch, id, [left + px, ly + py], *size);
+                }
+                for (px, py, size, id) in line.scene.iter().rev() {
+                    let (bx, by) = (left + px, ly + py);
+                    if mouse[0] >= bx + size * 0.15 && mouse[0] < bx + size * 0.85 && mouse[1] >= by + size * 0.1 && mouse[1] < by + size * 0.9 {
+                        tip = Some(item_of(id).to_owned());
+                        break;
+                    }
+                }
+            }
+        }
+        ly += line.height;
+    }
+    // The scroll bar.
+    let total: f32 = lines.iter().map(|l| l.height).sum();
+    let view = bottom - top;
+    if total > view {
+        let bar = (view * view / total).max(12.0);
+        let at = top + (view - bar) * scroll / (total - view);
+        game.native_fill(batch, [x + pw - 6.0, top, 4.0, view], 0xFFC8C8C0);
+        game.native_fill(batch, [x + pw - 6.0, at, 4.0, bar], 0xFF707090);
+    }
+    if let Some(id) = tip {
+        let lines = game.stack_tooltip(&horizon_client::items::ItemStack::new(&id, 1));
+        game.draw_tooltip_lines(batch, &lines, mouse[0], mouse[1]);
+    }
+}
+
+/// `native_screen_mouse_button_pressed_pre`: clicks on the guide (links, pictures, scene blocks, Back, close);
+/// none reach the screen under it while it is open.
+pub fn click(game: &Game<'_>, mouse: [f32; 2], canceled: &mut bool) {
+    let Some(page) = GUIDE.with_borrow(|g| g.open.clone()) else { return };
+    *canceled = true;
+    let [x, y, pw, _] = panel(game);
+    let [mx, my] = mouse;
+    if my >= y && my < y + 16.0 {
+        if mx >= x + pw - 14.0 {
+            close();
+        } else if mx >= x + pw - 70.0 {
+            back(game);
+        }
+        return;
+    }
+    let open_item = |id: &str| {
+        let target = GUIDE.with_borrow(|g| g.items.get(id).cloned());
+        if let Some(t) = target.filter(|t| *t != page) {
+            open_page(game, &t, true);
+        }
+    };
+    let (lines, scroll) = GUIDE.with_borrow(|g| (g.lines.clone(), g.scroll));
+    let left = x + PAD;
+    let mut ly = y + 20.0 - scroll;
+    for line in &lines {
+        if my >= ly && my < ly + line.height {
+            if line.scene3d.is_some() {
+                let mut hit = String::new();
+                for (px, py, size, id) in line.scene.iter().rev() {
+                    let (bx, by) = (left + px, ly + py);
+                    if mx >= bx + size * 0.15 && mx < bx + size * 0.85 && my >= by + size * 0.1 && my < by + size * 0.9 {
+                        hit = item_of(id).to_owned();
+                        break;
+                    }
+                }
+                let index = lines.iter().position(|l| std::ptr::eq(l, line)).unwrap_or(0);
+                GUIDE.with_borrow_mut(|g| g.drag = Some((index, false, hit)));
+                return;
+            }
+            for (px, py, size, id) in line.scene.iter().rev() {
+                let (bx, by) = (left + px, ly + py);
+                if mx >= bx + size * 0.15 && mx < bx + size * 0.85 && my >= by + size * 0.1 && my < by + size * 0.9 {
+                    open_item(item_of(id));
+                    return;
+                }
+            }
+            for (px, py, id, size) in &line.icons {
+                let (bx, by) = (left + px, ly + py);
+                if mx >= bx && mx < bx + size && my >= by && my < by + size {
+                    open_item(item_of(id));
+                    return;
+                }
+            }
+            for (px, py, text, _, link) in &line.texts {
+                let (lx, ty) = (left + px, ly + py);
+                let plain = text.replace("§l", "").replace("§o", "");
+                if mx >= lx && mx < lx + game.native_text_width(&plain) + 2.0 && my >= ty - 1.0 && my < ty + 9.0 {
+                    match link {
+                        Some(Link::Page(p)) => {
+                            if GUIDE.with_borrow(|g| g.titles.contains_key(p)) {
+                                open_page(game, p, true);
+                            }
+                        }
+                        Some(Link::Item(id)) => open_item(id),
+                        None => {}
+                    }
+                    return;
+                }
+            }
+        }
+        ly += line.height;
+    }
+}
+
+/// `native_screen_mouse_scrolled_pre`: the guide scrolls.
+pub fn scroll(by: f64, canceled: &mut bool) {
+    GUIDE.with_borrow_mut(|g| {
+        if g.open.is_none() {
+            return;
+        }
+        *canceled = true;
+        let total: f32 = g.lines.iter().map(|l| l.height).sum();
+        let most = (total - (g.size[1] - 24.0)).max(0.0);
+        g.scroll = (g.scroll - by as f32 * 22.0).clamp(0.0, most);
+    });
+}
+
+/// `native_screen_key_pressed_pre`: the guide key over a hovered item opens its page; with the guide open,
+/// Escape closes it, Backspace goes back, and no key reaches the screen.
+pub fn key(game: &Game<'_>, key: &str, canceled: &mut bool) {
+    if is_open() {
+        *canceled = true;
+        if key.ends_with("escape") {
+            close();
+        } else if key.ends_with("backspace") {
+            back(game);
+        } else if key.ends_with("pageup") || key.ends_with("pagedown") {
+            let mut c = false;
+            scroll(if key.ends_with("pageup") { 8.0 } else { -8.0 }, &mut c);
+        }
+        return;
+    }
+    if key.ends_with(".w") || key == "w" {
+        load_index(game);
+        // Only the item under the pointer (AE2: hold the key over an item).
+        let item = GUIDE.with_borrow(|g| g.hovered.clone())
+            .filter(|(i, at)| at.elapsed().as_millis() < 300 && has_page(i))
+            .map(|(i, _)| i);
+        if let Some(item) = item
+            && open_item(game, &item)
+        {
+            *canceled = true;
+        }
+    }
+}
+
+/// `/ae2guide open <page>` (a page, as the tests need) and `/ae2guide audit` (every page laid out: what in it
+/// couldn't be shown — tags, items, pictures, recipes, links — written to ae2-guide-audit.txt beside the game's
+/// options). Client-side.
+pub fn command(_game: &Game<'_>, args: &str) -> String {
+    // A command runs on the server's thread: the guide (its pictures, the window's recipes) is the render
+    // thread's, which picks the request up on its next frame.
+    *ASKED.lock().unwrap_or_else(|e| e.into_inner()) = Some(args.trim().to_owned());
+    format!("ae2guide {}: on the next frame", args.trim())
+}
+
+/// A `/ae2guide` request waiting for the render thread.
+static ASKED: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+/// The frame's part (render thread): a waiting `/ae2guide` request runs here.
+pub fn frame(game: &Game<'_>) {
+    let Some(args) = ASKED.lock().unwrap_or_else(|e| e.into_inner()).take() else { return };
+    let msg = run_command(game, &args);
+    log::info!("{msg}");
+}
+
+fn run_command(game: &Game<'_>, args: &str) -> String {
+    load_index(game);
+    let mut words = args.split_whitespace();
+    match words.next() {
+        Some("open") => {
+            let page = words.next().unwrap_or("index.md").to_owned();
+            open_page(game, &page, false);
+            format!("guide: {page}")
+        }
+        Some("audit") => {
+            let mut pages: Vec<String> = GUIDE.with_borrow(|g| g.titles.keys().cloned().collect());
+            pages.sort();
+            let width = 430.0 - 2.0 * PAD - 8.0;
+            let mut report = String::new();
+            let mut total = 0;
+            for p in &pages {
+                let Some(bytes) = game.native_data(&format!("data/ae2/ae2guide/{p}")) else {
+                    report.push_str(&format!("{p}: unreadable\n"));
+                    continue;
+                };
+                let text = String::from_utf8_lossy(&bytes).into_owned();
+                let (lines, mut problems) = layout(game, p, &text, width);
+                for l in &lines {
+                    for (_, _, t, _, link) in &l.texts {
+                        let plain = t.replace("§l", "").replace("§o", "");
+                        if plain.contains("**") || plain.contains("](") || plain.starts_with('<') || plain.contains("/>") {
+                            problems.push(format!("raw markup shown: {plain}"));
+                        }
+                        if let Some(Link::Page(target)) = link
+                            && !GUIDE.with_borrow(|g| g.titles.contains_key(target))
+                        {
+                            problems.push(format!("link to a missing page {target}"));
+                        }
+                    }
+                    for (_, _, id, _) in &l.icons {
+                        if game.res.items().get(id).is_none() {
+                            problems.push(format!("icon of an unknown item {id}"));
+                        }
+                    }
+                }
+                problems.sort();
+                problems.dedup();
+                total += problems.len();
+                if !problems.is_empty() {
+                    report.push_str(&format!("{p}:\n"));
+                    for pr in problems {
+                        report.push_str(&format!("  {pr}\n"));
+                    }
+                }
+            }
+            let recipes = RECIPES.with_borrow(|r| r.as_ref().map_or(0, |c| c.recipes.len()));
+            // What the game holds: its recipes, the guide's sprites in the GUI atlas.
+            let mut sprites: Vec<String> = game.gui.atlas.sprites.keys().filter(|k| k.starts_with("ae2:gui/")).cloned().collect();
+            sprites.sort();
+            report.insert_str(0, &format!("recipes known: {recipes}\nae2 gui sprites ({}): {}\n", sprites.len(), sprites.join(" ")));
+            let path = std::env::var_os("APPDATA").map(|a| std::path::PathBuf::from(a).join("horizon").join("ae2-guide-audit.txt"));
+            if let Some(path) = &path {
+                let _ = std::fs::write(path, format!("{} pages, {total} problems\n{report}", pages.len()));
+            }
+            format!("guide audit: {} pages, {total} problems ({recipes} recipes known)", pages.len())
+        }
+        _ => "ae2guide open <page> | audit".to_owned(),
+    }
+}
+
+/// An item's description: the first paragraph of its guide page, as plain text (AE2's JEI information pages).
+pub fn summary(game: &Game<'_>, item: &str) -> Option<String> {
+    thread_local! {
+        static CACHE: RefCell<HashMap<String, Option<String>>> = RefCell::new(HashMap::new());
+    }
+    if let Some(s) = CACHE.with_borrow(|c| c.get(item).cloned()) {
+        return s;
+    }
+    load_index(game);
+    let found = (|| {
+        let page = GUIDE.with_borrow(|g| g.items.get(item).cloned())?;
+        let bytes = game.native_data(&format!("data/ae2/ae2guide/{page}"))?;
+        let text = String::from_utf8_lossy(&bytes).into_owned();
+        let body = match text.strip_prefix("---").and_then(|r| r.find("\n---").map(|e| r[e + 4..].to_owned())) {
+            Some(b) => b,
+            None => text,
+        };
+        let para = body.split("\n\n").map(str::trim).find(|p| !p.is_empty() && !p.starts_with('#') && !p.starts_with('<') && !p.starts_with('!'))?;
+        // Links as their words, item links as the item's name, other tags out.
+        let mut out = String::new();
+        let mut rest = para;
+        while !rest.is_empty() {
+            if let Some(stripped) = rest.strip_prefix("<ItemLink") {
+                let end = stripped.find("/>").map_or(stripped.len(), |e| e + 2);
+                if let Some(id) = attr(&stripped[..end], "id") {
+                    out.push_str(&super::port_ae2_me::item_words(&id));
+                }
+                rest = &stripped[end..];
+            } else if rest.starts_with('<') {
+                rest = rest.find('>').map_or("", |e| &rest[e + 1..]);
+            } else if rest.starts_with('[') && let Some(close) = rest.find("](") && let Some(end) = rest[close..].find(')') {
+                out.push_str(&rest[1..close]);
+                rest = &rest[close + end + 1..];
+            } else {
+                let c = rest.chars().next().unwrap();
+                out.push(if c == '\n' { ' ' } else { c });
+                rest = &rest[c.len_utf8()..];
+            }
+        }
+        let out = out.replace(['*', '_'], "");
+        Some(out.split_whitespace().collect::<Vec<_>>().join(" "))
+    })();
+    CACHE.with_borrow_mut(|c| c.insert(item.to_owned(), found.clone()));
+    found
+}
+
+/// A band's width: the furthest its fills reach (a scene's background fills it).
+fn width_of(line: &Line) -> f32 {
+    line.fills.iter().map(|(r, _)| r[0] + r[2]).fold(0.0, f32::max)
+}

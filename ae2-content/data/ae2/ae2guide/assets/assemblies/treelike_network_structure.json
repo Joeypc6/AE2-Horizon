@@ -1,0 +1,2698 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:1k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      0,
+      0,
+      2,
+      "ae2:1k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      3,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      0,
+      0,
+      4,
+      "ae2:1k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      5,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "6"
+      }
+    ],
+    [
+      0,
+      0,
+      6,
+      "ae2:64k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      7,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "7"
+      }
+    ],
+    [
+      0,
+      0,
+      9,
+      "minecraft:barrel",
+      {
+        "facing": "west",
+        "open": "false"
+      }
+    ],
+    [
+      0,
+      0,
+      11,
+      "ae2:drive",
+      {
+        "facing": "west",
+        "spin": "0"
+      }
+    ],
+    [
+      0,
+      0,
+      12,
+      "ae2:io_port",
+      {
+        "facing": "west",
+        "powered": "true",
+        "spin": "0"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:1k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      3,
+      "ae2:1k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      5,
+      "ae2:1k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      7,
+      "ae2:64k_crafting_storage",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      12,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      2,
+      0,
+      7,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      2,
+      0,
+      8,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      2,
+      0,
+      9,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      2,
+      0,
+      10,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      2,
+      0,
+      11,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      2,
+      0,
+      12,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      2,
+      0,
+      13,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      3,
+      0,
+      13,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      4,
+      0,
+      2,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      0,
+      3,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      4,
+      0,
+      5,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      4,
+      0,
+      6,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      0,
+      9,
+      "minecraft:oak_wall_sign",
+      {
+        "facing": "north",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      4,
+      0,
+      10,
+      "minecraft:blast_furnace",
+      {
+        "facing": "north",
+        "lit": "false"
+      }
+    ],
+    [
+      4,
+      0,
+      11,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      4,
+      0,
+      12,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      4,
+      0,
+      13,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "5"
+      }
+    ],
+    [
+      5,
+      0,
+      2,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      5,
+      0,
+      3,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      5,
+      0,
+      5,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      5,
+      0,
+      6,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      5,
+      0,
+      13,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "5"
+      }
+    ],
+    [
+      5,
+      0,
+      14,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "5"
+      }
+    ],
+    [
+      6,
+      0,
+      8,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      0,
+      9,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      0,
+      10,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      0,
+      11,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      0,
+      12,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      0,
+      13,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      0,
+      14,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      7,
+      0,
+      2,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      7,
+      0,
+      3,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      7,
+      0,
+      5,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      7,
+      0,
+      6,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      7,
+      0,
+      13,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "6"
+      }
+    ],
+    [
+      7,
+      0,
+      14,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "6"
+      }
+    ],
+    [
+      8,
+      0,
+      2,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      8,
+      0,
+      3,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      8,
+      0,
+      5,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      8,
+      0,
+      6,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      8,
+      0,
+      13,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "6"
+      }
+    ],
+    [
+      9,
+      0,
+      13,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "6"
+      }
+    ],
+    [
+      10,
+      0,
+      5,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      10,
+      0,
+      6,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      11,
+      0,
+      6,
+      "ae2:cable_anchor",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      10,
+      0,
+      7,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      10,
+      0,
+      8,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      10,
+      0,
+      9,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      10,
+      0,
+      10,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      10,
+      0,
+      11,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      10,
+      0,
+      12,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "6"
+      }
+    ],
+    [
+      10,
+      0,
+      13,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "6"
+      }
+    ],
+    [
+      11,
+      0,
+      2,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      12,
+      0,
+      2,
+      "ae2:storage_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      12,
+      0,
+      2,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      11,
+      0,
+      3,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      11,
+      0,
+      4,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      12,
+      0,
+      4,
+      "ae2:storage_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      12,
+      0,
+      4,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      11,
+      0,
+      5,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      12,
+      0,
+      5,
+      "ae2:storage_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      12,
+      0,
+      5,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      11,
+      0,
+      6,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      12,
+      0,
+      6,
+      "ae2:storage_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      12,
+      0,
+      6,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      10,
+      0,
+      6,
+      "ae2:cable_anchor",
+      {
+        "facing": "west",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      11,
+      0,
+      9,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      11,
+      0,
+      12,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      12,
+      0,
+      1,
+      "minecraft:chest",
+      {
+        "facing": "east",
+        "type": "left",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      12,
+      0,
+      2,
+      "minecraft:chest",
+      {
+        "facing": "east",
+        "type": "right",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      12,
+      0,
+      3,
+      "minecraft:chest",
+      {
+        "facing": "east",
+        "type": "left",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      12,
+      0,
+      4,
+      "minecraft:chest",
+      {
+        "facing": "east",
+        "type": "right",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      12,
+      0,
+      5,
+      "minecraft:barrel",
+      {
+        "facing": "east",
+        "open": "false"
+      }
+    ],
+    [
+      12,
+      0,
+      6,
+      "minecraft:barrel",
+      {
+        "facing": "east",
+        "open": "false"
+      }
+    ],
+    [
+      12,
+      0,
+      8,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      12,
+      0,
+      9,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      12,
+      0,
+      11,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      12,
+      0,
+      12,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      2,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      4,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      6,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      9,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "2"
+      }
+    ],
+    [
+      0,
+      0,
+      9,
+      "ae2:import_bus",
+      {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      9,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      -1,
+      1,
+      9,
+      "ae2:pattern_access_terminal",
+      {
+        "facing": "west",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      10,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      -1,
+      1,
+      10,
+      "ae2:terminal",
+      {
+        "facing": "west",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      11,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "5"
+      }
+    ],
+    [
+      -1,
+      1,
+      11,
+      "ae2:crafting_terminal",
+      {
+        "facing": "west",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      12,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ],
+    [
+      -1,
+      1,
+      12,
+      "ae2:pattern_encoding_terminal",
+      {
+        "facing": "west",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      3,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      5,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      7,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      1,
+      2,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      4,
+      1,
+      3,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      1,
+      5,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      1,
+      6,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      4,
+      1,
+      10,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "4"
+      }
+    ],
+    [
+      4,
+      0,
+      10,
+      "ae2:import_bus",
+      {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      4,
+      0,
+      10,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      4,
+      2,
+      10,
+      "ae2:import_bus",
+      {
+        "facing": "up",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      4,
+      2,
+      10,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "4"
+      }
+    ],
+    [
+      4,
+      1,
+      11,
+      "ae2:green_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "4"
+      }
+    ],
+    [
+      4,
+      0,
+      11,
+      "ae2:storage_bus",
+      {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      4,
+      0,
+      11,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      4,
+      1,
+      12,
+      "ae2:quartz_fiber",
+      {
+        "facing": "south",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      4,
+      2,
+      11,
+      "ae2:storage_bus",
+      {
+        "facing": "up",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      4,
+      2,
+      11,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "4"
+      }
+    ],
+    [
+      4,
+      1,
+      12,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ],
+    [
+      5,
+      1,
+      2,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      5,
+      1,
+      3,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      5,
+      1,
+      5,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      5,
+      1,
+      6,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      6,
+      1,
+      8,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "8"
+      }
+    ],
+    [
+      7,
+      1,
+      2,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      7,
+      1,
+      3,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      7,
+      1,
+      5,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      7,
+      1,
+      6,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      8,
+      1,
+      2,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      8,
+      1,
+      3,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      8,
+      1,
+      5,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      8,
+      1,
+      6,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      11,
+      1,
+      2,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ],
+    [
+      12,
+      1,
+      2,
+      "ae2:storage_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      12,
+      1,
+      2,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      11,
+      1,
+      4,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ],
+    [
+      12,
+      1,
+      4,
+      "ae2:storage_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      12,
+      1,
+      4,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      11,
+      1,
+      5,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ],
+    [
+      12,
+      1,
+      5,
+      "ae2:storage_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      12,
+      1,
+      5,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      11,
+      1,
+      6,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ],
+    [
+      12,
+      1,
+      6,
+      "ae2:storage_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      12,
+      1,
+      6,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      12,
+      1,
+      1,
+      "minecraft:chest",
+      {
+        "facing": "east",
+        "type": "left",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      12,
+      1,
+      2,
+      "minecraft:chest",
+      {
+        "facing": "east",
+        "type": "right",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      12,
+      1,
+      3,
+      "minecraft:chest",
+      {
+        "facing": "east",
+        "type": "left",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      12,
+      1,
+      4,
+      "minecraft:chest",
+      {
+        "facing": "east",
+        "type": "right",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      12,
+      1,
+      5,
+      "minecraft:barrel",
+      {
+        "facing": "east",
+        "open": "false"
+      }
+    ],
+    [
+      12,
+      1,
+      6,
+      "minecraft:barrel",
+      {
+        "facing": "east",
+        "open": "false"
+      }
+    ],
+    [
+      12,
+      1,
+      8,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      12,
+      1,
+      9,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      12,
+      1,
+      11,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      12,
+      1,
+      12,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      0,
+      2,
+      0,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      2,
+      2,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      2,
+      4,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      2,
+      6,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      2,
+      10,
+      "ae2:wireless_access_point",
+      {
+        "facing": "up",
+        "state": "has_channel",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      1,
+      2,
+      1,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      2,
+      3,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      2,
+      5,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      2,
+      7,
+      "ae2:crafting_accelerator",
+      {
+        "formed": "true",
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      2,
+      2,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      2,
+      3,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      4,
+      2,
+      5,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      4,
+      2,
+      6,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      2,
+      9,
+      "minecraft:oak_wall_sign",
+      {
+        "facing": "north",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      4,
+      2,
+      10,
+      "minecraft:blast_furnace",
+      {
+        "facing": "north",
+        "lit": "false"
+      }
+    ],
+    [
+      4,
+      2,
+      11,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      4,
+      2,
+      12,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ],
+    [
+      5,
+      2,
+      2,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      5,
+      2,
+      3,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      5,
+      2,
+      5,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      5,
+      2,
+      6,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      6,
+      2,
+      8,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "8"
+      }
+    ],
+    [
+      7,
+      2,
+      2,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      7,
+      2,
+      3,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      7,
+      2,
+      5,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      7,
+      2,
+      6,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      8,
+      2,
+      2,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      8,
+      2,
+      3,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      8,
+      2,
+      5,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      8,
+      2,
+      6,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      12,
+      2,
+      8,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      12,
+      2,
+      9,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      12,
+      2,
+      11,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      12,
+      2,
+      12,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      4,
+      3,
+      2,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      4,
+      3,
+      3,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      3,
+      5,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      3,
+      6,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      5,
+      3,
+      2,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      5,
+      3,
+      3,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      5,
+      3,
+      5,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      5,
+      3,
+      6,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      6,
+      3,
+      8,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "8"
+      }
+    ],
+    [
+      7,
+      3,
+      2,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      7,
+      3,
+      3,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      7,
+      3,
+      5,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      7,
+      3,
+      6,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      8,
+      3,
+      2,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      8,
+      3,
+      3,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      8,
+      3,
+      5,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      8,
+      3,
+      6,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      12,
+      3,
+      8,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      12,
+      3,
+      9,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      12,
+      3,
+      11,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      12,
+      3,
+      12,
+      "ae2:drive",
+      {
+        "facing": "east",
+        "spin": "0"
+      }
+    ],
+    [
+      5,
+      4,
+      3,
+      "ae2:white_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "8"
+      }
+    ],
+    [
+      5,
+      4,
+      4,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      5,
+      4,
+      5,
+      "ae2:white_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      4,
+      4,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      4,
+      8,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "8"
+      }
+    ],
+    [
+      7,
+      4,
+      3,
+      "ae2:white_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "8"
+      }
+    ],
+    [
+      7,
+      4,
+      4,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      7,
+      4,
+      5,
+      "ae2:white_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      5,
+      4,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      5,
+      5,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      5,
+      6,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      5,
+      7,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "8"
+      }
+    ],
+    [
+      6,
+      5,
+      8,
+      "ae2:white_smart_dense_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "8"
+      }
+    ]
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      -1,
+      "ae2:crafting_terminal",
+      {
+        "facing": "north",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ]
+  ]
+}

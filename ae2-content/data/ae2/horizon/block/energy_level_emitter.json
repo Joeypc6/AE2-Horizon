@@ -1,0 +1,81 @@
+{
+  "template": "minecraft:shulker_box",
+  "properties": {
+    "hardness": 0.3,
+    "requires_tool": false,
+    "sounds": "minecraft:iron_block"
+  },
+  "state_properties": {
+    "powered": {
+      "type": "boolean"
+    }
+  },
+  "default_state": {
+    "powered": "false"
+  },
+  "shapes": {
+    "property": "facing",
+    "values": {
+      "north": [
+        [
+          0.375,
+          0.375,
+          0.6875,
+          0.625,
+          0.625,
+          0.9994
+        ]
+      ],
+      "south": [
+        [
+          0.375,
+          0.375,
+          0.0006,
+          0.625,
+          0.625,
+          0.3125
+        ]
+      ],
+      "west": [
+        [
+          0.6875,
+          0.375,
+          0.375,
+          0.9994,
+          0.625,
+          0.625
+        ]
+      ],
+      "east": [
+        [
+          0.0006,
+          0.375,
+          0.375,
+          0.3125,
+          0.625,
+          0.625
+        ]
+      ],
+      "up": [
+        [
+          0.375,
+          0.0006,
+          0.375,
+          0.625,
+          0.3125,
+          0.625
+        ]
+      ],
+      "down": [
+        [
+          0.375,
+          0.6875,
+          0.375,
+          0.625,
+          0.9994,
+          0.625
+        ]
+      ]
+    }
+  }
+}

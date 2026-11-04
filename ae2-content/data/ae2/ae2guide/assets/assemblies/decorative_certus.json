@@ -1,0 +1,264 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:chiseled_quartz_slab",
+      {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      0,
+      0,
+      2,
+      "ae2:chiseled_quartz_wall",
+      {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    ],
+    [
+      0,
+      0,
+      4,
+      "ae2:chiseled_quartz_stairs",
+      {
+        "facing": "south",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      0,
+      0,
+      6,
+      "ae2:chiseled_quartz_block",
+      {}
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:quartz_pillar_slab",
+      {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      2,
+      0,
+      2,
+      "ae2:quartz_pillar_wall",
+      {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    ],
+    [
+      2,
+      0,
+      4,
+      "ae2:quartz_pillar_stairs",
+      {
+        "facing": "south",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      2,
+      0,
+      6,
+      "ae2:quartz_pillar",
+      {
+        "axis": "y"
+      }
+    ],
+    [
+      4,
+      0,
+      0,
+      "ae2:quartz_brick_slab",
+      {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      4,
+      0,
+      2,
+      "ae2:quartz_brick_wall",
+      {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    ],
+    [
+      4,
+      0,
+      4,
+      "ae2:quartz_brick_stairs",
+      {
+        "facing": "south",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      4,
+      0,
+      6,
+      "ae2:quartz_bricks",
+      {}
+    ],
+    [
+      6,
+      0,
+      0,
+      "ae2:smooth_quartz_slab",
+      {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      6,
+      0,
+      2,
+      "ae2:smooth_quartz_wall",
+      {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    ],
+    [
+      6,
+      0,
+      4,
+      "ae2:smooth_quartz_stairs",
+      {
+        "facing": "south",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      6,
+      0,
+      6,
+      "ae2:smooth_quartz_block",
+      {}
+    ],
+    [
+      8,
+      0,
+      0,
+      "ae2:cut_quartz_slab",
+      {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      8,
+      0,
+      2,
+      "ae2:cut_quartz_wall",
+      {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    ],
+    [
+      8,
+      0,
+      4,
+      "ae2:cut_quartz_stairs",
+      {
+        "facing": "south",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      8,
+      0,
+      6,
+      "ae2:cut_quartz_block",
+      {}
+    ],
+    [
+      10,
+      0,
+      0,
+      "ae2:quartz_slab",
+      {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      10,
+      0,
+      2,
+      "ae2:quartz_wall",
+      {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    ],
+    [
+      10,
+      0,
+      4,
+      "ae2:quartz_stairs",
+      {
+        "facing": "south",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      10,
+      0,
+      6,
+      "ae2:quartz_block",
+      {}
+    ]
+  ]
+}

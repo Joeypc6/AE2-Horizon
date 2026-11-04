@@ -1,0 +1,222 @@
+{
+  "blocks": [
+    [
+      0,
+      1,
+      1,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "3"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:storage_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "3"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "minecraft:oak_wall_sign",
+      {
+        "facing": "north",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "minecraft:blast_furnace",
+      {
+        "facing": "north",
+        "lit": "false"
+      }
+    ],
+    [
+      2,
+      1,
+      1,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "up"
+      }
+    ],
+    [
+      3,
+      1,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      4,
+      1,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      5,
+      1,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      0,
+      2,
+      1,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "3"
+      }
+    ],
+    [
+      1,
+      2,
+      1,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "3"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:storage_bus",
+      {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "3"
+      }
+    ],
+    [
+      2,
+      2,
+      1,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "3"
+      }
+    ],
+    [
+      2,
+      1,
+      1,
+      "ae2:cable_interface",
+      {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      3,
+      2,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      2,
+      2,
+      1,
+      "ae2:quartz_fiber",
+      {
+        "facing": "west",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ]
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "sides": "ae2:block/part/monitor_sides",
+    "back": "ae2:block/part/monitor_back",
+    "front": "ae2:block/energy_acceptor",
+    "particle": "ae2:block/part/monitor_back"
+  },
+  "elements": [
+    {
+      "from": [
+        2,
+        2,
+        6.0
+      ],
+      "to": [
+        14,
+        14,
+        8.0
+      ],
+      "faces": {
+        "down": {
+          "texture": "#sides"
+        },
+        "up": {
+          "texture": "#sides"
+        },
+        "south": {
+          "texture": "#back"
+        },
+        "east": {
+          "texture": "#sides"
+        },
+        "north": {
+          "texture": "#front"
+        },
+        "west": {
+          "texture": "#sides"
+        }
+      }
+    },
+    {
+      "from": [
+        4,
+        4,
+        8.0
+      ],
+      "to": [
+        12,
+        12,
+        10.0
+      ],
+      "faces": {
+        "down": {
+          "texture": "#sides"
+        },
+        "up": {
+          "texture": "#sides"
+        },
+        "south": {
+          "texture": "#back"
+        },
+        "east": {
+          "texture": "#sides"
+        },
+        "west": {
+          "texture": "#sides"
+        }
+      }
+    }
+  ]
+}

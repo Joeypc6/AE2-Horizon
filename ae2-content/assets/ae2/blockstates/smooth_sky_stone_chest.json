@@ -1,0 +1,25 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "ae2:block/hz/smooth_sky_stone_chest_base"
+    },
+    "facing=south": {
+      "model": "ae2:block/hz/smooth_sky_stone_chest_base",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "ae2:block/hz/smooth_sky_stone_chest_base",
+      "y": 270
+    },
+    "facing=east": {
+      "model": "ae2:block/hz/smooth_sky_stone_chest_base",
+      "y": 90
+    },
+    "facing=up": {
+      "model": "ae2:block/hz/smooth_sky_stone_chest_base"
+    },
+    "facing=down": {
+      "model": "ae2:block/hz/smooth_sky_stone_chest_base"
+    }
+  }
+}

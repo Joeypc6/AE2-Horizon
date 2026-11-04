@@ -1,0 +1,47 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:fluix_slab",
+      {
+        "type": "bottom",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:fluix_wall",
+      {
+        "east": "none",
+        "north": "none",
+        "south": "none",
+        "up": "true",
+        "waterlogged": "false",
+        "west": "none"
+      }
+    ],
+    [
+      4,
+      0,
+      0,
+      "ae2:fluix_stairs",
+      {
+        "facing": "south",
+        "half": "bottom",
+        "shape": "straight",
+        "waterlogged": "false"
+      }
+    ],
+    [
+      6,
+      0,
+      0,
+      "ae2:fluix_block",
+      {}
+    ]
+  ]
+}

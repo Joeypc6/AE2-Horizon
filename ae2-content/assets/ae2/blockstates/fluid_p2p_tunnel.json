@@ -1,0 +1,311 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "facing": "north",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_off"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true",
+        "with_channel": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_on"
+      }
+    },
+    {
+      "when": {
+        "facing": "north",
+        "powered": "true",
+        "with_channel": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_has_channel"
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_off",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true",
+        "with_channel": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_on",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "south",
+        "powered": "true",
+        "with_channel": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_has_channel",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_off",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true",
+        "with_channel": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_on",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "west",
+        "powered": "true",
+        "with_channel": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_has_channel",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_off",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_on",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_has_channel",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_off",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true",
+        "with_channel": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_on",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "up",
+        "powered": "true",
+        "with_channel": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_has_channel",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_off",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_on",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz_part/fluid_p2p_tunnel_status_has_channel",
+        "x": 90
+      }
+    }
+  ]
+}

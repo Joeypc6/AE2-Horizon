@@ -1,0 +1,652 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:fluix_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "true",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:fluix_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:fluix_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      3,
+      0,
+      0,
+      "ae2:fluix_covered_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false"
+      }
+    ],
+    [
+      4,
+      0,
+      0,
+      "ae2:fluix_covered_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false"
+      }
+    ],
+    [
+      5,
+      0,
+      0,
+      "ae2:fluix_covered_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false"
+      }
+    ],
+    [
+      6,
+      0,
+      0,
+      "ae2:fluix_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      7,
+      0,
+      0,
+      "ae2:fluix_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      8,
+      0,
+      0,
+      "ae2:fluix_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      9,
+      0,
+      0,
+      "ae2:fluix_covered_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false"
+      }
+    ],
+    [
+      10,
+      0,
+      0,
+      "ae2:fluix_covered_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false"
+      }
+    ],
+    [
+      11,
+      0,
+      0,
+      "ae2:fluix_covered_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false"
+      }
+    ],
+    [
+      12,
+      0,
+      0,
+      "ae2:fluix_glass_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false"
+      }
+    ],
+    [
+      13,
+      0,
+      0,
+      "ae2:fluix_glass_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false"
+      }
+    ],
+    [
+      14,
+      0,
+      0,
+      "ae2:fluix_glass_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "true",
+        "down": "false"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:green_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      2,
+      1,
+      0,
+      "ae2:light_gray_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      3,
+      1,
+      0,
+      "ae2:green_covered_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true"
+      }
+    ],
+    [
+      4,
+      1,
+      0,
+      "ae2:blue_covered_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true"
+      }
+    ],
+    [
+      5,
+      1,
+      0,
+      "ae2:white_covered_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true"
+      }
+    ],
+    [
+      6,
+      1,
+      0,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      7,
+      1,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      8,
+      1,
+      0,
+      "ae2:white_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      9,
+      1,
+      0,
+      "ae2:green_covered_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true"
+      }
+    ],
+    [
+      10,
+      1,
+      0,
+      "ae2:blue_covered_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true"
+      }
+    ],
+    [
+      11,
+      1,
+      0,
+      "ae2:white_covered_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true"
+      }
+    ],
+    [
+      12,
+      1,
+      0,
+      "ae2:green_glass_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true"
+      }
+    ],
+    [
+      13,
+      1,
+      0,
+      "ae2:blue_glass_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true"
+      }
+    ],
+    [
+      14,
+      1,
+      0,
+      "ae2:white_glass_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "true",
+        "down": "true"
+      }
+    ],
+    [
+      0,
+      2,
+      0,
+      "ae2:green_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      1,
+      2,
+      0,
+      "ae2:blue_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      2,
+      2,
+      0,
+      "ae2:light_gray_smart_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      3,
+      2,
+      0,
+      "ae2:green_covered_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true"
+      }
+    ],
+    [
+      4,
+      2,
+      0,
+      "ae2:blue_covered_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true"
+      }
+    ],
+    [
+      5,
+      2,
+      0,
+      "ae2:white_covered_dense_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true"
+      }
+    ],
+    [
+      6,
+      2,
+      0,
+      "ae2:green_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      7,
+      2,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      8,
+      2,
+      0,
+      "ae2:white_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "0"
+      }
+    ],
+    [
+      9,
+      2,
+      0,
+      "ae2:green_covered_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true"
+      }
+    ],
+    [
+      10,
+      2,
+      0,
+      "ae2:blue_covered_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true"
+      }
+    ],
+    [
+      11,
+      2,
+      0,
+      "ae2:white_covered_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true"
+      }
+    ],
+    [
+      12,
+      2,
+      0,
+      "ae2:green_glass_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true"
+      }
+    ],
+    [
+      13,
+      2,
+      0,
+      "ae2:blue_glass_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true"
+      }
+    ],
+    [
+      14,
+      2,
+      0,
+      "ae2:white_glass_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true"
+      }
+    ]
+  ]
+}

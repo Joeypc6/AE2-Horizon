@@ -1,0 +1,74 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "particle": "ae2:block/quantum_ring",
+    "t0": "ae2:block/quantum_ring",
+    "t1": "ae2:block/quantum_ring_light_corner"
+  },
+  "elements": [
+    {
+      "from": [
+        2,
+        2,
+        2
+      ],
+      "to": [
+        14,
+        14,
+        14
+      ],
+      "faces": {
+        "down": {
+          "texture": "#t0"
+        },
+        "up": {
+          "texture": "#t0"
+        },
+        "north": {
+          "texture": "#t0"
+        },
+        "south": {
+          "texture": "#t0"
+        },
+        "west": {
+          "texture": "#t0"
+        },
+        "east": {
+          "texture": "#t0"
+        }
+      }
+    },
+    {
+      "from": [
+        1.99,
+        1.99,
+        1.99
+      ],
+      "to": [
+        14.01,
+        14.01,
+        14.01
+      ],
+      "faces": {
+        "down": {
+          "texture": "#t1"
+        },
+        "up": {
+          "texture": "#t1"
+        },
+        "north": {
+          "texture": "#t1"
+        },
+        "south": {
+          "texture": "#t1"
+        },
+        "west": {
+          "texture": "#t1"
+        },
+        "east": {
+          "texture": "#t1"
+        }
+      }
+    }
+  ]
+}

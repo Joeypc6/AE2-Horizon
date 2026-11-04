@@ -1,0 +1,270 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      0,
+      0,
+      1,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      2,
+      0,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      3,
+      0,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "3"
+      }
+    ],
+    [
+      4,
+      0,
+      1,
+      "ae2:interface",
+      {}
+    ],
+    [
+      5,
+      0,
+      1,
+      "ae2:drive",
+      {
+        "facing": "north",
+        "spin": "0"
+      }
+    ],
+    [
+      6,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      7,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      1,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      3,
+      1,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "true",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ],
+    [
+      4,
+      1,
+      1,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      5,
+      1,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "true",
+        "down": "true",
+        "x_lights": "2"
+      }
+    ],
+    [
+      5,
+      1,
+      0,
+      "ae2:pattern_encoding_terminal",
+      {
+        "facing": "north",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      3,
+      2,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ],
+    [
+      4,
+      2,
+      1,
+      "ae2:import_bus",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      4,
+      2,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      4,
+      2,
+      1,
+      "minecraft:blast_furnace",
+      {
+        "facing": "north",
+        "lit": "false"
+      }
+    ],
+    [
+      5,
+      2,
+      1,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ],
+    [
+      5,
+      2,
+      0,
+      "ae2:crafting_terminal",
+      {
+        "facing": "north",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ]
+  ]
+}

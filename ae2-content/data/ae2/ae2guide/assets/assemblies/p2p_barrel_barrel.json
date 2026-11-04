@@ -1,0 +1,126 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "minecraft:barrel",
+      {
+        "facing": "north",
+        "open": "false"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      0,
+      0,
+      0,
+      "ae2:item_p2p_tunnel",
+      {
+        "facing": "west",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      0,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      1,
+      0,
+      3,
+      "minecraft:barrel",
+      {
+        "facing": "north",
+        "open": "false"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      3,
+      0,
+      0,
+      "ae2:item_p2p_tunnel",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      3,
+      0,
+      0,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      2,
+      0,
+      3,
+      "minecraft:barrel",
+      {
+        "facing": "north",
+        "open": "false"
+      }
+    ],
+    [
+      3,
+      0,
+      0,
+      "minecraft:barrel",
+      {
+        "facing": "north",
+        "open": "false"
+      }
+    ]
+  ]
+}

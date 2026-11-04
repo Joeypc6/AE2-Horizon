@@ -1,0 +1,674 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      0,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      0,
+      0,
+      2,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      0,
+      0,
+      3,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      0,
+      0,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      1,
+      0,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      2,
+      0,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      3,
+      0,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      3,
+      0,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      4,
+      0,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      4,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      4,
+      0,
+      2,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      4,
+      0,
+      3,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      4,
+      0,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      6,
+      0,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      7,
+      0,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      8,
+      0,
+      2,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      8,
+      0,
+      3,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      8,
+      0,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      10,
+      0,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      10,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      10,
+      0,
+      2,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      11,
+      0,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      11,
+      0,
+      2,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      12,
+      0,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      12,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      12,
+      0,
+      2,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      14,
+      0,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      14,
+      0,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      0,
+      1,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      4,
+      1,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      4,
+      1,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      8,
+      1,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      11,
+      1,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      14,
+      1,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      0,
+      2,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      0,
+      2,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      4,
+      2,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      4,
+      2,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      8,
+      2,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      10,
+      2,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      11,
+      2,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      12,
+      2,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      14,
+      2,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      0,
+      3,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      0,
+      3,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      4,
+      3,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      4,
+      3,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_y"
+      }
+    ],
+    [
+      0,
+      4,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      0,
+      4,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      0,
+      4,
+      2,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      0,
+      4,
+      3,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      0,
+      4,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      1,
+      4,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      1,
+      4,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      2,
+      4,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      2,
+      4,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      3,
+      4,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      3,
+      4,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_x"
+      }
+    ],
+    [
+      4,
+      4,
+      0,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ],
+    [
+      4,
+      4,
+      1,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      4,
+      4,
+      2,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      4,
+      4,
+      3,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "column_z"
+      }
+    ],
+    [
+      4,
+      4,
+      4,
+      "ae2:controller",
+      {
+        "state": "online",
+        "type": "block"
+      }
+    ]
+  ]
+}

@@ -1,0 +1,906 @@
+[mod]
+id = "ae2"
+version = "15.4.12"
+priority = 100
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "port_ae2"
+source = "runtime.rs"
+
+[[module]]
+id = "game_side"
+file = "crates/horizon-client/src/game.rs"
+name = "port_ae2_game"
+source = "game_side.rs"
+
+# Hand-ported: AE2's storage core (keys, KeyCounter, partition lists, storage cells).
+# AE2's guide (Markdown pages in the content mod, drawn over any screen).
+[[module]]
+id = "guide"
+file = "crates/horizon-client/src/game.rs"
+name = "port_ae2_guide"
+source = "guide.rs"
+
+[[injection]]
+id = "guide-render-post"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_render_post"
+helper = "me_render_post.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "screen", ty = "&crate::game::native_hooks::NativeScreenView<'_>", value = "&*screen" },
+]
+
+[[injection]]
+id = "guide-mouse-pressed"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_mouse_button_pressed_pre"
+helper = "me_mouse_pressed.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "screen", ty = "&crate::game::native_hooks::NativeScreenView<'_>", value = "&*screen" },
+  { name = "button", ty = "i32", value = "button" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "me-key-pressed"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_key_pressed_pre"
+helper = "me_key_pressed.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "screen", ty = "&crate::game::native_hooks::NativeScreenView<'_>", value = "&*screen" },
+  { name = "key", ty = "&str", value = "key" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "me-char-typed"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_char_typed_pre"
+helper = "me_char_typed.rs"
+bindings = [
+  { name = "screen", ty = "&crate::game::native_hooks::NativeScreenView<'_>", value = "&*screen" },
+  { name = "c", ty = "char", value = "c" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[module]]
+id = "core"
+file = "crates/horizon-client/src/game.rs"
+name = "port_ae2_core"
+source = "core.rs"
+
+# Hand-ported: AE2's crafting calculator (patterns, the request tree, crafting plans).
+[[module]]
+id = "crafting"
+file = "crates/horizon-client/src/game.rs"
+name = "port_ae2_crafting"
+source = "crafting.rs"
+
+# Hand-ported: AE2's crafting CPU (running a plan: pushing patterns, collecting results).
+[[module]]
+id = "execution"
+file = "crates/horizon-client/src/game.rs"
+name = "port_ae2_execution"
+source = "execution.rs"
+
+# Hand-ported: AE2's ME network (grids, channels, energy, network storage).
+[[module]]
+id = "grid"
+file = "crates/horizon-client/src/game.rs"
+name = "port_ae2_grid"
+source = "grid.rs"
+
+# AE2 in the game: block entities, grids, storage, screens.
+[[module]]
+id = "me"
+file = "crates/horizon-client/src/game.rs"
+name = "port_ae2_me"
+source = "me.rs"
+
+
+# M1: AE2's ME network (me.rs), on Horizon's hook points.
+
+[[injection]]
+id = "me-placed"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_place_block"
+helper = "me_placed.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+[[injection]]
+id = "me-tooltip"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip"
+helper = "me_tooltip.rs"
+bindings = [
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "&*stack" },
+  { name = "lines", ty = "&mut Vec<(horizon_client::text::Text, u32)>", value = "&mut *lines" },
+]
+
+[[injection]]
+id = "me-update-tag"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_block_entity_update_tag"
+helper = "me_update_tag.rs"
+bindings = [
+  { name = "entity", ty = "&horizon_client::containers::ModBlockEntity", value = "&*entity" },
+  { name = "tag", ty = "&mut Option<horizon_world::nbt::Compound>", value = "&mut *tag" },
+]
+
+[[injection]]
+id = "me-submit"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_block_entity_submit"
+helper = "me_submit.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "block", ty = "&str", value = "block" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "entity", ty = "&horizon_client::containers::ModBlockEntity", value = "&*entity" },
+  { name = "draw", ty = "&mut crate::game::native_block_entity_draw::BlockEntityDraw", value = "&mut *draw" },
+]
+
+[[injection]]
+id = "me-be"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_block_entity"
+helper = "me_be.rs"
+bindings = [
+  { name = "block", ty = "&str", value = "block" },
+  { name = "entity", ty = "&mut Option<(String, horizon_world::nbt::Compound)>", value = "&mut *entity" },
+]
+
+[[injection]]
+id = "me-be-ticks"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_block_entity_ticks"
+helper = "me_be_ticks.rs"
+bindings = [
+  { name = "block", ty = "&str", value = "block" },
+  { name = "ticks", ty = "&mut bool", value = "&mut *ticks" },
+]
+
+[[injection]]
+id = "me-be-container"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_block_entity_container"
+helper = "me_be_container.rs"
+bindings = [
+  { name = "block", ty = "&str", value = "block" },
+  { name = "container", ty = "&mut Option<horizon_client::containers::ModContainer>", value = "&mut *container" },
+]
+
+[[injection]]
+id = "me-be-tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_block_entity_tick"
+helper = "me_be_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "entity", ty = "&mut horizon_client::containers::ModBlockEntity", value = "&mut *entity" },
+]
+
+[[injection]]
+id = "me-server-tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_server_tick"
+helper = "me_server_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "phase", ty = "&crate::game::native_lifecycle::ServerTickPhase", value = "&phase" },
+]
+
+[[injection]]
+id = "me-right-click"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_right_click_block"
+helper = "me_right_click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "face", ty = "[i32; 3]", value = "face" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "me-menu-button"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_menu_button_v2"
+helper = "me_menu_button.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "entity", ty = "&mut horizon_client::containers::ModBlockEntity", value = "&mut *entity" },
+  { name = "id", ty = "i32", value = "id" },
+  { name = "carried", ty = "&mut Option<horizon_client::items::ItemStack>", value = "&mut *carried" },
+]
+
+[[injection]]
+id = "me-net-from-server"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_net_from_server"
+helper = "me_net_from_server.rs"
+bindings = [
+  { name = "channel", ty = "&str", value = "channel" },
+  { name = "data", ty = "&[u8]", value = "data" },
+]
+
+[[injection]]
+id = "me-container-viewers"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mod_container_viewers"
+helper = "me_container_viewers.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "viewers", ty = "u32", value = "viewers" },
+  { name = "previous", ty = "u32", value = "previous" },
+]
+
+[[injection]]
+id = "me-register-commands"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_register_commands"
+helper = "me_register_commands.rs"
+bindings = [
+  { name = "commands", ty = "&mut Vec<crate::game::native_server::NativeCommand>", value = "&mut *commands" },
+]
+
+[[injection]]
+id = "me-perform-command"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_perform_command"
+helper = "me_perform_command.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "player", ty = "&crate::game::native_server::NativeServerPlayer", value = "player" },
+  { name = "command", ty = "&str", value = "command" },
+  { name = "ran", ty = "&mut bool", value = "&mut *ran" },
+]
+
+[[injection]]
+id = "me-block-signal"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_block_signal"
+helper = "me_block_signal.rs"
+bindings = [
+  { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" },
+  { name = "signal", ty = "&mut i32", value = "&mut *signal" },
+]
+
+[[injection]]
+id = "me-use-item-on"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_item_on"
+helper = "me_use_item_on.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "&*stack" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "face", ty = "[i32; 3]", value = "face" },
+  { name = "claimed", ty = "&mut bool", value = "&mut *claimed" },
+]
+
+[[injection]]
+id = "me-use-item"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_item"
+helper = "me_use_item.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "&*stack" },
+  { name = "claimed", ty = "&mut bool", value = "&mut *claimed" },
+]
+
+[[injection]]
+id = "me-inventory-tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_inventory_tick"
+helper = "me_inventory_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "i32", value = "slot" },
+]
+
+[[injection]]
+id = "me-net-from-client"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_net_from_client"
+helper = "me_net_from_client.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "player", ty = "u128", value = "player" },
+  { name = "channel", ty = "&str", value = "channel" },
+  { name = "data", ty = "&[u8]", value = "data" },
+]
+
+[[injection]]
+id = "me-screen"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen"
+helper = "me_screen.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "block", ty = "&str", value = "block" },
+  { name = "screen", ty = "&mut Option<crate::game::native_hooks::NativeScreen>", value = "&mut *screen" },
+]
+
+[[injection]]
+id = "me-screen-draw"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_draw"
+helper = "me_screen_draw.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "block", ty = "&str", value = "block" },
+  { name = "data", ty = "&[i32]", value = "data" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "origin", ty = "[f32; 2]", value = "origin" },
+]
+
+[[injection]]
+id = "me-screen-click"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_click"
+helper = "me_screen_click.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "block", ty = "&str", value = "block" },
+  { name = "at", ty = "[f32; 2]", value = "at" },
+  { name = "right", ty = "bool", value = "right" },
+  { name = "button", ty = "&mut Option<i32>", value = "&mut *button" },
+]
+
+[[injection]]
+id = "me-screen-tooltip"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_tooltip"
+helper = "me_screen_tooltip.rs"
+bindings = [
+  { name = "block", ty = "&str", value = "block" },
+  { name = "at", ty = "[f32; 2]", value = "at" },
+  { name = "lines", ty = "&mut Vec<String>", value = "&mut *lines" },
+]
+
+[[injection]]
+id = "me-screen-scrolled"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_mouse_scrolled_pre"
+helper = "me_screen_scrolled.rs"
+bindings = [
+  { name = "screen", ty = "&crate::game::native_hooks::NativeScreenView<'_>", value = "&*screen" },
+  { name = "scroll", ty = "[f64; 2]", value = "scroll" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+[[injection]]
+id = "key"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_key"
+helper = "key.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "key", ty = "&str", value = "key" },
+  { name = "pressed", ty = "bool", value = "pressed" },
+]
+
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+[[injection]]
+id = "command"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_command"
+helper = "command.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "command", ty = "&str", value = "command" },
+  { name = "ran", ty = "&mut bool", value = "&mut *ran" },
+]
+
+[[injection]]
+id = "frame"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_frame"
+helper = "frame.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "elapsed", ty = "std::time::Duration", value = "elapsed" },
+]
+
+# Off: @ModifyVariable(STORE) on class_465.renderSlot (AbstractContainerScreenMixin.ae2_changeStackForDisplay)
+#   No Horizon function mapped for class_465.renderSlot (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "abstract-container-screen-mixin-ae2-change-stack-for-display"
+# kind = "MODIFY_VARIABLE"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on 7.canEnchant (AnnihilationPlaneEnchantmentMixin.enchantPlane)
+#   No Horizon function mapped for 7.canEnchant (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "annihilation-plane-enchantment-mixin-enchant-plane"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(INVOKE) on class_1706.createResult (AnvilMenuMixin.setAnnihilationPlaneThreadLocal)
+#   No Horizon function mapped for class_1706.createResult (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "anvil-menu-mixin-set-annihilation-plane-thread-local"
+# kind = "BEFORE_CALL"
+# target = "TODO"
+
+# Off: @Inject(INVOKE) on class_1706.createResult (AnvilMenuMixin.clearAnnihilationPlaneThreadLocal)
+#   No Horizon function mapped for class_1706.createResult (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "anvil-menu-mixin-clear-annihilation-plane-thread-local"
+# kind = "AFTER_CALL"
+# target = "TODO"
+
+# Off: @Inject(INVOKE) on class_310.continueAttack (BlockBreakParticleMixin.customBreakEffect)
+#   No Horizon function mapped for class_310.continueAttack (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "block-break-particle-mixin-custom-break-effect"
+# kind = "BEFORE_CALL"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on class_1657.getDestroySpeed (BreakSpeedMixin.modifyBreakSpeed)
+#   No Horizon function mapped for class_1657.getDestroySpeed (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "break-speed-mixin-modify-break-speed"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(HEAD) on class_1309.onClimbable (DynamicLadderMixin.onClimbable)
+#   No Horizon function mapped for class_1309.onClimbable (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "dynamic-ladder-mixin-on-climbable"
+# kind = "HEAD"
+# target = "TODO"
+
+# Off: @Inject(TAIL) on class_2966.bootStrap (EarlyStartupMixin.initRegistries)
+#   No Horizon function mapped for class_2966.bootStrap (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "early-startup-mixin-init-registries"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on class_1890.getItemEnchantmentLevel (EnchantmentHelperMixin.hookGetItemEnchantmentLevel)
+#   No Horizon function mapped for class_1890.getItemEnchantmentLevel (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "enchantment-helper-mixin-hook-get-item-enchantment-level"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(HEAD) on class_332.renderItem (GuiGraphicsMixin.renderGuiItem)
+#   No Horizon function mapped for class_332.renderItem (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "gui-graphics-mixin-render-gui-item"
+# kind = "HEAD"
+# target = "TODO"
+
+# Off: @Inject(HEAD) on class_1542.hurt (ItemEntityMixin.handleExplosion)
+#   No Horizon function mapped for class_1542.hurt (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "item-entity-mixin-handle-explosion"
+# kind = "HEAD"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on class_1542.tick (ItemEntityMixin.handleEntityTransform)
+#   No Horizon function mapped for class_1542.tick (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "item-entity-mixin-handle-entity-transform"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(INVOKE) on class_312.onScroll (MouseWheelMixin.onScrollWithoutScreen)
+#   No Horizon function mapped for class_312.onScroll (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "mouse-wheel-mixin-on-scroll-without-screen"
+# kind = "BEFORE_CALL"
+# target = "TODO"
+
+# Off: @Inject(INVOKE_ASSIGN) on class_1937.updateNeighbourForOutputSignal (OnNeighborUpdateMixin.triggerOnNeighborChange)
+#   No Horizon function mapped for class_1937.updateNeighbourForOutputSignal (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "on-neighbor-update-mixin-trigger-on-neighbor-change"
+# kind = "AFTER_ASSIGN"
+# target = "TODO"
+
+# Off: @Inject(HEAD) on class_310.pickBlock (PickColorMixin.pickColor)
+#   No Horizon function mapped for class_310.pickBlock (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "pick-color-mixin-pick-color"
+# kind = "HEAD"
+# target = "TODO"
+
+# Off: @Inject(HEAD) on PonderWorld.restore (PonderWorldMixin.enableClientSideStateSavingForRestore)
+#   No Horizon function mapped for PonderWorld.restore (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "ponder-world-mixin-enable-client-side-state-saving-for-restore"
+# kind = "HEAD"
+# target = "TODO"
+
+# Off: @Inject(TAIL) on PonderWorld.restore (PonderWorldMixin.disableClientSideStateSavingForRestore)
+#   No Horizon function mapped for PonderWorld.restore (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "ponder-world-mixin-disable-client-side-state-saving-for-restore"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(HEAD) on PonderWorld.restoreBlocks (PonderWorldMixin.enableClientSideStateSavingForRestoreBlocks)
+#   No Horizon function mapped for PonderWorld.restoreBlocks (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "ponder-world-mixin-enable-client-side-state-saving-for-restore-blocks"
+# kind = "HEAD"
+# target = "TODO"
+
+# Off: @Inject(TAIL) on PonderWorld.restoreBlocks (PonderWorldMixin.disableClientSideStateSavingForRestoreBlocks)
+#   No Horizon function mapped for PonderWorld.restoreBlocks (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "ponder-world-mixin-disable-client-side-state-saving-for-restore-blocks"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(HEAD) on class_465.renderSlotHighlight (ResizableSlotHighlightMixin.renderResizableSlotHighlight)
+#   No Horizon function mapped for class_465.renderSlotHighlight (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "resizable-slot-highlight-mixin-render-resizable-slot-highlight"
+# kind = "HEAD"
+# target = "TODO"
+
+# Off: @Inject(HEAD) on class_3499.fillFromWorld (StructureTemplateMixin.enableClientSideStateSaving)
+#   No Horizon function mapped for class_3499.fillFromWorld (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "structure-template-mixin-enable-client-side-state-saving"
+# kind = "HEAD"
+# target = "TODO"
+
+# Off: @Inject(TAIL) on class_3499.fillFromWorld (StructureTemplateMixin.disableClientSideStateSaving)
+#   No Horizon function mapped for class_3499.fillFromWorld (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "structure-template-mixin-disable-client-side-state-saving"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on class_1885.canEnchant (UnbreakingMixin.enchantPlane)
+#   No Horizon function mapped for class_1885.canEnchant (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "unbreaking-mixin-enchant-plane"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on class_814.deserialize (VariantDeserializerMixin.addAdditionalRotationOptions)
+#   No Horizon function mapped for class_814.deserialize (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "variant-deserializer-mixin-add-additional-rotation-options"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on class_437.getTooltipFromItem (WrappedGenericStackTooltipModIdMixin.getTooltipFromItem)
+#   No Horizon function mapped for class_437.getTooltipFromItem (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "wrapped-generic-stack-tooltip-mod-id-mixin-get-tooltip-from-item"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on class_3898.anyPlayerCloseEnoughForSpawning (ChunkMapMixin.spatialAnchorEnableRandomTicks)
+#   No Horizon function mapped for class_3898.anyPlayerCloseEnoughForSpawning (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "chunk-map-mixin-spatial-anchor-enable-random-ticks"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on MinecraftServer.prepareLevels (MinecraftServerMixin.validateForcedChunks)
+#   No Horizon function mapped for MinecraftServer.prepareLevels (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "minecraft-server-mixin-validate-forced-chunks"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(HEAD) on class_3218.setChunkForced (ServerLevelMixin.preventChunkUnforcing)
+#   No Horizon function mapped for class_3218.setChunkForced (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "server-level-mixin-prevent-chunk-unforcing"
+# kind = "HEAD"
+# target = "TODO"
+
+# Off: @Inject(TAIL) on MinecraftServer.createLevels (MinecraftServerMixin.injectSpatialLevel)
+#   No Horizon function mapped for MinecraftServer.createLevels (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "minecraft-server-mixin-inject-spatial-level"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(TAIL) on class_5294.<clinit> (SkyPropertiesMixin.init)
+#   No Horizon function mapped for class_5294.<clinit> (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "sky-properties-mixin-init"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(HEAD) on class_761.renderSky (SkyRenderMixin.renderSky)
+#   No Horizon function mapped for class_761.renderSky (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "sky-render-mixin-render-sky"
+# kind = "HEAD"
+# target = "TODO"
+
+# Off: @Inject(HEAD) on class_4525.getStructureTemplate (StructureUtilsMixin.getStructureTemplate)
+#   No Horizon function mapped for class_4525.getStructureTemplate (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "structure-utils-mixin-get-structure-template"
+# kind = "HEAD"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on class_4525.createStructureBlock (StructureUtilsMixin.createStructureBlock)
+#   No Horizon function mapped for class_4525.createStructureBlock (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "structure-utils-mixin-create-structure-block"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on class_793.bakeFace (BlockModelMixin.onBakeFace)
+#   No Horizon function mapped for class_793.bakeFace (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "block-model-mixin-on-bake-face"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on class_784.deserialize (BlockPartFaceDeserializerMixin.onDeserialize)
+#   No Horizon function mapped for class_784.deserialize (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "block-part-face-deserializer-mixin-on-deserialize"
+# kind = "RETURN"
+# target = "TODO"
+
+# Off: @Inject(HEAD) on class_1092.method_45898 (ModelManagerMixin.onBeginLoadModel)
+#   No Horizon function mapped for class_1092.method_45898 (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "model-manager-mixin-on-begin-load-model"
+# kind = "HEAD"
+# target = "TODO"
+
+# Off: @Inject(RETURN) on class_1092.method_45898 (ModelManagerMixin.onEndLoadModel)
+#   No Horizon function mapped for class_1092.method_45898 (run `match`, or map it in a --mappings file).
+# [[injection]]
+# id = "model-manager-mixin-on-end-load-model"
+# kind = "RETURN"
+# target = "TODO"
+
+[[injection]]
+id = "me-explosion"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_explosion_detonate"
+helper = "me_explosion.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "center", ty = "[f64; 3]", value = "center" },
+]
+
+[[injection]]
+id = "me-item-decorations"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_item_decorations"
+helper = "me_item_decorations.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "&*stack" },
+  { name = "x", ty = "f32", value = "x" },
+  { name = "y", ty = "f32", value = "y" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+
+# AE2's meteorites (worldgen/meteorite): a new chunk asks for the starts that reach it, a level tick places them.
+[[module]]
+id = "meteor"
+file = "crates/horizon-client/src/game.rs"
+name = "port_ae2_meteor"
+source = "meteor.rs"
+
+[[injection]]
+id = "meteor-chunk-load"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_chunk_load"
+helper = "meteor_chunk_load.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "chunk", ty = "[i32; 2]", value = "chunk" },
+  { name = "new", ty = "bool", value = "new" },
+]
+
+[[injection]]
+id = "meteor-level-tick-post"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_level_tick_post"
+helper = "meteor_level_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "dimension", ty = "&str", value = "dimension" },
+]
+
+[[injection]]
+id = "me-item-bar"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_item_bar"
+helper = "me_item_bar.rs"
+bindings = [
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "&*stack" },
+  { name = "bar", ty = "&mut Option<(i32, u32)>", value = "&mut *bar" },
+]
+
+[[injection]]
+id = "me-left-click"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_left_click_block"
+helper = "me_left_click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "me-be-fluids"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_block_entity_fluids"
+helper = "me_be_fluids.rs"
+bindings = [
+  { name = "block", ty = "&str", value = "block" },
+  { name = "fluids", ty = "&mut Option<horizon_client::containers::ModFluidTanks>", value = "&mut *fluids" },
+]
+
+[[injection]]
+id = "me-attack-entity"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_attack_entity"
+helper = "me_attack_entity.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "entity", ty = "i32", value = "entity" },
+  { name = "pos", ty = "[f64; 3]", value = "pos" },
+]
+
+[[injection]]
+id = "me-incoming-damage"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_incoming_damage"
+helper = "me_incoming_damage.rs"
+bindings = [
+  { name = "entity", ty = "i32", value = "entity" },
+  { name = "amount", ty = "&mut f32", value = "&mut *amount" },
+]
+
+[[injection]]
+id = "guide-mouse-dragged"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_mouse_dragged_pre"
+helper = "guide_dragged.rs"
+bindings = [
+  { name = "delta", ty = "[f32; 2]", value = "delta" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "guide-mouse-released"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_mouse_button_released_pre"
+helper = "guide_released.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "me-destroy-block"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_destroy_block"
+helper = "me_destroy_block.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# AnnihilationPlanePartItem.getEnchantmentValue: the plane is enchantable (10) in tables and anvils.
+[[injection]]
+id = "plane-enchantable"
+kind = "HEAD"
+target = "horizon_world::item_defaults::native_modify_default_components"
+helper = "plane_enchantable.rs"
+bindings = [
+  { name = "item", ty = "&str", value = "item" },
+  { name = "components", ty = "&mut serde_json::Map<String, serde_json::Value>", value = "&mut *components" },
+]
+
+# JEI ghost ingredients: what JEI's panel had under a held-back press (the `Key` event the frame asks for).
+[[injection]]
+id = "ghost-panel-event"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_panel_event"
+helper = "ghost_panel_event.rs"
+bindings = [
+  { name = "mod_id", ty = "&str", value = "mod_id" },
+  { name = "event", ty = "&crate::game::native_hooks::NativePanelEvent", value = "event" },
+]
+
+# The table's offers for the annihilation plane leave out unbreaking (the anvil still takes it: #enchantable/durability).
+[[injection]]
+id = "plane-table-enchantments"
+kind = "HEAD"
+cancellable = true
+target = "horizon_items::enchant::Enchantments::available_results"
+helper = "plane_table.rs"
+bindings = [
+  { name = "this", ty = "&crate::enchant::Enchantments", value = "self" },
+  { name = "items", ty = "&crate::items::Items", value = "items" },
+  { name = "value", ty = "i32", value = "value" },
+  { name = "item", ty = "&str", value = "item" },
+  { name = "pool", ty = "&[std::sync::Arc<str>]", value = "pool" },
+]
+
+# Who a menu button is from: the hook after this one has no player, and its player list is out of the game meanwhile.
+[[injection]]
+id = "me-button-clicker"
+kind = "HEAD"
+target = "horizon_client::game::lan_stations::Game<'_>::lan_station_button"
+helper = "me_button_clicker.rs"
+bindings = [
+  { name = "host", ty = "&LanHost", value = "&*host" },
+  { name = "conn", ty = "u32", value = "conn" },
+]
+
+# JEI on the wireless terminals: the panel draws once the frame's screen has, and is told the window's width.
+[[injection]]
+id = "me-hud-after"
+kind = "RETURN"
+target = "horizon_client::game::Game<'_>::hud"
+helper = "me_hud_after.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "HudBatch", value = "$value" },
+]
+
+[[injection]]
+id = "me-panel-width"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_width"
+helper = "me_panel_width.rs"
+
+# JEI's panel keeps clear of AE2's side columns (AEGuiContainerHandler.getGuiExtraAreas).
+[[injection]]
+id = "me-panel-clear"
+kind = "RETURN"
+target = "horizon_client::game::native_panel::Game<'_>::browser_layout"
+helper = "me_panel_clear.rs"
+bindings = [
+  { name = "game", ty = "&Game<'_>", value = "&*self" },
+  { name = "layout", ty = "Option<Layout>", value = "$value" },
+]

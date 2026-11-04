@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " A ",
+    "ABA",
+    " A "
+  ],
+  "key": {
+    "A": "ae2:cable_anchor",
+    "B": "minecraft:wet_sponge"
+  },
+  "result": {
+    "id": "ae2:facade",
+    "count": 4,
+    "components": {
+      "minecraft:custom_data": {
+        "item": "minecraft:wet_sponge"
+      },
+      "minecraft:item_model": "ae2:hz_facade_wet_sponge"
+    }
+  }
+}

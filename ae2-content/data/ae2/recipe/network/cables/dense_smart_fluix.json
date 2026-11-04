@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "ae2:fluix_covered_dense_cable",
+    "#c:redstone_dusts",
+    "#c:glowstone_dusts"
+  ],
+  "result": {
+    "id": "ae2:fluix_smart_dense_cable"
+  }
+}

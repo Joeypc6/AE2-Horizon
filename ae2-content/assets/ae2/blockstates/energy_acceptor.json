@@ -1,0 +1,27 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "ae2:block/energy_acceptor"
+    },
+    "facing=south": {
+      "model": "ae2:block/energy_acceptor",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "ae2:block/energy_acceptor",
+      "y": 270
+    },
+    "facing=east": {
+      "model": "ae2:block/energy_acceptor",
+      "y": 90
+    },
+    "facing=up": {
+      "model": "ae2:block/energy_acceptor",
+      "x": 270
+    },
+    "facing=down": {
+      "model": "ae2:block/energy_acceptor",
+      "x": 90
+    }
+  }
+}

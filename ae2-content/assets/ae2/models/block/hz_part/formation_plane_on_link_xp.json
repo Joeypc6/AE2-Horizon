@@ -1,0 +1,39 @@
+{
+  "textures": {
+    "plane": "ae2:block/part/formation_plane_on",
+    "sides": "ae2:block/part/plane_sides",
+    "back": "ae2:block/part/transition_plane_back",
+    "particle": "ae2:block/part/plane_sides"
+  },
+  "elements": [
+    {
+      "from": [
+        15,
+        1,
+        0.01
+      ],
+      "to": [
+        15.99,
+        15,
+        1
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plane"
+        },
+        "south": {
+          "texture": "#back"
+        },
+        "east": {
+          "texture": "#sides"
+        },
+        "up": {
+          "texture": "#sides"
+        },
+        "down": {
+          "texture": "#sides"
+        }
+      }
+    }
+  ]
+}

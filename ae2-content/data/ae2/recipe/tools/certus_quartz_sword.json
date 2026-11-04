@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "#c:certus_quartz",
+    "b": "#c:wooden_rods"
+  },
+  "pattern": [
+    "a",
+    "a",
+    "b"
+  ],
+  "result": {
+    "id": "ae2:certus_quartz_sword"
+  },
+  "show_notification": true
+}

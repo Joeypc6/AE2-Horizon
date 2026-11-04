@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": "#c:wooden_rods",
+    "b": "#c:copper_ingots"
+  },
+  "pattern": [
+    "aaa",
+    "  a",
+    "  b"
+  ],
+  "result": {
+    "id": "ae2:crank"
+  },
+  "show_notification": true
+}

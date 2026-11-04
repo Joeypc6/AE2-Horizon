@@ -1,0 +1,25 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "ae2:block/inscriber"
+    },
+    "facing=south": {
+      "model": "ae2:block/inscriber",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "ae2:block/inscriber",
+      "y": 270
+    },
+    "facing=east": {
+      "model": "ae2:block/inscriber",
+      "y": 90
+    },
+    "facing=up": {
+      "model": "ae2:block/inscriber"
+    },
+    "facing=down": {
+      "model": "ae2:block/inscriber"
+    }
+  }
+}

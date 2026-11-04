@@ -1,0 +1,148 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      0,
+      1,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      1,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      3,
+      0,
+      0,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      3,
+      0,
+      1,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      0,
+      1,
+      0,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      0,
+      1,
+      1,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      0,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      1,
+      1,
+      1,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      2,
+      1,
+      0,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ],
+    [
+      2,
+      1,
+      1,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      3,
+      1,
+      0,
+      "ae2:molecular_assembler",
+      {
+        "powered": "true"
+      }
+    ],
+    [
+      3,
+      1,
+      1,
+      "ae2:pattern_provider",
+      {
+        "push_direction": "all"
+      }
+    ]
+  ]
+}

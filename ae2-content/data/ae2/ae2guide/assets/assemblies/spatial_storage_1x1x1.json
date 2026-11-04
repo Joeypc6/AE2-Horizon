@@ -1,0 +1,111 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      2,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      1,
+      0,
+      1,
+      "minecraft:smooth_stone",
+      {}
+    ],
+    [
+      1,
+      0,
+      2,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      1,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      2,
+      0,
+      2,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "4"
+      }
+    ],
+    [
+      3,
+      0,
+      1,
+      "ae2:spatial_io_port",
+      {
+        "facing": "north",
+        "powered": "true",
+        "spin": "0"
+      }
+    ],
+    [
+      3,
+      0,
+      2,
+      "ae2:energy_cell",
+      {
+        "fullness": "4"
+      }
+    ],
+    [
+      2,
+      1,
+      2,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ],
+    [
+      3,
+      1,
+      1,
+      "minecraft:oak_button",
+      {
+        "face": "floor",
+        "facing": "south",
+        "powered": "false"
+      }
+    ],
+    [
+      2,
+      2,
+      2,
+      "ae2:spatial_pylon",
+      {
+        "powered_on": "true"
+      }
+    ]
+  ]
+}

@@ -1,0 +1,3314 @@
+{
+  "minecraft:stone": [
+    "minecraft:block/stone",
+    "minecraft:block/stone",
+    "minecraft:block/stone",
+    "minecraft:block/stone",
+    "minecraft:block/stone",
+    "minecraft:block/stone"
+  ],
+  "minecraft:granite": [
+    "minecraft:block/granite",
+    "minecraft:block/granite",
+    "minecraft:block/granite",
+    "minecraft:block/granite",
+    "minecraft:block/granite",
+    "minecraft:block/granite"
+  ],
+  "minecraft:polished_granite": [
+    "minecraft:block/polished_granite",
+    "minecraft:block/polished_granite",
+    "minecraft:block/polished_granite",
+    "minecraft:block/polished_granite",
+    "minecraft:block/polished_granite",
+    "minecraft:block/polished_granite"
+  ],
+  "minecraft:diorite": [
+    "minecraft:block/diorite",
+    "minecraft:block/diorite",
+    "minecraft:block/diorite",
+    "minecraft:block/diorite",
+    "minecraft:block/diorite",
+    "minecraft:block/diorite"
+  ],
+  "minecraft:polished_diorite": [
+    "minecraft:block/polished_diorite",
+    "minecraft:block/polished_diorite",
+    "minecraft:block/polished_diorite",
+    "minecraft:block/polished_diorite",
+    "minecraft:block/polished_diorite",
+    "minecraft:block/polished_diorite"
+  ],
+  "minecraft:andesite": [
+    "minecraft:block/andesite",
+    "minecraft:block/andesite",
+    "minecraft:block/andesite",
+    "minecraft:block/andesite",
+    "minecraft:block/andesite",
+    "minecraft:block/andesite"
+  ],
+  "minecraft:polished_andesite": [
+    "minecraft:block/polished_andesite",
+    "minecraft:block/polished_andesite",
+    "minecraft:block/polished_andesite",
+    "minecraft:block/polished_andesite",
+    "minecraft:block/polished_andesite",
+    "minecraft:block/polished_andesite"
+  ],
+  "minecraft:dirt": [
+    "minecraft:block/dirt",
+    "minecraft:block/dirt",
+    "minecraft:block/dirt",
+    "minecraft:block/dirt",
+    "minecraft:block/dirt",
+    "minecraft:block/dirt"
+  ],
+  "minecraft:coarse_dirt": [
+    "minecraft:block/coarse_dirt",
+    "minecraft:block/coarse_dirt",
+    "minecraft:block/coarse_dirt",
+    "minecraft:block/coarse_dirt",
+    "minecraft:block/coarse_dirt",
+    "minecraft:block/coarse_dirt"
+  ],
+  "minecraft:podzol": [
+    "minecraft:block/dirt",
+    "minecraft:block/podzol_top",
+    "minecraft:block/podzol_side",
+    "minecraft:block/podzol_side",
+    "minecraft:block/podzol_side",
+    "minecraft:block/podzol_side"
+  ],
+  "minecraft:cobblestone": [
+    "minecraft:block/cobblestone",
+    "minecraft:block/cobblestone",
+    "minecraft:block/cobblestone",
+    "minecraft:block/cobblestone",
+    "minecraft:block/cobblestone",
+    "minecraft:block/cobblestone"
+  ],
+  "minecraft:oak_planks": [
+    "minecraft:block/oak_planks",
+    "minecraft:block/oak_planks",
+    "minecraft:block/oak_planks",
+    "minecraft:block/oak_planks",
+    "minecraft:block/oak_planks",
+    "minecraft:block/oak_planks"
+  ],
+  "minecraft:spruce_planks": [
+    "minecraft:block/spruce_planks",
+    "minecraft:block/spruce_planks",
+    "minecraft:block/spruce_planks",
+    "minecraft:block/spruce_planks",
+    "minecraft:block/spruce_planks",
+    "minecraft:block/spruce_planks"
+  ],
+  "minecraft:birch_planks": [
+    "minecraft:block/birch_planks",
+    "minecraft:block/birch_planks",
+    "minecraft:block/birch_planks",
+    "minecraft:block/birch_planks",
+    "minecraft:block/birch_planks",
+    "minecraft:block/birch_planks"
+  ],
+  "minecraft:jungle_planks": [
+    "minecraft:block/jungle_planks",
+    "minecraft:block/jungle_planks",
+    "minecraft:block/jungle_planks",
+    "minecraft:block/jungle_planks",
+    "minecraft:block/jungle_planks",
+    "minecraft:block/jungle_planks"
+  ],
+  "minecraft:acacia_planks": [
+    "minecraft:block/acacia_planks",
+    "minecraft:block/acacia_planks",
+    "minecraft:block/acacia_planks",
+    "minecraft:block/acacia_planks",
+    "minecraft:block/acacia_planks",
+    "minecraft:block/acacia_planks"
+  ],
+  "minecraft:cherry_planks": [
+    "minecraft:block/cherry_planks",
+    "minecraft:block/cherry_planks",
+    "minecraft:block/cherry_planks",
+    "minecraft:block/cherry_planks",
+    "minecraft:block/cherry_planks",
+    "minecraft:block/cherry_planks"
+  ],
+  "minecraft:dark_oak_planks": [
+    "minecraft:block/dark_oak_planks",
+    "minecraft:block/dark_oak_planks",
+    "minecraft:block/dark_oak_planks",
+    "minecraft:block/dark_oak_planks",
+    "minecraft:block/dark_oak_planks",
+    "minecraft:block/dark_oak_planks"
+  ],
+  "minecraft:pale_oak_wood": [
+    "minecraft:block/pale_oak_log",
+    "minecraft:block/pale_oak_log",
+    "minecraft:block/pale_oak_log",
+    "minecraft:block/pale_oak_log",
+    "minecraft:block/pale_oak_log",
+    "minecraft:block/pale_oak_log"
+  ],
+  "minecraft:pale_oak_planks": [
+    "minecraft:block/pale_oak_planks",
+    "minecraft:block/pale_oak_planks",
+    "minecraft:block/pale_oak_planks",
+    "minecraft:block/pale_oak_planks",
+    "minecraft:block/pale_oak_planks",
+    "minecraft:block/pale_oak_planks"
+  ],
+  "minecraft:mangrove_planks": [
+    "minecraft:block/mangrove_planks",
+    "minecraft:block/mangrove_planks",
+    "minecraft:block/mangrove_planks",
+    "minecraft:block/mangrove_planks",
+    "minecraft:block/mangrove_planks",
+    "minecraft:block/mangrove_planks"
+  ],
+  "minecraft:poplar_planks": [
+    "minecraft:block/poplar_planks",
+    "minecraft:block/poplar_planks",
+    "minecraft:block/poplar_planks",
+    "minecraft:block/poplar_planks",
+    "minecraft:block/poplar_planks",
+    "minecraft:block/poplar_planks"
+  ],
+  "minecraft:bamboo_planks": [
+    "minecraft:block/bamboo_planks",
+    "minecraft:block/bamboo_planks",
+    "minecraft:block/bamboo_planks",
+    "minecraft:block/bamboo_planks",
+    "minecraft:block/bamboo_planks",
+    "minecraft:block/bamboo_planks"
+  ],
+  "minecraft:bamboo_mosaic": [
+    "minecraft:block/bamboo_mosaic",
+    "minecraft:block/bamboo_mosaic",
+    "minecraft:block/bamboo_mosaic",
+    "minecraft:block/bamboo_mosaic",
+    "minecraft:block/bamboo_mosaic",
+    "minecraft:block/bamboo_mosaic"
+  ],
+  "minecraft:bedrock": [
+    "minecraft:block/bedrock",
+    "minecraft:block/bedrock",
+    "minecraft:block/bedrock",
+    "minecraft:block/bedrock",
+    "minecraft:block/bedrock",
+    "minecraft:block/bedrock"
+  ],
+  "minecraft:sand": [
+    "minecraft:block/sand",
+    "minecraft:block/sand",
+    "minecraft:block/sand",
+    "minecraft:block/sand",
+    "minecraft:block/sand",
+    "minecraft:block/sand"
+  ],
+  "minecraft:red_sand": [
+    "minecraft:block/red_sand",
+    "minecraft:block/red_sand",
+    "minecraft:block/red_sand",
+    "minecraft:block/red_sand",
+    "minecraft:block/red_sand",
+    "minecraft:block/red_sand"
+  ],
+  "minecraft:gravel": [
+    "minecraft:block/gravel",
+    "minecraft:block/gravel",
+    "minecraft:block/gravel",
+    "minecraft:block/gravel",
+    "minecraft:block/gravel",
+    "minecraft:block/gravel"
+  ],
+  "minecraft:gold_ore": [
+    "minecraft:block/gold_ore",
+    "minecraft:block/gold_ore",
+    "minecraft:block/gold_ore",
+    "minecraft:block/gold_ore",
+    "minecraft:block/gold_ore",
+    "minecraft:block/gold_ore"
+  ],
+  "minecraft:deepslate_gold_ore": [
+    "minecraft:block/deepslate_gold_ore",
+    "minecraft:block/deepslate_gold_ore",
+    "minecraft:block/deepslate_gold_ore",
+    "minecraft:block/deepslate_gold_ore",
+    "minecraft:block/deepslate_gold_ore",
+    "minecraft:block/deepslate_gold_ore"
+  ],
+  "minecraft:iron_ore": [
+    "minecraft:block/iron_ore",
+    "minecraft:block/iron_ore",
+    "minecraft:block/iron_ore",
+    "minecraft:block/iron_ore",
+    "minecraft:block/iron_ore",
+    "minecraft:block/iron_ore"
+  ],
+  "minecraft:deepslate_iron_ore": [
+    "minecraft:block/deepslate_iron_ore",
+    "minecraft:block/deepslate_iron_ore",
+    "minecraft:block/deepslate_iron_ore",
+    "minecraft:block/deepslate_iron_ore",
+    "minecraft:block/deepslate_iron_ore",
+    "minecraft:block/deepslate_iron_ore"
+  ],
+  "minecraft:coal_ore": [
+    "minecraft:block/coal_ore",
+    "minecraft:block/coal_ore",
+    "minecraft:block/coal_ore",
+    "minecraft:block/coal_ore",
+    "minecraft:block/coal_ore",
+    "minecraft:block/coal_ore"
+  ],
+  "minecraft:deepslate_coal_ore": [
+    "minecraft:block/deepslate_coal_ore",
+    "minecraft:block/deepslate_coal_ore",
+    "minecraft:block/deepslate_coal_ore",
+    "minecraft:block/deepslate_coal_ore",
+    "minecraft:block/deepslate_coal_ore",
+    "minecraft:block/deepslate_coal_ore"
+  ],
+  "minecraft:nether_gold_ore": [
+    "minecraft:block/nether_gold_ore",
+    "minecraft:block/nether_gold_ore",
+    "minecraft:block/nether_gold_ore",
+    "minecraft:block/nether_gold_ore",
+    "minecraft:block/nether_gold_ore",
+    "minecraft:block/nether_gold_ore"
+  ],
+  "minecraft:oak_log": [
+    "minecraft:block/oak_log_top",
+    "minecraft:block/oak_log_top",
+    "minecraft:block/oak_log",
+    "minecraft:block/oak_log",
+    "minecraft:block/oak_log",
+    "minecraft:block/oak_log"
+  ],
+  "minecraft:spruce_log": [
+    "minecraft:block/spruce_log_top",
+    "minecraft:block/spruce_log_top",
+    "minecraft:block/spruce_log",
+    "minecraft:block/spruce_log",
+    "minecraft:block/spruce_log",
+    "minecraft:block/spruce_log"
+  ],
+  "minecraft:birch_log": [
+    "minecraft:block/birch_log_top",
+    "minecraft:block/birch_log_top",
+    "minecraft:block/birch_log",
+    "minecraft:block/birch_log",
+    "minecraft:block/birch_log",
+    "minecraft:block/birch_log"
+  ],
+  "minecraft:jungle_log": [
+    "minecraft:block/jungle_log_top",
+    "minecraft:block/jungle_log_top",
+    "minecraft:block/jungle_log",
+    "minecraft:block/jungle_log",
+    "minecraft:block/jungle_log",
+    "minecraft:block/jungle_log"
+  ],
+  "minecraft:acacia_log": [
+    "minecraft:block/acacia_log_top",
+    "minecraft:block/acacia_log_top",
+    "minecraft:block/acacia_log",
+    "minecraft:block/acacia_log",
+    "minecraft:block/acacia_log",
+    "minecraft:block/acacia_log"
+  ],
+  "minecraft:cherry_log": [
+    "minecraft:block/cherry_log_top",
+    "minecraft:block/cherry_log_top",
+    "minecraft:block/cherry_log",
+    "minecraft:block/cherry_log",
+    "minecraft:block/cherry_log",
+    "minecraft:block/cherry_log"
+  ],
+  "minecraft:dark_oak_log": [
+    "minecraft:block/dark_oak_log_top",
+    "minecraft:block/dark_oak_log_top",
+    "minecraft:block/dark_oak_log",
+    "minecraft:block/dark_oak_log",
+    "minecraft:block/dark_oak_log",
+    "minecraft:block/dark_oak_log"
+  ],
+  "minecraft:pale_oak_log": [
+    "minecraft:block/pale_oak_log_top",
+    "minecraft:block/pale_oak_log_top",
+    "minecraft:block/pale_oak_log",
+    "minecraft:block/pale_oak_log",
+    "minecraft:block/pale_oak_log",
+    "minecraft:block/pale_oak_log"
+  ],
+  "minecraft:mangrove_log": [
+    "minecraft:block/mangrove_log_top",
+    "minecraft:block/mangrove_log_top",
+    "minecraft:block/mangrove_log",
+    "minecraft:block/mangrove_log",
+    "minecraft:block/mangrove_log",
+    "minecraft:block/mangrove_log"
+  ],
+  "minecraft:poplar_log": [
+    "minecraft:block/poplar_log_top",
+    "minecraft:block/poplar_log_top",
+    "minecraft:block/poplar_log",
+    "minecraft:block/poplar_log",
+    "minecraft:block/poplar_log",
+    "minecraft:block/poplar_log"
+  ],
+  "minecraft:muddy_mangrove_roots": [
+    "minecraft:block/muddy_mangrove_roots_top",
+    "minecraft:block/muddy_mangrove_roots_top",
+    "minecraft:block/muddy_mangrove_roots_side",
+    "minecraft:block/muddy_mangrove_roots_side",
+    "minecraft:block/muddy_mangrove_roots_side",
+    "minecraft:block/muddy_mangrove_roots_side"
+  ],
+  "minecraft:bamboo_block": [
+    "minecraft:block/bamboo_block_top",
+    "minecraft:block/bamboo_block_top",
+    "minecraft:block/bamboo_block",
+    "minecraft:block/bamboo_block",
+    "minecraft:block/bamboo_block",
+    "minecraft:block/bamboo_block"
+  ],
+  "minecraft:stripped_spruce_log": [
+    "minecraft:block/stripped_spruce_log_top",
+    "minecraft:block/stripped_spruce_log_top",
+    "minecraft:block/stripped_spruce_log",
+    "minecraft:block/stripped_spruce_log",
+    "minecraft:block/stripped_spruce_log",
+    "minecraft:block/stripped_spruce_log"
+  ],
+  "minecraft:stripped_birch_log": [
+    "minecraft:block/stripped_birch_log_top",
+    "minecraft:block/stripped_birch_log_top",
+    "minecraft:block/stripped_birch_log",
+    "minecraft:block/stripped_birch_log",
+    "minecraft:block/stripped_birch_log",
+    "minecraft:block/stripped_birch_log"
+  ],
+  "minecraft:stripped_jungle_log": [
+    "minecraft:block/stripped_jungle_log_top",
+    "minecraft:block/stripped_jungle_log_top",
+    "minecraft:block/stripped_jungle_log",
+    "minecraft:block/stripped_jungle_log",
+    "minecraft:block/stripped_jungle_log",
+    "minecraft:block/stripped_jungle_log"
+  ],
+  "minecraft:stripped_acacia_log": [
+    "minecraft:block/stripped_acacia_log_top",
+    "minecraft:block/stripped_acacia_log_top",
+    "minecraft:block/stripped_acacia_log",
+    "minecraft:block/stripped_acacia_log",
+    "minecraft:block/stripped_acacia_log",
+    "minecraft:block/stripped_acacia_log"
+  ],
+  "minecraft:stripped_cherry_log": [
+    "minecraft:block/stripped_cherry_log_top",
+    "minecraft:block/stripped_cherry_log_top",
+    "minecraft:block/stripped_cherry_log",
+    "minecraft:block/stripped_cherry_log",
+    "minecraft:block/stripped_cherry_log",
+    "minecraft:block/stripped_cherry_log"
+  ],
+  "minecraft:stripped_dark_oak_log": [
+    "minecraft:block/stripped_dark_oak_log_top",
+    "minecraft:block/stripped_dark_oak_log_top",
+    "minecraft:block/stripped_dark_oak_log",
+    "minecraft:block/stripped_dark_oak_log",
+    "minecraft:block/stripped_dark_oak_log",
+    "minecraft:block/stripped_dark_oak_log"
+  ],
+  "minecraft:stripped_pale_oak_log": [
+    "minecraft:block/stripped_pale_oak_log_top",
+    "minecraft:block/stripped_pale_oak_log_top",
+    "minecraft:block/stripped_pale_oak_log",
+    "minecraft:block/stripped_pale_oak_log",
+    "minecraft:block/stripped_pale_oak_log",
+    "minecraft:block/stripped_pale_oak_log"
+  ],
+  "minecraft:stripped_oak_log": [
+    "minecraft:block/stripped_oak_log_top",
+    "minecraft:block/stripped_oak_log_top",
+    "minecraft:block/stripped_oak_log",
+    "minecraft:block/stripped_oak_log",
+    "minecraft:block/stripped_oak_log",
+    "minecraft:block/stripped_oak_log"
+  ],
+  "minecraft:stripped_mangrove_log": [
+    "minecraft:block/stripped_mangrove_log_top",
+    "minecraft:block/stripped_mangrove_log_top",
+    "minecraft:block/stripped_mangrove_log",
+    "minecraft:block/stripped_mangrove_log",
+    "minecraft:block/stripped_mangrove_log",
+    "minecraft:block/stripped_mangrove_log"
+  ],
+  "minecraft:stripped_poplar_log": [
+    "minecraft:block/stripped_poplar_log_top",
+    "minecraft:block/stripped_poplar_log_top",
+    "minecraft:block/stripped_poplar_log",
+    "minecraft:block/stripped_poplar_log",
+    "minecraft:block/stripped_poplar_log",
+    "minecraft:block/stripped_poplar_log"
+  ],
+  "minecraft:stripped_bamboo_block": [
+    "minecraft:block/stripped_bamboo_block_top",
+    "minecraft:block/stripped_bamboo_block_top",
+    "minecraft:block/stripped_bamboo_block",
+    "minecraft:block/stripped_bamboo_block",
+    "minecraft:block/stripped_bamboo_block",
+    "minecraft:block/stripped_bamboo_block"
+  ],
+  "minecraft:oak_wood": [
+    "minecraft:block/oak_log",
+    "minecraft:block/oak_log",
+    "minecraft:block/oak_log",
+    "minecraft:block/oak_log",
+    "minecraft:block/oak_log",
+    "minecraft:block/oak_log"
+  ],
+  "minecraft:spruce_wood": [
+    "minecraft:block/spruce_log",
+    "minecraft:block/spruce_log",
+    "minecraft:block/spruce_log",
+    "minecraft:block/spruce_log",
+    "minecraft:block/spruce_log",
+    "minecraft:block/spruce_log"
+  ],
+  "minecraft:birch_wood": [
+    "minecraft:block/birch_log",
+    "minecraft:block/birch_log",
+    "minecraft:block/birch_log",
+    "minecraft:block/birch_log",
+    "minecraft:block/birch_log",
+    "minecraft:block/birch_log"
+  ],
+  "minecraft:jungle_wood": [
+    "minecraft:block/jungle_log",
+    "minecraft:block/jungle_log",
+    "minecraft:block/jungle_log",
+    "minecraft:block/jungle_log",
+    "minecraft:block/jungle_log",
+    "minecraft:block/jungle_log"
+  ],
+  "minecraft:acacia_wood": [
+    "minecraft:block/acacia_log",
+    "minecraft:block/acacia_log",
+    "minecraft:block/acacia_log",
+    "minecraft:block/acacia_log",
+    "minecraft:block/acacia_log",
+    "minecraft:block/acacia_log"
+  ],
+  "minecraft:cherry_wood": [
+    "minecraft:block/cherry_log",
+    "minecraft:block/cherry_log",
+    "minecraft:block/cherry_log",
+    "minecraft:block/cherry_log",
+    "minecraft:block/cherry_log",
+    "minecraft:block/cherry_log"
+  ],
+  "minecraft:dark_oak_wood": [
+    "minecraft:block/dark_oak_log",
+    "minecraft:block/dark_oak_log",
+    "minecraft:block/dark_oak_log",
+    "minecraft:block/dark_oak_log",
+    "minecraft:block/dark_oak_log",
+    "minecraft:block/dark_oak_log"
+  ],
+  "minecraft:mangrove_wood": [
+    "minecraft:block/mangrove_log",
+    "minecraft:block/mangrove_log",
+    "minecraft:block/mangrove_log",
+    "minecraft:block/mangrove_log",
+    "minecraft:block/mangrove_log",
+    "minecraft:block/mangrove_log"
+  ],
+  "minecraft:poplar_wood": [
+    "minecraft:block/poplar_log",
+    "minecraft:block/poplar_log",
+    "minecraft:block/poplar_log",
+    "minecraft:block/poplar_log",
+    "minecraft:block/poplar_log",
+    "minecraft:block/poplar_log"
+  ],
+  "minecraft:stripped_oak_wood": [
+    "minecraft:block/stripped_oak_log",
+    "minecraft:block/stripped_oak_log",
+    "minecraft:block/stripped_oak_log",
+    "minecraft:block/stripped_oak_log",
+    "minecraft:block/stripped_oak_log",
+    "minecraft:block/stripped_oak_log"
+  ],
+  "minecraft:stripped_spruce_wood": [
+    "minecraft:block/stripped_spruce_log",
+    "minecraft:block/stripped_spruce_log",
+    "minecraft:block/stripped_spruce_log",
+    "minecraft:block/stripped_spruce_log",
+    "minecraft:block/stripped_spruce_log",
+    "minecraft:block/stripped_spruce_log"
+  ],
+  "minecraft:stripped_birch_wood": [
+    "minecraft:block/stripped_birch_log",
+    "minecraft:block/stripped_birch_log",
+    "minecraft:block/stripped_birch_log",
+    "minecraft:block/stripped_birch_log",
+    "minecraft:block/stripped_birch_log",
+    "minecraft:block/stripped_birch_log"
+  ],
+  "minecraft:stripped_jungle_wood": [
+    "minecraft:block/stripped_jungle_log",
+    "minecraft:block/stripped_jungle_log",
+    "minecraft:block/stripped_jungle_log",
+    "minecraft:block/stripped_jungle_log",
+    "minecraft:block/stripped_jungle_log",
+    "minecraft:block/stripped_jungle_log"
+  ],
+  "minecraft:stripped_acacia_wood": [
+    "minecraft:block/stripped_acacia_log",
+    "minecraft:block/stripped_acacia_log",
+    "minecraft:block/stripped_acacia_log",
+    "minecraft:block/stripped_acacia_log",
+    "minecraft:block/stripped_acacia_log",
+    "minecraft:block/stripped_acacia_log"
+  ],
+  "minecraft:stripped_cherry_wood": [
+    "minecraft:block/stripped_cherry_log",
+    "minecraft:block/stripped_cherry_log",
+    "minecraft:block/stripped_cherry_log",
+    "minecraft:block/stripped_cherry_log",
+    "minecraft:block/stripped_cherry_log",
+    "minecraft:block/stripped_cherry_log"
+  ],
+  "minecraft:stripped_dark_oak_wood": [
+    "minecraft:block/stripped_dark_oak_log",
+    "minecraft:block/stripped_dark_oak_log",
+    "minecraft:block/stripped_dark_oak_log",
+    "minecraft:block/stripped_dark_oak_log",
+    "minecraft:block/stripped_dark_oak_log",
+    "minecraft:block/stripped_dark_oak_log"
+  ],
+  "minecraft:stripped_pale_oak_wood": [
+    "minecraft:block/stripped_pale_oak_log",
+    "minecraft:block/stripped_pale_oak_log",
+    "minecraft:block/stripped_pale_oak_log",
+    "minecraft:block/stripped_pale_oak_log",
+    "minecraft:block/stripped_pale_oak_log",
+    "minecraft:block/stripped_pale_oak_log"
+  ],
+  "minecraft:stripped_mangrove_wood": [
+    "minecraft:block/stripped_mangrove_log",
+    "minecraft:block/stripped_mangrove_log",
+    "minecraft:block/stripped_mangrove_log",
+    "minecraft:block/stripped_mangrove_log",
+    "minecraft:block/stripped_mangrove_log",
+    "minecraft:block/stripped_mangrove_log"
+  ],
+  "minecraft:stripped_poplar_wood": [
+    "minecraft:block/stripped_poplar_log",
+    "minecraft:block/stripped_poplar_log",
+    "minecraft:block/stripped_poplar_log",
+    "minecraft:block/stripped_poplar_log",
+    "minecraft:block/stripped_poplar_log",
+    "minecraft:block/stripped_poplar_log"
+  ],
+  "minecraft:oak_leaves": [
+    "minecraft:block/oak_leaves",
+    "minecraft:block/oak_leaves",
+    "minecraft:block/oak_leaves",
+    "minecraft:block/oak_leaves",
+    "minecraft:block/oak_leaves",
+    "minecraft:block/oak_leaves"
+  ],
+  "minecraft:spruce_leaves": [
+    "minecraft:block/spruce_leaves",
+    "minecraft:block/spruce_leaves",
+    "minecraft:block/spruce_leaves",
+    "minecraft:block/spruce_leaves",
+    "minecraft:block/spruce_leaves",
+    "minecraft:block/spruce_leaves"
+  ],
+  "minecraft:birch_leaves": [
+    "minecraft:block/birch_leaves",
+    "minecraft:block/birch_leaves",
+    "minecraft:block/birch_leaves",
+    "minecraft:block/birch_leaves",
+    "minecraft:block/birch_leaves",
+    "minecraft:block/birch_leaves"
+  ],
+  "minecraft:jungle_leaves": [
+    "minecraft:block/jungle_leaves",
+    "minecraft:block/jungle_leaves",
+    "minecraft:block/jungle_leaves",
+    "minecraft:block/jungle_leaves",
+    "minecraft:block/jungle_leaves",
+    "minecraft:block/jungle_leaves"
+  ],
+  "minecraft:acacia_leaves": [
+    "minecraft:block/acacia_leaves",
+    "minecraft:block/acacia_leaves",
+    "minecraft:block/acacia_leaves",
+    "minecraft:block/acacia_leaves",
+    "minecraft:block/acacia_leaves",
+    "minecraft:block/acacia_leaves"
+  ],
+  "minecraft:cherry_leaves": [
+    "minecraft:block/cherry_leaves",
+    "minecraft:block/cherry_leaves",
+    "minecraft:block/cherry_leaves",
+    "minecraft:block/cherry_leaves",
+    "minecraft:block/cherry_leaves",
+    "minecraft:block/cherry_leaves"
+  ],
+  "minecraft:dark_oak_leaves": [
+    "minecraft:block/dark_oak_leaves",
+    "minecraft:block/dark_oak_leaves",
+    "minecraft:block/dark_oak_leaves",
+    "minecraft:block/dark_oak_leaves",
+    "minecraft:block/dark_oak_leaves",
+    "minecraft:block/dark_oak_leaves"
+  ],
+  "minecraft:pale_oak_leaves": [
+    "minecraft:block/pale_oak_leaves",
+    "minecraft:block/pale_oak_leaves",
+    "minecraft:block/pale_oak_leaves",
+    "minecraft:block/pale_oak_leaves",
+    "minecraft:block/pale_oak_leaves",
+    "minecraft:block/pale_oak_leaves"
+  ],
+  "minecraft:mangrove_leaves": [
+    "minecraft:block/mangrove_leaves",
+    "minecraft:block/mangrove_leaves",
+    "minecraft:block/mangrove_leaves",
+    "minecraft:block/mangrove_leaves",
+    "minecraft:block/mangrove_leaves",
+    "minecraft:block/mangrove_leaves"
+  ],
+  "minecraft:red_poplar_leaves": [
+    "minecraft:block/red_poplar_leaves",
+    "minecraft:block/red_poplar_leaves",
+    "minecraft:block/red_poplar_leaves",
+    "minecraft:block/red_poplar_leaves",
+    "minecraft:block/red_poplar_leaves",
+    "minecraft:block/red_poplar_leaves"
+  ],
+  "minecraft:orange_poplar_leaves": [
+    "minecraft:block/orange_poplar_leaves",
+    "minecraft:block/orange_poplar_leaves",
+    "minecraft:block/orange_poplar_leaves",
+    "minecraft:block/orange_poplar_leaves",
+    "minecraft:block/orange_poplar_leaves",
+    "minecraft:block/orange_poplar_leaves"
+  ],
+  "minecraft:yellow_poplar_leaves": [
+    "minecraft:block/yellow_poplar_leaves",
+    "minecraft:block/yellow_poplar_leaves",
+    "minecraft:block/yellow_poplar_leaves",
+    "minecraft:block/yellow_poplar_leaves",
+    "minecraft:block/yellow_poplar_leaves",
+    "minecraft:block/yellow_poplar_leaves"
+  ],
+  "minecraft:azalea_leaves": [
+    "minecraft:block/azalea_leaves",
+    "minecraft:block/azalea_leaves",
+    "minecraft:block/azalea_leaves",
+    "minecraft:block/azalea_leaves",
+    "minecraft:block/azalea_leaves",
+    "minecraft:block/azalea_leaves"
+  ],
+  "minecraft:flowering_azalea_leaves": [
+    "minecraft:block/flowering_azalea_leaves",
+    "minecraft:block/flowering_azalea_leaves",
+    "minecraft:block/flowering_azalea_leaves",
+    "minecraft:block/flowering_azalea_leaves",
+    "minecraft:block/flowering_azalea_leaves",
+    "minecraft:block/flowering_azalea_leaves"
+  ],
+  "minecraft:sponge": [
+    "minecraft:block/sponge",
+    "minecraft:block/sponge",
+    "minecraft:block/sponge",
+    "minecraft:block/sponge",
+    "minecraft:block/sponge",
+    "minecraft:block/sponge"
+  ],
+  "minecraft:wet_sponge": [
+    "minecraft:block/wet_sponge",
+    "minecraft:block/wet_sponge",
+    "minecraft:block/wet_sponge",
+    "minecraft:block/wet_sponge",
+    "minecraft:block/wet_sponge",
+    "minecraft:block/wet_sponge"
+  ],
+  "minecraft:glass": [
+    "minecraft:block/glass",
+    "minecraft:block/glass",
+    "minecraft:block/glass",
+    "minecraft:block/glass",
+    "minecraft:block/glass",
+    "minecraft:block/glass"
+  ],
+  "minecraft:lapis_ore": [
+    "minecraft:block/lapis_ore",
+    "minecraft:block/lapis_ore",
+    "minecraft:block/lapis_ore",
+    "minecraft:block/lapis_ore",
+    "minecraft:block/lapis_ore",
+    "minecraft:block/lapis_ore"
+  ],
+  "minecraft:deepslate_lapis_ore": [
+    "minecraft:block/deepslate_lapis_ore",
+    "minecraft:block/deepslate_lapis_ore",
+    "minecraft:block/deepslate_lapis_ore",
+    "minecraft:block/deepslate_lapis_ore",
+    "minecraft:block/deepslate_lapis_ore",
+    "minecraft:block/deepslate_lapis_ore"
+  ],
+  "minecraft:lapis_block": [
+    "minecraft:block/lapis_block",
+    "minecraft:block/lapis_block",
+    "minecraft:block/lapis_block",
+    "minecraft:block/lapis_block",
+    "minecraft:block/lapis_block",
+    "minecraft:block/lapis_block"
+  ],
+  "minecraft:sandstone": [
+    "minecraft:block/sandstone_bottom",
+    "minecraft:block/sandstone_top",
+    "minecraft:block/sandstone",
+    "minecraft:block/sandstone",
+    "minecraft:block/sandstone",
+    "minecraft:block/sandstone"
+  ],
+  "minecraft:chiseled_sandstone": [
+    "minecraft:block/sandstone_top",
+    "minecraft:block/sandstone_top",
+    "minecraft:block/chiseled_sandstone",
+    "minecraft:block/chiseled_sandstone",
+    "minecraft:block/chiseled_sandstone",
+    "minecraft:block/chiseled_sandstone"
+  ],
+  "minecraft:cut_sandstone": [
+    "minecraft:block/sandstone_top",
+    "minecraft:block/sandstone_top",
+    "minecraft:block/cut_sandstone",
+    "minecraft:block/cut_sandstone",
+    "minecraft:block/cut_sandstone",
+    "minecraft:block/cut_sandstone"
+  ],
+  "minecraft:note_block": [
+    "minecraft:block/note_block",
+    "minecraft:block/note_block",
+    "minecraft:block/note_block",
+    "minecraft:block/note_block",
+    "minecraft:block/note_block",
+    "minecraft:block/note_block"
+  ],
+  "minecraft:sticky_piston": [
+    "minecraft:block/piston_side",
+    "minecraft:block/piston_side",
+    "minecraft:block/piston_top_sticky",
+    "minecraft:block/piston_bottom",
+    "minecraft:block/piston_side",
+    "minecraft:block/piston_side"
+  ],
+  "minecraft:piston": [
+    "minecraft:block/piston_side",
+    "minecraft:block/piston_side",
+    "minecraft:block/piston_top",
+    "minecraft:block/piston_bottom",
+    "minecraft:block/piston_side",
+    "minecraft:block/piston_side"
+  ],
+  "minecraft:white_wool": [
+    "minecraft:block/white_wool",
+    "minecraft:block/white_wool",
+    "minecraft:block/white_wool",
+    "minecraft:block/white_wool",
+    "minecraft:block/white_wool",
+    "minecraft:block/white_wool"
+  ],
+  "minecraft:orange_wool": [
+    "minecraft:block/orange_wool",
+    "minecraft:block/orange_wool",
+    "minecraft:block/orange_wool",
+    "minecraft:block/orange_wool",
+    "minecraft:block/orange_wool",
+    "minecraft:block/orange_wool"
+  ],
+  "minecraft:magenta_wool": [
+    "minecraft:block/magenta_wool",
+    "minecraft:block/magenta_wool",
+    "minecraft:block/magenta_wool",
+    "minecraft:block/magenta_wool",
+    "minecraft:block/magenta_wool",
+    "minecraft:block/magenta_wool"
+  ],
+  "minecraft:light_blue_wool": [
+    "minecraft:block/light_blue_wool",
+    "minecraft:block/light_blue_wool",
+    "minecraft:block/light_blue_wool",
+    "minecraft:block/light_blue_wool",
+    "minecraft:block/light_blue_wool",
+    "minecraft:block/light_blue_wool"
+  ],
+  "minecraft:yellow_wool": [
+    "minecraft:block/yellow_wool",
+    "minecraft:block/yellow_wool",
+    "minecraft:block/yellow_wool",
+    "minecraft:block/yellow_wool",
+    "minecraft:block/yellow_wool",
+    "minecraft:block/yellow_wool"
+  ],
+  "minecraft:lime_wool": [
+    "minecraft:block/lime_wool",
+    "minecraft:block/lime_wool",
+    "minecraft:block/lime_wool",
+    "minecraft:block/lime_wool",
+    "minecraft:block/lime_wool",
+    "minecraft:block/lime_wool"
+  ],
+  "minecraft:pink_wool": [
+    "minecraft:block/pink_wool",
+    "minecraft:block/pink_wool",
+    "minecraft:block/pink_wool",
+    "minecraft:block/pink_wool",
+    "minecraft:block/pink_wool",
+    "minecraft:block/pink_wool"
+  ],
+  "minecraft:gray_wool": [
+    "minecraft:block/gray_wool",
+    "minecraft:block/gray_wool",
+    "minecraft:block/gray_wool",
+    "minecraft:block/gray_wool",
+    "minecraft:block/gray_wool",
+    "minecraft:block/gray_wool"
+  ],
+  "minecraft:light_gray_wool": [
+    "minecraft:block/light_gray_wool",
+    "minecraft:block/light_gray_wool",
+    "minecraft:block/light_gray_wool",
+    "minecraft:block/light_gray_wool",
+    "minecraft:block/light_gray_wool",
+    "minecraft:block/light_gray_wool"
+  ],
+  "minecraft:cyan_wool": [
+    "minecraft:block/cyan_wool",
+    "minecraft:block/cyan_wool",
+    "minecraft:block/cyan_wool",
+    "minecraft:block/cyan_wool",
+    "minecraft:block/cyan_wool",
+    "minecraft:block/cyan_wool"
+  ],
+  "minecraft:purple_wool": [
+    "minecraft:block/purple_wool",
+    "minecraft:block/purple_wool",
+    "minecraft:block/purple_wool",
+    "minecraft:block/purple_wool",
+    "minecraft:block/purple_wool",
+    "minecraft:block/purple_wool"
+  ],
+  "minecraft:blue_wool": [
+    "minecraft:block/blue_wool",
+    "minecraft:block/blue_wool",
+    "minecraft:block/blue_wool",
+    "minecraft:block/blue_wool",
+    "minecraft:block/blue_wool",
+    "minecraft:block/blue_wool"
+  ],
+  "minecraft:brown_wool": [
+    "minecraft:block/brown_wool",
+    "minecraft:block/brown_wool",
+    "minecraft:block/brown_wool",
+    "minecraft:block/brown_wool",
+    "minecraft:block/brown_wool",
+    "minecraft:block/brown_wool"
+  ],
+  "minecraft:green_wool": [
+    "minecraft:block/green_wool",
+    "minecraft:block/green_wool",
+    "minecraft:block/green_wool",
+    "minecraft:block/green_wool",
+    "minecraft:block/green_wool",
+    "minecraft:block/green_wool"
+  ],
+  "minecraft:red_wool": [
+    "minecraft:block/red_wool",
+    "minecraft:block/red_wool",
+    "minecraft:block/red_wool",
+    "minecraft:block/red_wool",
+    "minecraft:block/red_wool",
+    "minecraft:block/red_wool"
+  ],
+  "minecraft:black_wool": [
+    "minecraft:block/black_wool",
+    "minecraft:block/black_wool",
+    "minecraft:block/black_wool",
+    "minecraft:block/black_wool",
+    "minecraft:block/black_wool",
+    "minecraft:block/black_wool"
+  ],
+  "minecraft:gold_block": [
+    "minecraft:block/gold_block",
+    "minecraft:block/gold_block",
+    "minecraft:block/gold_block",
+    "minecraft:block/gold_block",
+    "minecraft:block/gold_block",
+    "minecraft:block/gold_block"
+  ],
+  "minecraft:iron_block": [
+    "minecraft:block/iron_block",
+    "minecraft:block/iron_block",
+    "minecraft:block/iron_block",
+    "minecraft:block/iron_block",
+    "minecraft:block/iron_block",
+    "minecraft:block/iron_block"
+  ],
+  "minecraft:bricks": [
+    "minecraft:block/bricks",
+    "minecraft:block/bricks",
+    "minecraft:block/bricks",
+    "minecraft:block/bricks",
+    "minecraft:block/bricks",
+    "minecraft:block/bricks"
+  ],
+  "minecraft:tnt": [
+    "minecraft:block/tnt_bottom",
+    "minecraft:block/tnt_top",
+    "minecraft:block/tnt_side",
+    "minecraft:block/tnt_side",
+    "minecraft:block/tnt_side",
+    "minecraft:block/tnt_side"
+  ],
+  "minecraft:bookshelf": [
+    "minecraft:block/oak_planks",
+    "minecraft:block/oak_planks",
+    "minecraft:block/bookshelf",
+    "minecraft:block/bookshelf",
+    "minecraft:block/bookshelf",
+    "minecraft:block/bookshelf"
+  ],
+  "minecraft:mossy_cobblestone": [
+    "minecraft:block/mossy_cobblestone",
+    "minecraft:block/mossy_cobblestone",
+    "minecraft:block/mossy_cobblestone",
+    "minecraft:block/mossy_cobblestone",
+    "minecraft:block/mossy_cobblestone",
+    "minecraft:block/mossy_cobblestone"
+  ],
+  "minecraft:obsidian": [
+    "minecraft:block/obsidian",
+    "minecraft:block/obsidian",
+    "minecraft:block/obsidian",
+    "minecraft:block/obsidian",
+    "minecraft:block/obsidian",
+    "minecraft:block/obsidian"
+  ],
+  "minecraft:diamond_ore": [
+    "minecraft:block/diamond_ore",
+    "minecraft:block/diamond_ore",
+    "minecraft:block/diamond_ore",
+    "minecraft:block/diamond_ore",
+    "minecraft:block/diamond_ore",
+    "minecraft:block/diamond_ore"
+  ],
+  "minecraft:deepslate_diamond_ore": [
+    "minecraft:block/deepslate_diamond_ore",
+    "minecraft:block/deepslate_diamond_ore",
+    "minecraft:block/deepslate_diamond_ore",
+    "minecraft:block/deepslate_diamond_ore",
+    "minecraft:block/deepslate_diamond_ore",
+    "minecraft:block/deepslate_diamond_ore"
+  ],
+  "minecraft:diamond_block": [
+    "minecraft:block/diamond_block",
+    "minecraft:block/diamond_block",
+    "minecraft:block/diamond_block",
+    "minecraft:block/diamond_block",
+    "minecraft:block/diamond_block",
+    "minecraft:block/diamond_block"
+  ],
+  "minecraft:crafting_table": [
+    "minecraft:block/oak_planks",
+    "minecraft:block/crafting_table_top",
+    "minecraft:block/crafting_table_front",
+    "minecraft:block/crafting_table_side",
+    "minecraft:block/crafting_table_front",
+    "minecraft:block/crafting_table_side"
+  ],
+  "minecraft:redstone_ore": [
+    "minecraft:block/redstone_ore",
+    "minecraft:block/redstone_ore",
+    "minecraft:block/redstone_ore",
+    "minecraft:block/redstone_ore",
+    "minecraft:block/redstone_ore",
+    "minecraft:block/redstone_ore"
+  ],
+  "minecraft:deepslate_redstone_ore": [
+    "minecraft:block/deepslate_redstone_ore",
+    "minecraft:block/deepslate_redstone_ore",
+    "minecraft:block/deepslate_redstone_ore",
+    "minecraft:block/deepslate_redstone_ore",
+    "minecraft:block/deepslate_redstone_ore",
+    "minecraft:block/deepslate_redstone_ore"
+  ],
+  "minecraft:ice": [
+    "minecraft:block/ice",
+    "minecraft:block/ice",
+    "minecraft:block/ice",
+    "minecraft:block/ice",
+    "minecraft:block/ice",
+    "minecraft:block/ice"
+  ],
+  "minecraft:snow_block": [
+    "minecraft:block/snow",
+    "minecraft:block/snow",
+    "minecraft:block/snow",
+    "minecraft:block/snow",
+    "minecraft:block/snow",
+    "minecraft:block/snow"
+  ],
+  "minecraft:clay": [
+    "minecraft:block/clay",
+    "minecraft:block/clay",
+    "minecraft:block/clay",
+    "minecraft:block/clay",
+    "minecraft:block/clay",
+    "minecraft:block/clay"
+  ],
+  "minecraft:netherrack": [
+    "minecraft:block/netherrack",
+    "minecraft:block/netherrack",
+    "minecraft:block/netherrack",
+    "minecraft:block/netherrack",
+    "minecraft:block/netherrack",
+    "minecraft:block/netherrack"
+  ],
+  "minecraft:soul_sand": [
+    "minecraft:block/soul_sand",
+    "minecraft:block/soul_sand",
+    "minecraft:block/soul_sand",
+    "minecraft:block/soul_sand",
+    "minecraft:block/soul_sand",
+    "minecraft:block/soul_sand"
+  ],
+  "minecraft:soul_soil": [
+    "minecraft:block/soul_soil",
+    "minecraft:block/soul_soil",
+    "minecraft:block/soul_soil",
+    "minecraft:block/soul_soil",
+    "minecraft:block/soul_soil",
+    "minecraft:block/soul_soil"
+  ],
+  "minecraft:basalt": [
+    "minecraft:block/basalt_top",
+    "minecraft:block/basalt_top",
+    "minecraft:block/basalt_side",
+    "minecraft:block/basalt_side",
+    "minecraft:block/basalt_side",
+    "minecraft:block/basalt_side"
+  ],
+  "minecraft:polished_basalt": [
+    "minecraft:block/polished_basalt_top",
+    "minecraft:block/polished_basalt_top",
+    "minecraft:block/polished_basalt_side",
+    "minecraft:block/polished_basalt_side",
+    "minecraft:block/polished_basalt_side",
+    "minecraft:block/polished_basalt_side"
+  ],
+  "minecraft:glowstone": [
+    "minecraft:block/glowstone",
+    "minecraft:block/glowstone",
+    "minecraft:block/glowstone",
+    "minecraft:block/glowstone",
+    "minecraft:block/glowstone",
+    "minecraft:block/glowstone"
+  ],
+  "minecraft:carved_pumpkin": [
+    "minecraft:block/pumpkin_top",
+    "minecraft:block/pumpkin_top",
+    "minecraft:block/carved_pumpkin",
+    "minecraft:block/pumpkin_side",
+    "minecraft:block/pumpkin_side",
+    "minecraft:block/pumpkin_side"
+  ],
+  "minecraft:jack_o_lantern": [
+    "minecraft:block/pumpkin_top",
+    "minecraft:block/pumpkin_top",
+    "minecraft:block/jack_o_lantern",
+    "minecraft:block/pumpkin_side",
+    "minecraft:block/pumpkin_side",
+    "minecraft:block/pumpkin_side"
+  ],
+  "minecraft:white_stained_glass": [
+    "minecraft:block/white_stained_glass",
+    "minecraft:block/white_stained_glass",
+    "minecraft:block/white_stained_glass",
+    "minecraft:block/white_stained_glass",
+    "minecraft:block/white_stained_glass",
+    "minecraft:block/white_stained_glass"
+  ],
+  "minecraft:orange_stained_glass": [
+    "minecraft:block/orange_stained_glass",
+    "minecraft:block/orange_stained_glass",
+    "minecraft:block/orange_stained_glass",
+    "minecraft:block/orange_stained_glass",
+    "minecraft:block/orange_stained_glass",
+    "minecraft:block/orange_stained_glass"
+  ],
+  "minecraft:magenta_stained_glass": [
+    "minecraft:block/magenta_stained_glass",
+    "minecraft:block/magenta_stained_glass",
+    "minecraft:block/magenta_stained_glass",
+    "minecraft:block/magenta_stained_glass",
+    "minecraft:block/magenta_stained_glass",
+    "minecraft:block/magenta_stained_glass"
+  ],
+  "minecraft:light_blue_stained_glass": [
+    "minecraft:block/light_blue_stained_glass",
+    "minecraft:block/light_blue_stained_glass",
+    "minecraft:block/light_blue_stained_glass",
+    "minecraft:block/light_blue_stained_glass",
+    "minecraft:block/light_blue_stained_glass",
+    "minecraft:block/light_blue_stained_glass"
+  ],
+  "minecraft:yellow_stained_glass": [
+    "minecraft:block/yellow_stained_glass",
+    "minecraft:block/yellow_stained_glass",
+    "minecraft:block/yellow_stained_glass",
+    "minecraft:block/yellow_stained_glass",
+    "minecraft:block/yellow_stained_glass",
+    "minecraft:block/yellow_stained_glass"
+  ],
+  "minecraft:lime_stained_glass": [
+    "minecraft:block/lime_stained_glass",
+    "minecraft:block/lime_stained_glass",
+    "minecraft:block/lime_stained_glass",
+    "minecraft:block/lime_stained_glass",
+    "minecraft:block/lime_stained_glass",
+    "minecraft:block/lime_stained_glass"
+  ],
+  "minecraft:pink_stained_glass": [
+    "minecraft:block/pink_stained_glass",
+    "minecraft:block/pink_stained_glass",
+    "minecraft:block/pink_stained_glass",
+    "minecraft:block/pink_stained_glass",
+    "minecraft:block/pink_stained_glass",
+    "minecraft:block/pink_stained_glass"
+  ],
+  "minecraft:gray_stained_glass": [
+    "minecraft:block/gray_stained_glass",
+    "minecraft:block/gray_stained_glass",
+    "minecraft:block/gray_stained_glass",
+    "minecraft:block/gray_stained_glass",
+    "minecraft:block/gray_stained_glass",
+    "minecraft:block/gray_stained_glass"
+  ],
+  "minecraft:light_gray_stained_glass": [
+    "minecraft:block/light_gray_stained_glass",
+    "minecraft:block/light_gray_stained_glass",
+    "minecraft:block/light_gray_stained_glass",
+    "minecraft:block/light_gray_stained_glass",
+    "minecraft:block/light_gray_stained_glass",
+    "minecraft:block/light_gray_stained_glass"
+  ],
+  "minecraft:cyan_stained_glass": [
+    "minecraft:block/cyan_stained_glass",
+    "minecraft:block/cyan_stained_glass",
+    "minecraft:block/cyan_stained_glass",
+    "minecraft:block/cyan_stained_glass",
+    "minecraft:block/cyan_stained_glass",
+    "minecraft:block/cyan_stained_glass"
+  ],
+  "minecraft:purple_stained_glass": [
+    "minecraft:block/purple_stained_glass",
+    "minecraft:block/purple_stained_glass",
+    "minecraft:block/purple_stained_glass",
+    "minecraft:block/purple_stained_glass",
+    "minecraft:block/purple_stained_glass",
+    "minecraft:block/purple_stained_glass"
+  ],
+  "minecraft:blue_stained_glass": [
+    "minecraft:block/blue_stained_glass",
+    "minecraft:block/blue_stained_glass",
+    "minecraft:block/blue_stained_glass",
+    "minecraft:block/blue_stained_glass",
+    "minecraft:block/blue_stained_glass",
+    "minecraft:block/blue_stained_glass"
+  ],
+  "minecraft:brown_stained_glass": [
+    "minecraft:block/brown_stained_glass",
+    "minecraft:block/brown_stained_glass",
+    "minecraft:block/brown_stained_glass",
+    "minecraft:block/brown_stained_glass",
+    "minecraft:block/brown_stained_glass",
+    "minecraft:block/brown_stained_glass"
+  ],
+  "minecraft:green_stained_glass": [
+    "minecraft:block/green_stained_glass",
+    "minecraft:block/green_stained_glass",
+    "minecraft:block/green_stained_glass",
+    "minecraft:block/green_stained_glass",
+    "minecraft:block/green_stained_glass",
+    "minecraft:block/green_stained_glass"
+  ],
+  "minecraft:red_stained_glass": [
+    "minecraft:block/red_stained_glass",
+    "minecraft:block/red_stained_glass",
+    "minecraft:block/red_stained_glass",
+    "minecraft:block/red_stained_glass",
+    "minecraft:block/red_stained_glass",
+    "minecraft:block/red_stained_glass"
+  ],
+  "minecraft:black_stained_glass": [
+    "minecraft:block/black_stained_glass",
+    "minecraft:block/black_stained_glass",
+    "minecraft:block/black_stained_glass",
+    "minecraft:block/black_stained_glass",
+    "minecraft:block/black_stained_glass",
+    "minecraft:block/black_stained_glass"
+  ],
+  "minecraft:stone_bricks": [
+    "minecraft:block/stone_bricks",
+    "minecraft:block/stone_bricks",
+    "minecraft:block/stone_bricks",
+    "minecraft:block/stone_bricks",
+    "minecraft:block/stone_bricks",
+    "minecraft:block/stone_bricks"
+  ],
+  "minecraft:mossy_stone_bricks": [
+    "minecraft:block/mossy_stone_bricks",
+    "minecraft:block/mossy_stone_bricks",
+    "minecraft:block/mossy_stone_bricks",
+    "minecraft:block/mossy_stone_bricks",
+    "minecraft:block/mossy_stone_bricks",
+    "minecraft:block/mossy_stone_bricks"
+  ],
+  "minecraft:cracked_stone_bricks": [
+    "minecraft:block/cracked_stone_bricks",
+    "minecraft:block/cracked_stone_bricks",
+    "minecraft:block/cracked_stone_bricks",
+    "minecraft:block/cracked_stone_bricks",
+    "minecraft:block/cracked_stone_bricks",
+    "minecraft:block/cracked_stone_bricks"
+  ],
+  "minecraft:chiseled_stone_bricks": [
+    "minecraft:block/chiseled_stone_bricks",
+    "minecraft:block/chiseled_stone_bricks",
+    "minecraft:block/chiseled_stone_bricks",
+    "minecraft:block/chiseled_stone_bricks",
+    "minecraft:block/chiseled_stone_bricks",
+    "minecraft:block/chiseled_stone_bricks"
+  ],
+  "minecraft:packed_mud": [
+    "minecraft:block/packed_mud",
+    "minecraft:block/packed_mud",
+    "minecraft:block/packed_mud",
+    "minecraft:block/packed_mud",
+    "minecraft:block/packed_mud",
+    "minecraft:block/packed_mud"
+  ],
+  "minecraft:mud_bricks": [
+    "minecraft:block/mud_bricks",
+    "minecraft:block/mud_bricks",
+    "minecraft:block/mud_bricks",
+    "minecraft:block/mud_bricks",
+    "minecraft:block/mud_bricks",
+    "minecraft:block/mud_bricks"
+  ],
+  "minecraft:infested_stone": [
+    "minecraft:block/stone",
+    "minecraft:block/stone",
+    "minecraft:block/stone",
+    "minecraft:block/stone",
+    "minecraft:block/stone",
+    "minecraft:block/stone"
+  ],
+  "minecraft:infested_cobblestone": [
+    "minecraft:block/cobblestone",
+    "minecraft:block/cobblestone",
+    "minecraft:block/cobblestone",
+    "minecraft:block/cobblestone",
+    "minecraft:block/cobblestone",
+    "minecraft:block/cobblestone"
+  ],
+  "minecraft:infested_stone_bricks": [
+    "minecraft:block/stone_bricks",
+    "minecraft:block/stone_bricks",
+    "minecraft:block/stone_bricks",
+    "minecraft:block/stone_bricks",
+    "minecraft:block/stone_bricks",
+    "minecraft:block/stone_bricks"
+  ],
+  "minecraft:infested_mossy_stone_bricks": [
+    "minecraft:block/mossy_stone_bricks",
+    "minecraft:block/mossy_stone_bricks",
+    "minecraft:block/mossy_stone_bricks",
+    "minecraft:block/mossy_stone_bricks",
+    "minecraft:block/mossy_stone_bricks",
+    "minecraft:block/mossy_stone_bricks"
+  ],
+  "minecraft:infested_cracked_stone_bricks": [
+    "minecraft:block/cracked_stone_bricks",
+    "minecraft:block/cracked_stone_bricks",
+    "minecraft:block/cracked_stone_bricks",
+    "minecraft:block/cracked_stone_bricks",
+    "minecraft:block/cracked_stone_bricks",
+    "minecraft:block/cracked_stone_bricks"
+  ],
+  "minecraft:infested_chiseled_stone_bricks": [
+    "minecraft:block/chiseled_stone_bricks",
+    "minecraft:block/chiseled_stone_bricks",
+    "minecraft:block/chiseled_stone_bricks",
+    "minecraft:block/chiseled_stone_bricks",
+    "minecraft:block/chiseled_stone_bricks",
+    "minecraft:block/chiseled_stone_bricks"
+  ],
+  "minecraft:pumpkin": [
+    "minecraft:block/pumpkin_top",
+    "minecraft:block/pumpkin_top",
+    "minecraft:block/pumpkin_side",
+    "minecraft:block/pumpkin_side",
+    "minecraft:block/pumpkin_side",
+    "minecraft:block/pumpkin_side"
+  ],
+  "minecraft:melon": [
+    "minecraft:block/melon_top",
+    "minecraft:block/melon_top",
+    "minecraft:block/melon_side",
+    "minecraft:block/melon_side",
+    "minecraft:block/melon_side",
+    "minecraft:block/melon_side"
+  ],
+  "minecraft:mycelium": [
+    "minecraft:block/dirt",
+    "minecraft:block/mycelium_top",
+    "minecraft:block/mycelium_side",
+    "minecraft:block/mycelium_side",
+    "minecraft:block/mycelium_side",
+    "minecraft:block/mycelium_side"
+  ],
+  "minecraft:resin_block": [
+    "minecraft:block/resin_block",
+    "minecraft:block/resin_block",
+    "minecraft:block/resin_block",
+    "minecraft:block/resin_block",
+    "minecraft:block/resin_block",
+    "minecraft:block/resin_block"
+  ],
+  "minecraft:resin_bricks": [
+    "minecraft:block/resin_bricks",
+    "minecraft:block/resin_bricks",
+    "minecraft:block/resin_bricks",
+    "minecraft:block/resin_bricks",
+    "minecraft:block/resin_bricks",
+    "minecraft:block/resin_bricks"
+  ],
+  "minecraft:chiseled_resin_bricks": [
+    "minecraft:block/chiseled_resin_bricks",
+    "minecraft:block/chiseled_resin_bricks",
+    "minecraft:block/chiseled_resin_bricks",
+    "minecraft:block/chiseled_resin_bricks",
+    "minecraft:block/chiseled_resin_bricks",
+    "minecraft:block/chiseled_resin_bricks"
+  ],
+  "minecraft:nether_bricks": [
+    "minecraft:block/nether_bricks",
+    "minecraft:block/nether_bricks",
+    "minecraft:block/nether_bricks",
+    "minecraft:block/nether_bricks",
+    "minecraft:block/nether_bricks",
+    "minecraft:block/nether_bricks"
+  ],
+  "minecraft:end_stone": [
+    "minecraft:block/end_stone",
+    "minecraft:block/end_stone",
+    "minecraft:block/end_stone",
+    "minecraft:block/end_stone",
+    "minecraft:block/end_stone",
+    "minecraft:block/end_stone"
+  ],
+  "minecraft:redstone_lamp": [
+    "minecraft:block/redstone_lamp",
+    "minecraft:block/redstone_lamp",
+    "minecraft:block/redstone_lamp",
+    "minecraft:block/redstone_lamp",
+    "minecraft:block/redstone_lamp",
+    "minecraft:block/redstone_lamp"
+  ],
+  "minecraft:emerald_ore": [
+    "minecraft:block/emerald_ore",
+    "minecraft:block/emerald_ore",
+    "minecraft:block/emerald_ore",
+    "minecraft:block/emerald_ore",
+    "minecraft:block/emerald_ore",
+    "minecraft:block/emerald_ore"
+  ],
+  "minecraft:deepslate_emerald_ore": [
+    "minecraft:block/deepslate_emerald_ore",
+    "minecraft:block/deepslate_emerald_ore",
+    "minecraft:block/deepslate_emerald_ore",
+    "minecraft:block/deepslate_emerald_ore",
+    "minecraft:block/deepslate_emerald_ore",
+    "minecraft:block/deepslate_emerald_ore"
+  ],
+  "minecraft:emerald_block": [
+    "minecraft:block/emerald_block",
+    "minecraft:block/emerald_block",
+    "minecraft:block/emerald_block",
+    "minecraft:block/emerald_block",
+    "minecraft:block/emerald_block",
+    "minecraft:block/emerald_block"
+  ],
+  "minecraft:redstone_block": [
+    "minecraft:block/redstone_block",
+    "minecraft:block/redstone_block",
+    "minecraft:block/redstone_block",
+    "minecraft:block/redstone_block",
+    "minecraft:block/redstone_block",
+    "minecraft:block/redstone_block"
+  ],
+  "minecraft:nether_quartz_ore": [
+    "minecraft:block/nether_quartz_ore",
+    "minecraft:block/nether_quartz_ore",
+    "minecraft:block/nether_quartz_ore",
+    "minecraft:block/nether_quartz_ore",
+    "minecraft:block/nether_quartz_ore",
+    "minecraft:block/nether_quartz_ore"
+  ],
+  "minecraft:quartz_block": [
+    "minecraft:block/quartz_block_top",
+    "minecraft:block/quartz_block_top",
+    "minecraft:block/quartz_block_side",
+    "minecraft:block/quartz_block_side",
+    "minecraft:block/quartz_block_side",
+    "minecraft:block/quartz_block_side"
+  ],
+  "minecraft:chiseled_quartz_block": [
+    "minecraft:block/chiseled_quartz_block_top",
+    "minecraft:block/chiseled_quartz_block_top",
+    "minecraft:block/chiseled_quartz_block",
+    "minecraft:block/chiseled_quartz_block",
+    "minecraft:block/chiseled_quartz_block",
+    "minecraft:block/chiseled_quartz_block"
+  ],
+  "minecraft:quartz_pillar": [
+    "minecraft:block/quartz_pillar_top",
+    "minecraft:block/quartz_pillar_top",
+    "minecraft:block/quartz_pillar_side",
+    "minecraft:block/quartz_pillar_side",
+    "minecraft:block/quartz_pillar_side",
+    "minecraft:block/quartz_pillar_side"
+  ],
+  "minecraft:white_terracotta": [
+    "minecraft:block/white_terracotta",
+    "minecraft:block/white_terracotta",
+    "minecraft:block/white_terracotta",
+    "minecraft:block/white_terracotta",
+    "minecraft:block/white_terracotta",
+    "minecraft:block/white_terracotta"
+  ],
+  "minecraft:orange_terracotta": [
+    "minecraft:block/orange_terracotta",
+    "minecraft:block/orange_terracotta",
+    "minecraft:block/orange_terracotta",
+    "minecraft:block/orange_terracotta",
+    "minecraft:block/orange_terracotta",
+    "minecraft:block/orange_terracotta"
+  ],
+  "minecraft:magenta_terracotta": [
+    "minecraft:block/magenta_terracotta",
+    "minecraft:block/magenta_terracotta",
+    "minecraft:block/magenta_terracotta",
+    "minecraft:block/magenta_terracotta",
+    "minecraft:block/magenta_terracotta",
+    "minecraft:block/magenta_terracotta"
+  ],
+  "minecraft:light_blue_terracotta": [
+    "minecraft:block/light_blue_terracotta",
+    "minecraft:block/light_blue_terracotta",
+    "minecraft:block/light_blue_terracotta",
+    "minecraft:block/light_blue_terracotta",
+    "minecraft:block/light_blue_terracotta",
+    "minecraft:block/light_blue_terracotta"
+  ],
+  "minecraft:yellow_terracotta": [
+    "minecraft:block/yellow_terracotta",
+    "minecraft:block/yellow_terracotta",
+    "minecraft:block/yellow_terracotta",
+    "minecraft:block/yellow_terracotta",
+    "minecraft:block/yellow_terracotta",
+    "minecraft:block/yellow_terracotta"
+  ],
+  "minecraft:lime_terracotta": [
+    "minecraft:block/lime_terracotta",
+    "minecraft:block/lime_terracotta",
+    "minecraft:block/lime_terracotta",
+    "minecraft:block/lime_terracotta",
+    "minecraft:block/lime_terracotta",
+    "minecraft:block/lime_terracotta"
+  ],
+  "minecraft:pink_terracotta": [
+    "minecraft:block/pink_terracotta",
+    "minecraft:block/pink_terracotta",
+    "minecraft:block/pink_terracotta",
+    "minecraft:block/pink_terracotta",
+    "minecraft:block/pink_terracotta",
+    "minecraft:block/pink_terracotta"
+  ],
+  "minecraft:gray_terracotta": [
+    "minecraft:block/gray_terracotta",
+    "minecraft:block/gray_terracotta",
+    "minecraft:block/gray_terracotta",
+    "minecraft:block/gray_terracotta",
+    "minecraft:block/gray_terracotta",
+    "minecraft:block/gray_terracotta"
+  ],
+  "minecraft:light_gray_terracotta": [
+    "minecraft:block/light_gray_terracotta",
+    "minecraft:block/light_gray_terracotta",
+    "minecraft:block/light_gray_terracotta",
+    "minecraft:block/light_gray_terracotta",
+    "minecraft:block/light_gray_terracotta",
+    "minecraft:block/light_gray_terracotta"
+  ],
+  "minecraft:cyan_terracotta": [
+    "minecraft:block/cyan_terracotta",
+    "minecraft:block/cyan_terracotta",
+    "minecraft:block/cyan_terracotta",
+    "minecraft:block/cyan_terracotta",
+    "minecraft:block/cyan_terracotta",
+    "minecraft:block/cyan_terracotta"
+  ],
+  "minecraft:purple_terracotta": [
+    "minecraft:block/purple_terracotta",
+    "minecraft:block/purple_terracotta",
+    "minecraft:block/purple_terracotta",
+    "minecraft:block/purple_terracotta",
+    "minecraft:block/purple_terracotta",
+    "minecraft:block/purple_terracotta"
+  ],
+  "minecraft:blue_terracotta": [
+    "minecraft:block/blue_terracotta",
+    "minecraft:block/blue_terracotta",
+    "minecraft:block/blue_terracotta",
+    "minecraft:block/blue_terracotta",
+    "minecraft:block/blue_terracotta",
+    "minecraft:block/blue_terracotta"
+  ],
+  "minecraft:brown_terracotta": [
+    "minecraft:block/brown_terracotta",
+    "minecraft:block/brown_terracotta",
+    "minecraft:block/brown_terracotta",
+    "minecraft:block/brown_terracotta",
+    "minecraft:block/brown_terracotta",
+    "minecraft:block/brown_terracotta"
+  ],
+  "minecraft:green_terracotta": [
+    "minecraft:block/green_terracotta",
+    "minecraft:block/green_terracotta",
+    "minecraft:block/green_terracotta",
+    "minecraft:block/green_terracotta",
+    "minecraft:block/green_terracotta",
+    "minecraft:block/green_terracotta"
+  ],
+  "minecraft:red_terracotta": [
+    "minecraft:block/red_terracotta",
+    "minecraft:block/red_terracotta",
+    "minecraft:block/red_terracotta",
+    "minecraft:block/red_terracotta",
+    "minecraft:block/red_terracotta",
+    "minecraft:block/red_terracotta"
+  ],
+  "minecraft:black_terracotta": [
+    "minecraft:block/black_terracotta",
+    "minecraft:block/black_terracotta",
+    "minecraft:block/black_terracotta",
+    "minecraft:block/black_terracotta",
+    "minecraft:block/black_terracotta",
+    "minecraft:block/black_terracotta"
+  ],
+  "minecraft:prismarine": [
+    "minecraft:block/prismarine",
+    "minecraft:block/prismarine",
+    "minecraft:block/prismarine",
+    "minecraft:block/prismarine",
+    "minecraft:block/prismarine",
+    "minecraft:block/prismarine"
+  ],
+  "minecraft:prismarine_bricks": [
+    "minecraft:block/prismarine_bricks",
+    "minecraft:block/prismarine_bricks",
+    "minecraft:block/prismarine_bricks",
+    "minecraft:block/prismarine_bricks",
+    "minecraft:block/prismarine_bricks",
+    "minecraft:block/prismarine_bricks"
+  ],
+  "minecraft:dark_prismarine": [
+    "minecraft:block/dark_prismarine",
+    "minecraft:block/dark_prismarine",
+    "minecraft:block/dark_prismarine",
+    "minecraft:block/dark_prismarine",
+    "minecraft:block/dark_prismarine",
+    "minecraft:block/dark_prismarine"
+  ],
+  "minecraft:sea_lantern": [
+    "minecraft:block/sea_lantern",
+    "minecraft:block/sea_lantern",
+    "minecraft:block/sea_lantern",
+    "minecraft:block/sea_lantern",
+    "minecraft:block/sea_lantern",
+    "minecraft:block/sea_lantern"
+  ],
+  "minecraft:hay_block": [
+    "minecraft:block/hay_block_top",
+    "minecraft:block/hay_block_top",
+    "minecraft:block/hay_block_side",
+    "minecraft:block/hay_block_side",
+    "minecraft:block/hay_block_side",
+    "minecraft:block/hay_block_side"
+  ],
+  "minecraft:terracotta": [
+    "minecraft:block/terracotta",
+    "minecraft:block/terracotta",
+    "minecraft:block/terracotta",
+    "minecraft:block/terracotta",
+    "minecraft:block/terracotta",
+    "minecraft:block/terracotta"
+  ],
+  "minecraft:coal_block": [
+    "minecraft:block/coal_block",
+    "minecraft:block/coal_block",
+    "minecraft:block/coal_block",
+    "minecraft:block/coal_block",
+    "minecraft:block/coal_block",
+    "minecraft:block/coal_block"
+  ],
+  "minecraft:packed_ice": [
+    "minecraft:block/packed_ice",
+    "minecraft:block/packed_ice",
+    "minecraft:block/packed_ice",
+    "minecraft:block/packed_ice",
+    "minecraft:block/packed_ice",
+    "minecraft:block/packed_ice"
+  ],
+  "minecraft:red_sandstone": [
+    "minecraft:block/red_sandstone_bottom",
+    "minecraft:block/red_sandstone_top",
+    "minecraft:block/red_sandstone",
+    "minecraft:block/red_sandstone",
+    "minecraft:block/red_sandstone",
+    "minecraft:block/red_sandstone"
+  ],
+  "minecraft:chiseled_red_sandstone": [
+    "minecraft:block/red_sandstone_top",
+    "minecraft:block/red_sandstone_top",
+    "minecraft:block/chiseled_red_sandstone",
+    "minecraft:block/chiseled_red_sandstone",
+    "minecraft:block/chiseled_red_sandstone",
+    "minecraft:block/chiseled_red_sandstone"
+  ],
+  "minecraft:cut_red_sandstone": [
+    "minecraft:block/red_sandstone_top",
+    "minecraft:block/red_sandstone_top",
+    "minecraft:block/cut_red_sandstone",
+    "minecraft:block/cut_red_sandstone",
+    "minecraft:block/cut_red_sandstone",
+    "minecraft:block/cut_red_sandstone"
+  ],
+  "minecraft:smooth_stone": [
+    "minecraft:block/smooth_stone",
+    "minecraft:block/smooth_stone",
+    "minecraft:block/smooth_stone",
+    "minecraft:block/smooth_stone",
+    "minecraft:block/smooth_stone",
+    "minecraft:block/smooth_stone"
+  ],
+  "minecraft:smooth_sandstone": [
+    "minecraft:block/sandstone_top",
+    "minecraft:block/sandstone_top",
+    "minecraft:block/sandstone_top",
+    "minecraft:block/sandstone_top",
+    "minecraft:block/sandstone_top",
+    "minecraft:block/sandstone_top"
+  ],
+  "minecraft:smooth_quartz": [
+    "minecraft:block/quartz_block_bottom",
+    "minecraft:block/quartz_block_bottom",
+    "minecraft:block/quartz_block_bottom",
+    "minecraft:block/quartz_block_bottom",
+    "minecraft:block/quartz_block_bottom",
+    "minecraft:block/quartz_block_bottom"
+  ],
+  "minecraft:smooth_red_sandstone": [
+    "minecraft:block/red_sandstone_top",
+    "minecraft:block/red_sandstone_top",
+    "minecraft:block/red_sandstone_top",
+    "minecraft:block/red_sandstone_top",
+    "minecraft:block/red_sandstone_top",
+    "minecraft:block/red_sandstone_top"
+  ],
+  "minecraft:purpur_block": [
+    "minecraft:block/purpur_block",
+    "minecraft:block/purpur_block",
+    "minecraft:block/purpur_block",
+    "minecraft:block/purpur_block",
+    "minecraft:block/purpur_block",
+    "minecraft:block/purpur_block"
+  ],
+  "minecraft:purpur_pillar": [
+    "minecraft:block/purpur_pillar_top",
+    "minecraft:block/purpur_pillar_top",
+    "minecraft:block/purpur_pillar_side",
+    "minecraft:block/purpur_pillar_side",
+    "minecraft:block/purpur_pillar_side",
+    "minecraft:block/purpur_pillar_side"
+  ],
+  "minecraft:end_stone_bricks": [
+    "minecraft:block/end_stone_bricks",
+    "minecraft:block/end_stone_bricks",
+    "minecraft:block/end_stone_bricks",
+    "minecraft:block/end_stone_bricks",
+    "minecraft:block/end_stone_bricks",
+    "minecraft:block/end_stone_bricks"
+  ],
+  "minecraft:magma_block": [
+    "minecraft:block/magma",
+    "minecraft:block/magma",
+    "minecraft:block/magma",
+    "minecraft:block/magma",
+    "minecraft:block/magma",
+    "minecraft:block/magma"
+  ],
+  "minecraft:nether_wart_block": [
+    "minecraft:block/nether_wart_block",
+    "minecraft:block/nether_wart_block",
+    "minecraft:block/nether_wart_block",
+    "minecraft:block/nether_wart_block",
+    "minecraft:block/nether_wart_block",
+    "minecraft:block/nether_wart_block"
+  ],
+  "minecraft:red_nether_bricks": [
+    "minecraft:block/red_nether_bricks",
+    "minecraft:block/red_nether_bricks",
+    "minecraft:block/red_nether_bricks",
+    "minecraft:block/red_nether_bricks",
+    "minecraft:block/red_nether_bricks",
+    "minecraft:block/red_nether_bricks"
+  ],
+  "minecraft:bone_block": [
+    "minecraft:block/bone_block_top",
+    "minecraft:block/bone_block_top",
+    "minecraft:block/bone_block_side",
+    "minecraft:block/bone_block_side",
+    "minecraft:block/bone_block_side",
+    "minecraft:block/bone_block_side"
+  ],
+  "minecraft:observer": [
+    "minecraft:block/observer_top",
+    "minecraft:block/observer_top",
+    "minecraft:block/observer_front",
+    "minecraft:block/observer_back",
+    "minecraft:block/observer_side",
+    "minecraft:block/observer_side"
+  ],
+  "minecraft:white_glazed_terracotta": [
+    "minecraft:block/white_glazed_terracotta",
+    "minecraft:block/white_glazed_terracotta",
+    "minecraft:block/white_glazed_terracotta",
+    "minecraft:block/white_glazed_terracotta",
+    "minecraft:block/white_glazed_terracotta",
+    "minecraft:block/white_glazed_terracotta"
+  ],
+  "minecraft:orange_glazed_terracotta": [
+    "minecraft:block/orange_glazed_terracotta",
+    "minecraft:block/orange_glazed_terracotta",
+    "minecraft:block/orange_glazed_terracotta",
+    "minecraft:block/orange_glazed_terracotta",
+    "minecraft:block/orange_glazed_terracotta",
+    "minecraft:block/orange_glazed_terracotta"
+  ],
+  "minecraft:magenta_glazed_terracotta": [
+    "minecraft:block/magenta_glazed_terracotta",
+    "minecraft:block/magenta_glazed_terracotta",
+    "minecraft:block/magenta_glazed_terracotta",
+    "minecraft:block/magenta_glazed_terracotta",
+    "minecraft:block/magenta_glazed_terracotta",
+    "minecraft:block/magenta_glazed_terracotta"
+  ],
+  "minecraft:light_blue_glazed_terracotta": [
+    "minecraft:block/light_blue_glazed_terracotta",
+    "minecraft:block/light_blue_glazed_terracotta",
+    "minecraft:block/light_blue_glazed_terracotta",
+    "minecraft:block/light_blue_glazed_terracotta",
+    "minecraft:block/light_blue_glazed_terracotta",
+    "minecraft:block/light_blue_glazed_terracotta"
+  ],
+  "minecraft:yellow_glazed_terracotta": [
+    "minecraft:block/yellow_glazed_terracotta",
+    "minecraft:block/yellow_glazed_terracotta",
+    "minecraft:block/yellow_glazed_terracotta",
+    "minecraft:block/yellow_glazed_terracotta",
+    "minecraft:block/yellow_glazed_terracotta",
+    "minecraft:block/yellow_glazed_terracotta"
+  ],
+  "minecraft:lime_glazed_terracotta": [
+    "minecraft:block/lime_glazed_terracotta",
+    "minecraft:block/lime_glazed_terracotta",
+    "minecraft:block/lime_glazed_terracotta",
+    "minecraft:block/lime_glazed_terracotta",
+    "minecraft:block/lime_glazed_terracotta",
+    "minecraft:block/lime_glazed_terracotta"
+  ],
+  "minecraft:pink_glazed_terracotta": [
+    "minecraft:block/pink_glazed_terracotta",
+    "minecraft:block/pink_glazed_terracotta",
+    "minecraft:block/pink_glazed_terracotta",
+    "minecraft:block/pink_glazed_terracotta",
+    "minecraft:block/pink_glazed_terracotta",
+    "minecraft:block/pink_glazed_terracotta"
+  ],
+  "minecraft:gray_glazed_terracotta": [
+    "minecraft:block/gray_glazed_terracotta",
+    "minecraft:block/gray_glazed_terracotta",
+    "minecraft:block/gray_glazed_terracotta",
+    "minecraft:block/gray_glazed_terracotta",
+    "minecraft:block/gray_glazed_terracotta",
+    "minecraft:block/gray_glazed_terracotta"
+  ],
+  "minecraft:light_gray_glazed_terracotta": [
+    "minecraft:block/light_gray_glazed_terracotta",
+    "minecraft:block/light_gray_glazed_terracotta",
+    "minecraft:block/light_gray_glazed_terracotta",
+    "minecraft:block/light_gray_glazed_terracotta",
+    "minecraft:block/light_gray_glazed_terracotta",
+    "minecraft:block/light_gray_glazed_terracotta"
+  ],
+  "minecraft:cyan_glazed_terracotta": [
+    "minecraft:block/cyan_glazed_terracotta",
+    "minecraft:block/cyan_glazed_terracotta",
+    "minecraft:block/cyan_glazed_terracotta",
+    "minecraft:block/cyan_glazed_terracotta",
+    "minecraft:block/cyan_glazed_terracotta",
+    "minecraft:block/cyan_glazed_terracotta"
+  ],
+  "minecraft:purple_glazed_terracotta": [
+    "minecraft:block/purple_glazed_terracotta",
+    "minecraft:block/purple_glazed_terracotta",
+    "minecraft:block/purple_glazed_terracotta",
+    "minecraft:block/purple_glazed_terracotta",
+    "minecraft:block/purple_glazed_terracotta",
+    "minecraft:block/purple_glazed_terracotta"
+  ],
+  "minecraft:blue_glazed_terracotta": [
+    "minecraft:block/blue_glazed_terracotta",
+    "minecraft:block/blue_glazed_terracotta",
+    "minecraft:block/blue_glazed_terracotta",
+    "minecraft:block/blue_glazed_terracotta",
+    "minecraft:block/blue_glazed_terracotta",
+    "minecraft:block/blue_glazed_terracotta"
+  ],
+  "minecraft:brown_glazed_terracotta": [
+    "minecraft:block/brown_glazed_terracotta",
+    "minecraft:block/brown_glazed_terracotta",
+    "minecraft:block/brown_glazed_terracotta",
+    "minecraft:block/brown_glazed_terracotta",
+    "minecraft:block/brown_glazed_terracotta",
+    "minecraft:block/brown_glazed_terracotta"
+  ],
+  "minecraft:green_glazed_terracotta": [
+    "minecraft:block/green_glazed_terracotta",
+    "minecraft:block/green_glazed_terracotta",
+    "minecraft:block/green_glazed_terracotta",
+    "minecraft:block/green_glazed_terracotta",
+    "minecraft:block/green_glazed_terracotta",
+    "minecraft:block/green_glazed_terracotta"
+  ],
+  "minecraft:red_glazed_terracotta": [
+    "minecraft:block/red_glazed_terracotta",
+    "minecraft:block/red_glazed_terracotta",
+    "minecraft:block/red_glazed_terracotta",
+    "minecraft:block/red_glazed_terracotta",
+    "minecraft:block/red_glazed_terracotta",
+    "minecraft:block/red_glazed_terracotta"
+  ],
+  "minecraft:black_glazed_terracotta": [
+    "minecraft:block/black_glazed_terracotta",
+    "minecraft:block/black_glazed_terracotta",
+    "minecraft:block/black_glazed_terracotta",
+    "minecraft:block/black_glazed_terracotta",
+    "minecraft:block/black_glazed_terracotta",
+    "minecraft:block/black_glazed_terracotta"
+  ],
+  "minecraft:white_concrete": [
+    "minecraft:block/white_concrete",
+    "minecraft:block/white_concrete",
+    "minecraft:block/white_concrete",
+    "minecraft:block/white_concrete",
+    "minecraft:block/white_concrete",
+    "minecraft:block/white_concrete"
+  ],
+  "minecraft:orange_concrete": [
+    "minecraft:block/orange_concrete",
+    "minecraft:block/orange_concrete",
+    "minecraft:block/orange_concrete",
+    "minecraft:block/orange_concrete",
+    "minecraft:block/orange_concrete",
+    "minecraft:block/orange_concrete"
+  ],
+  "minecraft:magenta_concrete": [
+    "minecraft:block/magenta_concrete",
+    "minecraft:block/magenta_concrete",
+    "minecraft:block/magenta_concrete",
+    "minecraft:block/magenta_concrete",
+    "minecraft:block/magenta_concrete",
+    "minecraft:block/magenta_concrete"
+  ],
+  "minecraft:light_blue_concrete": [
+    "minecraft:block/light_blue_concrete",
+    "minecraft:block/light_blue_concrete",
+    "minecraft:block/light_blue_concrete",
+    "minecraft:block/light_blue_concrete",
+    "minecraft:block/light_blue_concrete",
+    "minecraft:block/light_blue_concrete"
+  ],
+  "minecraft:yellow_concrete": [
+    "minecraft:block/yellow_concrete",
+    "minecraft:block/yellow_concrete",
+    "minecraft:block/yellow_concrete",
+    "minecraft:block/yellow_concrete",
+    "minecraft:block/yellow_concrete",
+    "minecraft:block/yellow_concrete"
+  ],
+  "minecraft:lime_concrete": [
+    "minecraft:block/lime_concrete",
+    "minecraft:block/lime_concrete",
+    "minecraft:block/lime_concrete",
+    "minecraft:block/lime_concrete",
+    "minecraft:block/lime_concrete",
+    "minecraft:block/lime_concrete"
+  ],
+  "minecraft:pink_concrete": [
+    "minecraft:block/pink_concrete",
+    "minecraft:block/pink_concrete",
+    "minecraft:block/pink_concrete",
+    "minecraft:block/pink_concrete",
+    "minecraft:block/pink_concrete",
+    "minecraft:block/pink_concrete"
+  ],
+  "minecraft:gray_concrete": [
+    "minecraft:block/gray_concrete",
+    "minecraft:block/gray_concrete",
+    "minecraft:block/gray_concrete",
+    "minecraft:block/gray_concrete",
+    "minecraft:block/gray_concrete",
+    "minecraft:block/gray_concrete"
+  ],
+  "minecraft:light_gray_concrete": [
+    "minecraft:block/light_gray_concrete",
+    "minecraft:block/light_gray_concrete",
+    "minecraft:block/light_gray_concrete",
+    "minecraft:block/light_gray_concrete",
+    "minecraft:block/light_gray_concrete",
+    "minecraft:block/light_gray_concrete"
+  ],
+  "minecraft:cyan_concrete": [
+    "minecraft:block/cyan_concrete",
+    "minecraft:block/cyan_concrete",
+    "minecraft:block/cyan_concrete",
+    "minecraft:block/cyan_concrete",
+    "minecraft:block/cyan_concrete",
+    "minecraft:block/cyan_concrete"
+  ],
+  "minecraft:purple_concrete": [
+    "minecraft:block/purple_concrete",
+    "minecraft:block/purple_concrete",
+    "minecraft:block/purple_concrete",
+    "minecraft:block/purple_concrete",
+    "minecraft:block/purple_concrete",
+    "minecraft:block/purple_concrete"
+  ],
+  "minecraft:blue_concrete": [
+    "minecraft:block/blue_concrete",
+    "minecraft:block/blue_concrete",
+    "minecraft:block/blue_concrete",
+    "minecraft:block/blue_concrete",
+    "minecraft:block/blue_concrete",
+    "minecraft:block/blue_concrete"
+  ],
+  "minecraft:brown_concrete": [
+    "minecraft:block/brown_concrete",
+    "minecraft:block/brown_concrete",
+    "minecraft:block/brown_concrete",
+    "minecraft:block/brown_concrete",
+    "minecraft:block/brown_concrete",
+    "minecraft:block/brown_concrete"
+  ],
+  "minecraft:green_concrete": [
+    "minecraft:block/green_concrete",
+    "minecraft:block/green_concrete",
+    "minecraft:block/green_concrete",
+    "minecraft:block/green_concrete",
+    "minecraft:block/green_concrete",
+    "minecraft:block/green_concrete"
+  ],
+  "minecraft:red_concrete": [
+    "minecraft:block/red_concrete",
+    "minecraft:block/red_concrete",
+    "minecraft:block/red_concrete",
+    "minecraft:block/red_concrete",
+    "minecraft:block/red_concrete",
+    "minecraft:block/red_concrete"
+  ],
+  "minecraft:black_concrete": [
+    "minecraft:block/black_concrete",
+    "minecraft:block/black_concrete",
+    "minecraft:block/black_concrete",
+    "minecraft:block/black_concrete",
+    "minecraft:block/black_concrete",
+    "minecraft:block/black_concrete"
+  ],
+  "minecraft:white_concrete_powder": [
+    "minecraft:block/white_concrete_powder",
+    "minecraft:block/white_concrete_powder",
+    "minecraft:block/white_concrete_powder",
+    "minecraft:block/white_concrete_powder",
+    "minecraft:block/white_concrete_powder",
+    "minecraft:block/white_concrete_powder"
+  ],
+  "minecraft:orange_concrete_powder": [
+    "minecraft:block/orange_concrete_powder",
+    "minecraft:block/orange_concrete_powder",
+    "minecraft:block/orange_concrete_powder",
+    "minecraft:block/orange_concrete_powder",
+    "minecraft:block/orange_concrete_powder",
+    "minecraft:block/orange_concrete_powder"
+  ],
+  "minecraft:magenta_concrete_powder": [
+    "minecraft:block/magenta_concrete_powder",
+    "minecraft:block/magenta_concrete_powder",
+    "minecraft:block/magenta_concrete_powder",
+    "minecraft:block/magenta_concrete_powder",
+    "minecraft:block/magenta_concrete_powder",
+    "minecraft:block/magenta_concrete_powder"
+  ],
+  "minecraft:light_blue_concrete_powder": [
+    "minecraft:block/light_blue_concrete_powder",
+    "minecraft:block/light_blue_concrete_powder",
+    "minecraft:block/light_blue_concrete_powder",
+    "minecraft:block/light_blue_concrete_powder",
+    "minecraft:block/light_blue_concrete_powder",
+    "minecraft:block/light_blue_concrete_powder"
+  ],
+  "minecraft:yellow_concrete_powder": [
+    "minecraft:block/yellow_concrete_powder",
+    "minecraft:block/yellow_concrete_powder",
+    "minecraft:block/yellow_concrete_powder",
+    "minecraft:block/yellow_concrete_powder",
+    "minecraft:block/yellow_concrete_powder",
+    "minecraft:block/yellow_concrete_powder"
+  ],
+  "minecraft:lime_concrete_powder": [
+    "minecraft:block/lime_concrete_powder",
+    "minecraft:block/lime_concrete_powder",
+    "minecraft:block/lime_concrete_powder",
+    "minecraft:block/lime_concrete_powder",
+    "minecraft:block/lime_concrete_powder",
+    "minecraft:block/lime_concrete_powder"
+  ],
+  "minecraft:pink_concrete_powder": [
+    "minecraft:block/pink_concrete_powder",
+    "minecraft:block/pink_concrete_powder",
+    "minecraft:block/pink_concrete_powder",
+    "minecraft:block/pink_concrete_powder",
+    "minecraft:block/pink_concrete_powder",
+    "minecraft:block/pink_concrete_powder"
+  ],
+  "minecraft:gray_concrete_powder": [
+    "minecraft:block/gray_concrete_powder",
+    "minecraft:block/gray_concrete_powder",
+    "minecraft:block/gray_concrete_powder",
+    "minecraft:block/gray_concrete_powder",
+    "minecraft:block/gray_concrete_powder",
+    "minecraft:block/gray_concrete_powder"
+  ],
+  "minecraft:light_gray_concrete_powder": [
+    "minecraft:block/light_gray_concrete_powder",
+    "minecraft:block/light_gray_concrete_powder",
+    "minecraft:block/light_gray_concrete_powder",
+    "minecraft:block/light_gray_concrete_powder",
+    "minecraft:block/light_gray_concrete_powder",
+    "minecraft:block/light_gray_concrete_powder"
+  ],
+  "minecraft:cyan_concrete_powder": [
+    "minecraft:block/cyan_concrete_powder",
+    "minecraft:block/cyan_concrete_powder",
+    "minecraft:block/cyan_concrete_powder",
+    "minecraft:block/cyan_concrete_powder",
+    "minecraft:block/cyan_concrete_powder",
+    "minecraft:block/cyan_concrete_powder"
+  ],
+  "minecraft:purple_concrete_powder": [
+    "minecraft:block/purple_concrete_powder",
+    "minecraft:block/purple_concrete_powder",
+    "minecraft:block/purple_concrete_powder",
+    "minecraft:block/purple_concrete_powder",
+    "minecraft:block/purple_concrete_powder",
+    "minecraft:block/purple_concrete_powder"
+  ],
+  "minecraft:blue_concrete_powder": [
+    "minecraft:block/blue_concrete_powder",
+    "minecraft:block/blue_concrete_powder",
+    "minecraft:block/blue_concrete_powder",
+    "minecraft:block/blue_concrete_powder",
+    "minecraft:block/blue_concrete_powder",
+    "minecraft:block/blue_concrete_powder"
+  ],
+  "minecraft:brown_concrete_powder": [
+    "minecraft:block/brown_concrete_powder",
+    "minecraft:block/brown_concrete_powder",
+    "minecraft:block/brown_concrete_powder",
+    "minecraft:block/brown_concrete_powder",
+    "minecraft:block/brown_concrete_powder",
+    "minecraft:block/brown_concrete_powder"
+  ],
+  "minecraft:green_concrete_powder": [
+    "minecraft:block/green_concrete_powder",
+    "minecraft:block/green_concrete_powder",
+    "minecraft:block/green_concrete_powder",
+    "minecraft:block/green_concrete_powder",
+    "minecraft:block/green_concrete_powder",
+    "minecraft:block/green_concrete_powder"
+  ],
+  "minecraft:red_concrete_powder": [
+    "minecraft:block/red_concrete_powder",
+    "minecraft:block/red_concrete_powder",
+    "minecraft:block/red_concrete_powder",
+    "minecraft:block/red_concrete_powder",
+    "minecraft:block/red_concrete_powder",
+    "minecraft:block/red_concrete_powder"
+  ],
+  "minecraft:black_concrete_powder": [
+    "minecraft:block/black_concrete_powder",
+    "minecraft:block/black_concrete_powder",
+    "minecraft:block/black_concrete_powder",
+    "minecraft:block/black_concrete_powder",
+    "minecraft:block/black_concrete_powder",
+    "minecraft:block/black_concrete_powder"
+  ],
+  "minecraft:dried_kelp_block": [
+    "minecraft:block/dried_kelp_bottom",
+    "minecraft:block/dried_kelp_top",
+    "minecraft:block/dried_kelp_side",
+    "minecraft:block/dried_kelp_side",
+    "minecraft:block/dried_kelp_side",
+    "minecraft:block/dried_kelp_side"
+  ],
+  "minecraft:dead_tube_coral_block": [
+    "minecraft:block/dead_tube_coral_block",
+    "minecraft:block/dead_tube_coral_block",
+    "minecraft:block/dead_tube_coral_block",
+    "minecraft:block/dead_tube_coral_block",
+    "minecraft:block/dead_tube_coral_block",
+    "minecraft:block/dead_tube_coral_block"
+  ],
+  "minecraft:dead_brain_coral_block": [
+    "minecraft:block/dead_brain_coral_block",
+    "minecraft:block/dead_brain_coral_block",
+    "minecraft:block/dead_brain_coral_block",
+    "minecraft:block/dead_brain_coral_block",
+    "minecraft:block/dead_brain_coral_block",
+    "minecraft:block/dead_brain_coral_block"
+  ],
+  "minecraft:dead_bubble_coral_block": [
+    "minecraft:block/dead_bubble_coral_block",
+    "minecraft:block/dead_bubble_coral_block",
+    "minecraft:block/dead_bubble_coral_block",
+    "minecraft:block/dead_bubble_coral_block",
+    "minecraft:block/dead_bubble_coral_block",
+    "minecraft:block/dead_bubble_coral_block"
+  ],
+  "minecraft:dead_fire_coral_block": [
+    "minecraft:block/dead_fire_coral_block",
+    "minecraft:block/dead_fire_coral_block",
+    "minecraft:block/dead_fire_coral_block",
+    "minecraft:block/dead_fire_coral_block",
+    "minecraft:block/dead_fire_coral_block",
+    "minecraft:block/dead_fire_coral_block"
+  ],
+  "minecraft:dead_horn_coral_block": [
+    "minecraft:block/dead_horn_coral_block",
+    "minecraft:block/dead_horn_coral_block",
+    "minecraft:block/dead_horn_coral_block",
+    "minecraft:block/dead_horn_coral_block",
+    "minecraft:block/dead_horn_coral_block",
+    "minecraft:block/dead_horn_coral_block"
+  ],
+  "minecraft:tube_coral_block": [
+    "minecraft:block/tube_coral_block",
+    "minecraft:block/tube_coral_block",
+    "minecraft:block/tube_coral_block",
+    "minecraft:block/tube_coral_block",
+    "minecraft:block/tube_coral_block",
+    "minecraft:block/tube_coral_block"
+  ],
+  "minecraft:brain_coral_block": [
+    "minecraft:block/brain_coral_block",
+    "minecraft:block/brain_coral_block",
+    "minecraft:block/brain_coral_block",
+    "minecraft:block/brain_coral_block",
+    "minecraft:block/brain_coral_block",
+    "minecraft:block/brain_coral_block"
+  ],
+  "minecraft:bubble_coral_block": [
+    "minecraft:block/bubble_coral_block",
+    "minecraft:block/bubble_coral_block",
+    "minecraft:block/bubble_coral_block",
+    "minecraft:block/bubble_coral_block",
+    "minecraft:block/bubble_coral_block",
+    "minecraft:block/bubble_coral_block"
+  ],
+  "minecraft:fire_coral_block": [
+    "minecraft:block/fire_coral_block",
+    "minecraft:block/fire_coral_block",
+    "minecraft:block/fire_coral_block",
+    "minecraft:block/fire_coral_block",
+    "minecraft:block/fire_coral_block",
+    "minecraft:block/fire_coral_block"
+  ],
+  "minecraft:horn_coral_block": [
+    "minecraft:block/horn_coral_block",
+    "minecraft:block/horn_coral_block",
+    "minecraft:block/horn_coral_block",
+    "minecraft:block/horn_coral_block",
+    "minecraft:block/horn_coral_block",
+    "minecraft:block/horn_coral_block"
+  ],
+  "minecraft:blue_ice": [
+    "minecraft:block/blue_ice",
+    "minecraft:block/blue_ice",
+    "minecraft:block/blue_ice",
+    "minecraft:block/blue_ice",
+    "minecraft:block/blue_ice",
+    "minecraft:block/blue_ice"
+  ],
+  "minecraft:loom": [
+    "minecraft:block/loom_bottom",
+    "minecraft:block/loom_top",
+    "minecraft:block/loom_front",
+    "minecraft:block/loom_side",
+    "minecraft:block/loom_side",
+    "minecraft:block/loom_side"
+  ],
+  "minecraft:cartography_table": [
+    "minecraft:block/dark_oak_planks",
+    "minecraft:block/cartography_table_top",
+    "minecraft:block/cartography_table_side3",
+    "minecraft:block/cartography_table_side1",
+    "minecraft:block/cartography_table_side2",
+    "minecraft:block/cartography_table_side3"
+  ],
+  "minecraft:fletching_table": [
+    "minecraft:block/birch_planks",
+    "minecraft:block/fletching_table_top",
+    "minecraft:block/fletching_table_front",
+    "minecraft:block/fletching_table_front",
+    "minecraft:block/fletching_table_side",
+    "minecraft:block/fletching_table_side"
+  ],
+  "minecraft:smithing_table": [
+    "minecraft:block/smithing_table_bottom",
+    "minecraft:block/smithing_table_top",
+    "minecraft:block/smithing_table_front",
+    "minecraft:block/smithing_table_front",
+    "minecraft:block/smithing_table_side",
+    "minecraft:block/smithing_table_side"
+  ],
+  "minecraft:warped_stem": [
+    "minecraft:block/warped_stem_top",
+    "minecraft:block/warped_stem_top",
+    "minecraft:block/warped_stem",
+    "minecraft:block/warped_stem",
+    "minecraft:block/warped_stem",
+    "minecraft:block/warped_stem"
+  ],
+  "minecraft:stripped_warped_stem": [
+    "minecraft:block/stripped_warped_stem_top",
+    "minecraft:block/stripped_warped_stem_top",
+    "minecraft:block/stripped_warped_stem",
+    "minecraft:block/stripped_warped_stem",
+    "minecraft:block/stripped_warped_stem",
+    "minecraft:block/stripped_warped_stem"
+  ],
+  "minecraft:warped_hyphae": [
+    "minecraft:block/warped_stem",
+    "minecraft:block/warped_stem",
+    "minecraft:block/warped_stem",
+    "minecraft:block/warped_stem",
+    "minecraft:block/warped_stem",
+    "minecraft:block/warped_stem"
+  ],
+  "minecraft:stripped_warped_hyphae": [
+    "minecraft:block/stripped_warped_stem",
+    "minecraft:block/stripped_warped_stem",
+    "minecraft:block/stripped_warped_stem",
+    "minecraft:block/stripped_warped_stem",
+    "minecraft:block/stripped_warped_stem",
+    "minecraft:block/stripped_warped_stem"
+  ],
+  "minecraft:warped_nylium": [
+    "minecraft:block/netherrack",
+    "minecraft:block/warped_nylium",
+    "minecraft:block/warped_nylium_side",
+    "minecraft:block/warped_nylium_side",
+    "minecraft:block/warped_nylium_side",
+    "minecraft:block/warped_nylium_side"
+  ],
+  "minecraft:warped_wart_block": [
+    "minecraft:block/warped_wart_block",
+    "minecraft:block/warped_wart_block",
+    "minecraft:block/warped_wart_block",
+    "minecraft:block/warped_wart_block",
+    "minecraft:block/warped_wart_block",
+    "minecraft:block/warped_wart_block"
+  ],
+  "minecraft:crimson_stem": [
+    "minecraft:block/crimson_stem_top",
+    "minecraft:block/crimson_stem_top",
+    "minecraft:block/crimson_stem",
+    "minecraft:block/crimson_stem",
+    "minecraft:block/crimson_stem",
+    "minecraft:block/crimson_stem"
+  ],
+  "minecraft:stripped_crimson_stem": [
+    "minecraft:block/stripped_crimson_stem_top",
+    "minecraft:block/stripped_crimson_stem_top",
+    "minecraft:block/stripped_crimson_stem",
+    "minecraft:block/stripped_crimson_stem",
+    "minecraft:block/stripped_crimson_stem",
+    "minecraft:block/stripped_crimson_stem"
+  ],
+  "minecraft:crimson_hyphae": [
+    "minecraft:block/crimson_stem",
+    "minecraft:block/crimson_stem",
+    "minecraft:block/crimson_stem",
+    "minecraft:block/crimson_stem",
+    "minecraft:block/crimson_stem",
+    "minecraft:block/crimson_stem"
+  ],
+  "minecraft:stripped_crimson_hyphae": [
+    "minecraft:block/stripped_crimson_stem",
+    "minecraft:block/stripped_crimson_stem",
+    "minecraft:block/stripped_crimson_stem",
+    "minecraft:block/stripped_crimson_stem",
+    "minecraft:block/stripped_crimson_stem",
+    "minecraft:block/stripped_crimson_stem"
+  ],
+  "minecraft:crimson_nylium": [
+    "minecraft:block/netherrack",
+    "minecraft:block/crimson_nylium",
+    "minecraft:block/crimson_nylium_side",
+    "minecraft:block/crimson_nylium_side",
+    "minecraft:block/crimson_nylium_side",
+    "minecraft:block/crimson_nylium_side"
+  ],
+  "minecraft:shroomlight": [
+    "minecraft:block/shroomlight",
+    "minecraft:block/shroomlight",
+    "minecraft:block/shroomlight",
+    "minecraft:block/shroomlight",
+    "minecraft:block/shroomlight",
+    "minecraft:block/shroomlight"
+  ],
+  "minecraft:crimson_planks": [
+    "minecraft:block/crimson_planks",
+    "minecraft:block/crimson_planks",
+    "minecraft:block/crimson_planks",
+    "minecraft:block/crimson_planks",
+    "minecraft:block/crimson_planks",
+    "minecraft:block/crimson_planks"
+  ],
+  "minecraft:warped_planks": [
+    "minecraft:block/warped_planks",
+    "minecraft:block/warped_planks",
+    "minecraft:block/warped_planks",
+    "minecraft:block/warped_planks",
+    "minecraft:block/warped_planks",
+    "minecraft:block/warped_planks"
+  ],
+  "minecraft:target": [
+    "minecraft:block/target_top",
+    "minecraft:block/target_top",
+    "minecraft:block/target_side",
+    "minecraft:block/target_side",
+    "minecraft:block/target_side",
+    "minecraft:block/target_side"
+  ],
+  "minecraft:honeycomb_block": [
+    "minecraft:block/honeycomb_block",
+    "minecraft:block/honeycomb_block",
+    "minecraft:block/honeycomb_block",
+    "minecraft:block/honeycomb_block",
+    "minecraft:block/honeycomb_block",
+    "minecraft:block/honeycomb_block"
+  ],
+  "minecraft:netherite_block": [
+    "minecraft:block/netherite_block",
+    "minecraft:block/netherite_block",
+    "minecraft:block/netherite_block",
+    "minecraft:block/netherite_block",
+    "minecraft:block/netherite_block",
+    "minecraft:block/netherite_block"
+  ],
+  "minecraft:ancient_debris": [
+    "minecraft:block/ancient_debris_top",
+    "minecraft:block/ancient_debris_top",
+    "minecraft:block/ancient_debris_side",
+    "minecraft:block/ancient_debris_side",
+    "minecraft:block/ancient_debris_side",
+    "minecraft:block/ancient_debris_side"
+  ],
+  "minecraft:crying_obsidian": [
+    "minecraft:block/crying_obsidian",
+    "minecraft:block/crying_obsidian",
+    "minecraft:block/crying_obsidian",
+    "minecraft:block/crying_obsidian",
+    "minecraft:block/crying_obsidian",
+    "minecraft:block/crying_obsidian"
+  ],
+  "minecraft:respawn_anchor": [
+    "minecraft:block/respawn_anchor_bottom",
+    "minecraft:block/respawn_anchor_top_off",
+    "minecraft:block/respawn_anchor_side0",
+    "minecraft:block/respawn_anchor_side0",
+    "minecraft:block/respawn_anchor_side0",
+    "minecraft:block/respawn_anchor_side0"
+  ],
+  "minecraft:lodestone": [
+    "minecraft:block/lodestone_top",
+    "minecraft:block/lodestone_top",
+    "minecraft:block/lodestone_side",
+    "minecraft:block/lodestone_side",
+    "minecraft:block/lodestone_side",
+    "minecraft:block/lodestone_side"
+  ],
+  "minecraft:blackstone": [
+    "minecraft:block/blackstone_top",
+    "minecraft:block/blackstone_top",
+    "minecraft:block/blackstone",
+    "minecraft:block/blackstone",
+    "minecraft:block/blackstone",
+    "minecraft:block/blackstone"
+  ],
+  "minecraft:polished_blackstone": [
+    "minecraft:block/polished_blackstone",
+    "minecraft:block/polished_blackstone",
+    "minecraft:block/polished_blackstone",
+    "minecraft:block/polished_blackstone",
+    "minecraft:block/polished_blackstone",
+    "minecraft:block/polished_blackstone"
+  ],
+  "minecraft:polished_blackstone_bricks": [
+    "minecraft:block/polished_blackstone_bricks",
+    "minecraft:block/polished_blackstone_bricks",
+    "minecraft:block/polished_blackstone_bricks",
+    "minecraft:block/polished_blackstone_bricks",
+    "minecraft:block/polished_blackstone_bricks",
+    "minecraft:block/polished_blackstone_bricks"
+  ],
+  "minecraft:cracked_polished_blackstone_bricks": [
+    "minecraft:block/cracked_polished_blackstone_bricks",
+    "minecraft:block/cracked_polished_blackstone_bricks",
+    "minecraft:block/cracked_polished_blackstone_bricks",
+    "minecraft:block/cracked_polished_blackstone_bricks",
+    "minecraft:block/cracked_polished_blackstone_bricks",
+    "minecraft:block/cracked_polished_blackstone_bricks"
+  ],
+  "minecraft:chiseled_polished_blackstone": [
+    "minecraft:block/chiseled_polished_blackstone",
+    "minecraft:block/chiseled_polished_blackstone",
+    "minecraft:block/chiseled_polished_blackstone",
+    "minecraft:block/chiseled_polished_blackstone",
+    "minecraft:block/chiseled_polished_blackstone",
+    "minecraft:block/chiseled_polished_blackstone"
+  ],
+  "minecraft:gilded_blackstone": [
+    "minecraft:block/gilded_blackstone",
+    "minecraft:block/gilded_blackstone",
+    "minecraft:block/gilded_blackstone",
+    "minecraft:block/gilded_blackstone",
+    "minecraft:block/gilded_blackstone",
+    "minecraft:block/gilded_blackstone"
+  ],
+  "minecraft:chiseled_nether_bricks": [
+    "minecraft:block/chiseled_nether_bricks",
+    "minecraft:block/chiseled_nether_bricks",
+    "minecraft:block/chiseled_nether_bricks",
+    "minecraft:block/chiseled_nether_bricks",
+    "minecraft:block/chiseled_nether_bricks",
+    "minecraft:block/chiseled_nether_bricks"
+  ],
+  "minecraft:cracked_nether_bricks": [
+    "minecraft:block/cracked_nether_bricks",
+    "minecraft:block/cracked_nether_bricks",
+    "minecraft:block/cracked_nether_bricks",
+    "minecraft:block/cracked_nether_bricks",
+    "minecraft:block/cracked_nether_bricks",
+    "minecraft:block/cracked_nether_bricks"
+  ],
+  "minecraft:quartz_bricks": [
+    "minecraft:block/quartz_bricks",
+    "minecraft:block/quartz_bricks",
+    "minecraft:block/quartz_bricks",
+    "minecraft:block/quartz_bricks",
+    "minecraft:block/quartz_bricks",
+    "minecraft:block/quartz_bricks"
+  ],
+  "minecraft:amethyst_block": [
+    "minecraft:block/amethyst_block",
+    "minecraft:block/amethyst_block",
+    "minecraft:block/amethyst_block",
+    "minecraft:block/amethyst_block",
+    "minecraft:block/amethyst_block",
+    "minecraft:block/amethyst_block"
+  ],
+  "minecraft:budding_amethyst": [
+    "minecraft:block/budding_amethyst",
+    "minecraft:block/budding_amethyst",
+    "minecraft:block/budding_amethyst",
+    "minecraft:block/budding_amethyst",
+    "minecraft:block/budding_amethyst",
+    "minecraft:block/budding_amethyst"
+  ],
+  "minecraft:tuff": [
+    "minecraft:block/tuff",
+    "minecraft:block/tuff",
+    "minecraft:block/tuff",
+    "minecraft:block/tuff",
+    "minecraft:block/tuff",
+    "minecraft:block/tuff"
+  ],
+  "minecraft:polished_tuff": [
+    "minecraft:block/polished_tuff",
+    "minecraft:block/polished_tuff",
+    "minecraft:block/polished_tuff",
+    "minecraft:block/polished_tuff",
+    "minecraft:block/polished_tuff",
+    "minecraft:block/polished_tuff"
+  ],
+  "minecraft:chiseled_tuff": [
+    "minecraft:block/chiseled_tuff_top",
+    "minecraft:block/chiseled_tuff_top",
+    "minecraft:block/chiseled_tuff",
+    "minecraft:block/chiseled_tuff",
+    "minecraft:block/chiseled_tuff",
+    "minecraft:block/chiseled_tuff"
+  ],
+  "minecraft:tuff_bricks": [
+    "minecraft:block/tuff_bricks",
+    "minecraft:block/tuff_bricks",
+    "minecraft:block/tuff_bricks",
+    "minecraft:block/tuff_bricks",
+    "minecraft:block/tuff_bricks",
+    "minecraft:block/tuff_bricks"
+  ],
+  "minecraft:chiseled_tuff_bricks": [
+    "minecraft:block/chiseled_tuff_bricks_top",
+    "minecraft:block/chiseled_tuff_bricks_top",
+    "minecraft:block/chiseled_tuff_bricks",
+    "minecraft:block/chiseled_tuff_bricks",
+    "minecraft:block/chiseled_tuff_bricks",
+    "minecraft:block/chiseled_tuff_bricks"
+  ],
+  "minecraft:sulfur": [
+    "minecraft:block/sulfur",
+    "minecraft:block/sulfur",
+    "minecraft:block/sulfur",
+    "minecraft:block/sulfur",
+    "minecraft:block/sulfur",
+    "minecraft:block/sulfur"
+  ],
+  "minecraft:polished_sulfur": [
+    "minecraft:block/polished_sulfur",
+    "minecraft:block/polished_sulfur",
+    "minecraft:block/polished_sulfur",
+    "minecraft:block/polished_sulfur",
+    "minecraft:block/polished_sulfur",
+    "minecraft:block/polished_sulfur"
+  ],
+  "minecraft:sulfur_bricks": [
+    "minecraft:block/sulfur_bricks",
+    "minecraft:block/sulfur_bricks",
+    "minecraft:block/sulfur_bricks",
+    "minecraft:block/sulfur_bricks",
+    "minecraft:block/sulfur_bricks",
+    "minecraft:block/sulfur_bricks"
+  ],
+  "minecraft:chiseled_sulfur": [
+    "minecraft:block/chiseled_sulfur",
+    "minecraft:block/chiseled_sulfur",
+    "minecraft:block/chiseled_sulfur",
+    "minecraft:block/chiseled_sulfur",
+    "minecraft:block/chiseled_sulfur",
+    "minecraft:block/chiseled_sulfur"
+  ],
+  "minecraft:cinnabar": [
+    "minecraft:block/cinnabar",
+    "minecraft:block/cinnabar",
+    "minecraft:block/cinnabar",
+    "minecraft:block/cinnabar",
+    "minecraft:block/cinnabar",
+    "minecraft:block/cinnabar"
+  ],
+  "minecraft:polished_cinnabar": [
+    "minecraft:block/polished_cinnabar",
+    "minecraft:block/polished_cinnabar",
+    "minecraft:block/polished_cinnabar",
+    "minecraft:block/polished_cinnabar",
+    "minecraft:block/polished_cinnabar",
+    "minecraft:block/polished_cinnabar"
+  ],
+  "minecraft:cinnabar_bricks": [
+    "minecraft:block/cinnabar_bricks",
+    "minecraft:block/cinnabar_bricks",
+    "minecraft:block/cinnabar_bricks",
+    "minecraft:block/cinnabar_bricks",
+    "minecraft:block/cinnabar_bricks",
+    "minecraft:block/cinnabar_bricks"
+  ],
+  "minecraft:chiseled_cinnabar": [
+    "minecraft:block/chiseled_cinnabar",
+    "minecraft:block/chiseled_cinnabar",
+    "minecraft:block/chiseled_cinnabar",
+    "minecraft:block/chiseled_cinnabar",
+    "minecraft:block/chiseled_cinnabar",
+    "minecraft:block/chiseled_cinnabar"
+  ],
+  "minecraft:calcite": [
+    "minecraft:block/calcite",
+    "minecraft:block/calcite",
+    "minecraft:block/calcite",
+    "minecraft:block/calcite",
+    "minecraft:block/calcite",
+    "minecraft:block/calcite"
+  ],
+  "minecraft:tinted_glass": [
+    "minecraft:block/tinted_glass",
+    "minecraft:block/tinted_glass",
+    "minecraft:block/tinted_glass",
+    "minecraft:block/tinted_glass",
+    "minecraft:block/tinted_glass",
+    "minecraft:block/tinted_glass"
+  ],
+  "minecraft:sculk": [
+    "minecraft:block/sculk",
+    "minecraft:block/sculk",
+    "minecraft:block/sculk",
+    "minecraft:block/sculk",
+    "minecraft:block/sculk",
+    "minecraft:block/sculk"
+  ],
+  "minecraft:copper_block": [
+    "minecraft:block/copper_block",
+    "minecraft:block/copper_block",
+    "minecraft:block/copper_block",
+    "minecraft:block/copper_block",
+    "minecraft:block/copper_block",
+    "minecraft:block/copper_block"
+  ],
+  "minecraft:exposed_copper": [
+    "minecraft:block/exposed_copper",
+    "minecraft:block/exposed_copper",
+    "minecraft:block/exposed_copper",
+    "minecraft:block/exposed_copper",
+    "minecraft:block/exposed_copper",
+    "minecraft:block/exposed_copper"
+  ],
+  "minecraft:weathered_copper": [
+    "minecraft:block/weathered_copper",
+    "minecraft:block/weathered_copper",
+    "minecraft:block/weathered_copper",
+    "minecraft:block/weathered_copper",
+    "minecraft:block/weathered_copper",
+    "minecraft:block/weathered_copper"
+  ],
+  "minecraft:oxidized_copper": [
+    "minecraft:block/oxidized_copper",
+    "minecraft:block/oxidized_copper",
+    "minecraft:block/oxidized_copper",
+    "minecraft:block/oxidized_copper",
+    "minecraft:block/oxidized_copper",
+    "minecraft:block/oxidized_copper"
+  ],
+  "minecraft:waxed_copper_block": [
+    "minecraft:block/copper_block",
+    "minecraft:block/copper_block",
+    "minecraft:block/copper_block",
+    "minecraft:block/copper_block",
+    "minecraft:block/copper_block",
+    "minecraft:block/copper_block"
+  ],
+  "minecraft:waxed_exposed_copper": [
+    "minecraft:block/exposed_copper",
+    "minecraft:block/exposed_copper",
+    "minecraft:block/exposed_copper",
+    "minecraft:block/exposed_copper",
+    "minecraft:block/exposed_copper",
+    "minecraft:block/exposed_copper"
+  ],
+  "minecraft:waxed_weathered_copper": [
+    "minecraft:block/weathered_copper",
+    "minecraft:block/weathered_copper",
+    "minecraft:block/weathered_copper",
+    "minecraft:block/weathered_copper",
+    "minecraft:block/weathered_copper",
+    "minecraft:block/weathered_copper"
+  ],
+  "minecraft:waxed_oxidized_copper": [
+    "minecraft:block/oxidized_copper",
+    "minecraft:block/oxidized_copper",
+    "minecraft:block/oxidized_copper",
+    "minecraft:block/oxidized_copper",
+    "minecraft:block/oxidized_copper",
+    "minecraft:block/oxidized_copper"
+  ],
+  "minecraft:copper_ore": [
+    "minecraft:block/copper_ore",
+    "minecraft:block/copper_ore",
+    "minecraft:block/copper_ore",
+    "minecraft:block/copper_ore",
+    "minecraft:block/copper_ore",
+    "minecraft:block/copper_ore"
+  ],
+  "minecraft:deepslate_copper_ore": [
+    "minecraft:block/deepslate_copper_ore",
+    "minecraft:block/deepslate_copper_ore",
+    "minecraft:block/deepslate_copper_ore",
+    "minecraft:block/deepslate_copper_ore",
+    "minecraft:block/deepslate_copper_ore",
+    "minecraft:block/deepslate_copper_ore"
+  ],
+  "minecraft:cut_copper": [
+    "minecraft:block/cut_copper",
+    "minecraft:block/cut_copper",
+    "minecraft:block/cut_copper",
+    "minecraft:block/cut_copper",
+    "minecraft:block/cut_copper",
+    "minecraft:block/cut_copper"
+  ],
+  "minecraft:exposed_cut_copper": [
+    "minecraft:block/exposed_cut_copper",
+    "minecraft:block/exposed_cut_copper",
+    "minecraft:block/exposed_cut_copper",
+    "minecraft:block/exposed_cut_copper",
+    "minecraft:block/exposed_cut_copper",
+    "minecraft:block/exposed_cut_copper"
+  ],
+  "minecraft:weathered_cut_copper": [
+    "minecraft:block/weathered_cut_copper",
+    "minecraft:block/weathered_cut_copper",
+    "minecraft:block/weathered_cut_copper",
+    "minecraft:block/weathered_cut_copper",
+    "minecraft:block/weathered_cut_copper",
+    "minecraft:block/weathered_cut_copper"
+  ],
+  "minecraft:oxidized_cut_copper": [
+    "minecraft:block/oxidized_cut_copper",
+    "minecraft:block/oxidized_cut_copper",
+    "minecraft:block/oxidized_cut_copper",
+    "minecraft:block/oxidized_cut_copper",
+    "minecraft:block/oxidized_cut_copper",
+    "minecraft:block/oxidized_cut_copper"
+  ],
+  "minecraft:waxed_cut_copper": [
+    "minecraft:block/cut_copper",
+    "minecraft:block/cut_copper",
+    "minecraft:block/cut_copper",
+    "minecraft:block/cut_copper",
+    "minecraft:block/cut_copper",
+    "minecraft:block/cut_copper"
+  ],
+  "minecraft:waxed_exposed_cut_copper": [
+    "minecraft:block/exposed_cut_copper",
+    "minecraft:block/exposed_cut_copper",
+    "minecraft:block/exposed_cut_copper",
+    "minecraft:block/exposed_cut_copper",
+    "minecraft:block/exposed_cut_copper",
+    "minecraft:block/exposed_cut_copper"
+  ],
+  "minecraft:waxed_weathered_cut_copper": [
+    "minecraft:block/weathered_cut_copper",
+    "minecraft:block/weathered_cut_copper",
+    "minecraft:block/weathered_cut_copper",
+    "minecraft:block/weathered_cut_copper",
+    "minecraft:block/weathered_cut_copper",
+    "minecraft:block/weathered_cut_copper"
+  ],
+  "minecraft:waxed_oxidized_cut_copper": [
+    "minecraft:block/oxidized_cut_copper",
+    "minecraft:block/oxidized_cut_copper",
+    "minecraft:block/oxidized_cut_copper",
+    "minecraft:block/oxidized_cut_copper",
+    "minecraft:block/oxidized_cut_copper",
+    "minecraft:block/oxidized_cut_copper"
+  ],
+  "minecraft:chiseled_copper": [
+    "minecraft:block/chiseled_copper",
+    "minecraft:block/chiseled_copper",
+    "minecraft:block/chiseled_copper",
+    "minecraft:block/chiseled_copper",
+    "minecraft:block/chiseled_copper",
+    "minecraft:block/chiseled_copper"
+  ],
+  "minecraft:exposed_chiseled_copper": [
+    "minecraft:block/exposed_chiseled_copper",
+    "minecraft:block/exposed_chiseled_copper",
+    "minecraft:block/exposed_chiseled_copper",
+    "minecraft:block/exposed_chiseled_copper",
+    "minecraft:block/exposed_chiseled_copper",
+    "minecraft:block/exposed_chiseled_copper"
+  ],
+  "minecraft:weathered_chiseled_copper": [
+    "minecraft:block/weathered_chiseled_copper",
+    "minecraft:block/weathered_chiseled_copper",
+    "minecraft:block/weathered_chiseled_copper",
+    "minecraft:block/weathered_chiseled_copper",
+    "minecraft:block/weathered_chiseled_copper",
+    "minecraft:block/weathered_chiseled_copper"
+  ],
+  "minecraft:oxidized_chiseled_copper": [
+    "minecraft:block/oxidized_chiseled_copper",
+    "minecraft:block/oxidized_chiseled_copper",
+    "minecraft:block/oxidized_chiseled_copper",
+    "minecraft:block/oxidized_chiseled_copper",
+    "minecraft:block/oxidized_chiseled_copper",
+    "minecraft:block/oxidized_chiseled_copper"
+  ],
+  "minecraft:waxed_chiseled_copper": [
+    "minecraft:block/chiseled_copper",
+    "minecraft:block/chiseled_copper",
+    "minecraft:block/chiseled_copper",
+    "minecraft:block/chiseled_copper",
+    "minecraft:block/chiseled_copper",
+    "minecraft:block/chiseled_copper"
+  ],
+  "minecraft:waxed_exposed_chiseled_copper": [
+    "minecraft:block/exposed_chiseled_copper",
+    "minecraft:block/exposed_chiseled_copper",
+    "minecraft:block/exposed_chiseled_copper",
+    "minecraft:block/exposed_chiseled_copper",
+    "minecraft:block/exposed_chiseled_copper",
+    "minecraft:block/exposed_chiseled_copper"
+  ],
+  "minecraft:waxed_weathered_chiseled_copper": [
+    "minecraft:block/weathered_chiseled_copper",
+    "minecraft:block/weathered_chiseled_copper",
+    "minecraft:block/weathered_chiseled_copper",
+    "minecraft:block/weathered_chiseled_copper",
+    "minecraft:block/weathered_chiseled_copper",
+    "minecraft:block/weathered_chiseled_copper"
+  ],
+  "minecraft:waxed_oxidized_chiseled_copper": [
+    "minecraft:block/oxidized_chiseled_copper",
+    "minecraft:block/oxidized_chiseled_copper",
+    "minecraft:block/oxidized_chiseled_copper",
+    "minecraft:block/oxidized_chiseled_copper",
+    "minecraft:block/oxidized_chiseled_copper",
+    "minecraft:block/oxidized_chiseled_copper"
+  ],
+  "minecraft:copper_grate": [
+    "minecraft:block/copper_grate",
+    "minecraft:block/copper_grate",
+    "minecraft:block/copper_grate",
+    "minecraft:block/copper_grate",
+    "minecraft:block/copper_grate",
+    "minecraft:block/copper_grate"
+  ],
+  "minecraft:exposed_copper_grate": [
+    "minecraft:block/exposed_copper_grate",
+    "minecraft:block/exposed_copper_grate",
+    "minecraft:block/exposed_copper_grate",
+    "minecraft:block/exposed_copper_grate",
+    "minecraft:block/exposed_copper_grate",
+    "minecraft:block/exposed_copper_grate"
+  ],
+  "minecraft:weathered_copper_grate": [
+    "minecraft:block/weathered_copper_grate",
+    "minecraft:block/weathered_copper_grate",
+    "minecraft:block/weathered_copper_grate",
+    "minecraft:block/weathered_copper_grate",
+    "minecraft:block/weathered_copper_grate",
+    "minecraft:block/weathered_copper_grate"
+  ],
+  "minecraft:oxidized_copper_grate": [
+    "minecraft:block/oxidized_copper_grate",
+    "minecraft:block/oxidized_copper_grate",
+    "minecraft:block/oxidized_copper_grate",
+    "minecraft:block/oxidized_copper_grate",
+    "minecraft:block/oxidized_copper_grate",
+    "minecraft:block/oxidized_copper_grate"
+  ],
+  "minecraft:waxed_copper_grate": [
+    "minecraft:block/copper_grate",
+    "minecraft:block/copper_grate",
+    "minecraft:block/copper_grate",
+    "minecraft:block/copper_grate",
+    "minecraft:block/copper_grate",
+    "minecraft:block/copper_grate"
+  ],
+  "minecraft:waxed_exposed_copper_grate": [
+    "minecraft:block/exposed_copper_grate",
+    "minecraft:block/exposed_copper_grate",
+    "minecraft:block/exposed_copper_grate",
+    "minecraft:block/exposed_copper_grate",
+    "minecraft:block/exposed_copper_grate",
+    "minecraft:block/exposed_copper_grate"
+  ],
+  "minecraft:waxed_weathered_copper_grate": [
+    "minecraft:block/weathered_copper_grate",
+    "minecraft:block/weathered_copper_grate",
+    "minecraft:block/weathered_copper_grate",
+    "minecraft:block/weathered_copper_grate",
+    "minecraft:block/weathered_copper_grate",
+    "minecraft:block/weathered_copper_grate"
+  ],
+  "minecraft:waxed_oxidized_copper_grate": [
+    "minecraft:block/oxidized_copper_grate",
+    "minecraft:block/oxidized_copper_grate",
+    "minecraft:block/oxidized_copper_grate",
+    "minecraft:block/oxidized_copper_grate",
+    "minecraft:block/oxidized_copper_grate",
+    "minecraft:block/oxidized_copper_grate"
+  ],
+  "minecraft:copper_bulb": [
+    "minecraft:block/copper_bulb",
+    "minecraft:block/copper_bulb",
+    "minecraft:block/copper_bulb",
+    "minecraft:block/copper_bulb",
+    "minecraft:block/copper_bulb",
+    "minecraft:block/copper_bulb"
+  ],
+  "minecraft:exposed_copper_bulb": [
+    "minecraft:block/exposed_copper_bulb",
+    "minecraft:block/exposed_copper_bulb",
+    "minecraft:block/exposed_copper_bulb",
+    "minecraft:block/exposed_copper_bulb",
+    "minecraft:block/exposed_copper_bulb",
+    "minecraft:block/exposed_copper_bulb"
+  ],
+  "minecraft:weathered_copper_bulb": [
+    "minecraft:block/weathered_copper_bulb",
+    "minecraft:block/weathered_copper_bulb",
+    "minecraft:block/weathered_copper_bulb",
+    "minecraft:block/weathered_copper_bulb",
+    "minecraft:block/weathered_copper_bulb",
+    "minecraft:block/weathered_copper_bulb"
+  ],
+  "minecraft:oxidized_copper_bulb": [
+    "minecraft:block/oxidized_copper_bulb",
+    "minecraft:block/oxidized_copper_bulb",
+    "minecraft:block/oxidized_copper_bulb",
+    "minecraft:block/oxidized_copper_bulb",
+    "minecraft:block/oxidized_copper_bulb",
+    "minecraft:block/oxidized_copper_bulb"
+  ],
+  "minecraft:waxed_copper_bulb": [
+    "minecraft:block/copper_bulb",
+    "minecraft:block/copper_bulb",
+    "minecraft:block/copper_bulb",
+    "minecraft:block/copper_bulb",
+    "minecraft:block/copper_bulb",
+    "minecraft:block/copper_bulb"
+  ],
+  "minecraft:waxed_exposed_copper_bulb": [
+    "minecraft:block/exposed_copper_bulb",
+    "minecraft:block/exposed_copper_bulb",
+    "minecraft:block/exposed_copper_bulb",
+    "minecraft:block/exposed_copper_bulb",
+    "minecraft:block/exposed_copper_bulb",
+    "minecraft:block/exposed_copper_bulb"
+  ],
+  "minecraft:waxed_weathered_copper_bulb": [
+    "minecraft:block/weathered_copper_bulb",
+    "minecraft:block/weathered_copper_bulb",
+    "minecraft:block/weathered_copper_bulb",
+    "minecraft:block/weathered_copper_bulb",
+    "minecraft:block/weathered_copper_bulb",
+    "minecraft:block/weathered_copper_bulb"
+  ],
+  "minecraft:waxed_oxidized_copper_bulb": [
+    "minecraft:block/oxidized_copper_bulb",
+    "minecraft:block/oxidized_copper_bulb",
+    "minecraft:block/oxidized_copper_bulb",
+    "minecraft:block/oxidized_copper_bulb",
+    "minecraft:block/oxidized_copper_bulb",
+    "minecraft:block/oxidized_copper_bulb"
+  ],
+  "minecraft:dripstone_block": [
+    "minecraft:block/dripstone_block",
+    "minecraft:block/dripstone_block",
+    "minecraft:block/dripstone_block",
+    "minecraft:block/dripstone_block",
+    "minecraft:block/dripstone_block",
+    "minecraft:block/dripstone_block"
+  ],
+  "minecraft:moss_block": [
+    "minecraft:block/moss_block",
+    "minecraft:block/moss_block",
+    "minecraft:block/moss_block",
+    "minecraft:block/moss_block",
+    "minecraft:block/moss_block",
+    "minecraft:block/moss_block"
+  ],
+  "minecraft:rooted_dirt": [
+    "minecraft:block/rooted_dirt",
+    "minecraft:block/rooted_dirt",
+    "minecraft:block/rooted_dirt",
+    "minecraft:block/rooted_dirt",
+    "minecraft:block/rooted_dirt",
+    "minecraft:block/rooted_dirt"
+  ],
+  "minecraft:mud": [
+    "minecraft:block/mud",
+    "minecraft:block/mud",
+    "minecraft:block/mud",
+    "minecraft:block/mud",
+    "minecraft:block/mud",
+    "minecraft:block/mud"
+  ],
+  "minecraft:deepslate": [
+    "minecraft:block/deepslate_top",
+    "minecraft:block/deepslate_top",
+    "minecraft:block/deepslate",
+    "minecraft:block/deepslate",
+    "minecraft:block/deepslate",
+    "minecraft:block/deepslate"
+  ],
+  "minecraft:cobbled_deepslate": [
+    "minecraft:block/cobbled_deepslate",
+    "minecraft:block/cobbled_deepslate",
+    "minecraft:block/cobbled_deepslate",
+    "minecraft:block/cobbled_deepslate",
+    "minecraft:block/cobbled_deepslate",
+    "minecraft:block/cobbled_deepslate"
+  ],
+  "minecraft:polished_deepslate": [
+    "minecraft:block/polished_deepslate",
+    "minecraft:block/polished_deepslate",
+    "minecraft:block/polished_deepslate",
+    "minecraft:block/polished_deepslate",
+    "minecraft:block/polished_deepslate",
+    "minecraft:block/polished_deepslate"
+  ],
+  "minecraft:deepslate_tiles": [
+    "minecraft:block/deepslate_tiles",
+    "minecraft:block/deepslate_tiles",
+    "minecraft:block/deepslate_tiles",
+    "minecraft:block/deepslate_tiles",
+    "minecraft:block/deepslate_tiles",
+    "minecraft:block/deepslate_tiles"
+  ],
+  "minecraft:deepslate_bricks": [
+    "minecraft:block/deepslate_bricks",
+    "minecraft:block/deepslate_bricks",
+    "minecraft:block/deepslate_bricks",
+    "minecraft:block/deepslate_bricks",
+    "minecraft:block/deepslate_bricks",
+    "minecraft:block/deepslate_bricks"
+  ],
+  "minecraft:chiseled_deepslate": [
+    "minecraft:block/chiseled_deepslate",
+    "minecraft:block/chiseled_deepslate",
+    "minecraft:block/chiseled_deepslate",
+    "minecraft:block/chiseled_deepslate",
+    "minecraft:block/chiseled_deepslate",
+    "minecraft:block/chiseled_deepslate"
+  ],
+  "minecraft:cracked_deepslate_bricks": [
+    "minecraft:block/cracked_deepslate_bricks",
+    "minecraft:block/cracked_deepslate_bricks",
+    "minecraft:block/cracked_deepslate_bricks",
+    "minecraft:block/cracked_deepslate_bricks",
+    "minecraft:block/cracked_deepslate_bricks",
+    "minecraft:block/cracked_deepslate_bricks"
+  ],
+  "minecraft:cracked_deepslate_tiles": [
+    "minecraft:block/cracked_deepslate_tiles",
+    "minecraft:block/cracked_deepslate_tiles",
+    "minecraft:block/cracked_deepslate_tiles",
+    "minecraft:block/cracked_deepslate_tiles",
+    "minecraft:block/cracked_deepslate_tiles",
+    "minecraft:block/cracked_deepslate_tiles"
+  ],
+  "minecraft:infested_deepslate": [
+    "minecraft:block/deepslate_top",
+    "minecraft:block/deepslate_top",
+    "minecraft:block/deepslate",
+    "minecraft:block/deepslate",
+    "minecraft:block/deepslate",
+    "minecraft:block/deepslate"
+  ],
+  "minecraft:smooth_basalt": [
+    "minecraft:block/smooth_basalt",
+    "minecraft:block/smooth_basalt",
+    "minecraft:block/smooth_basalt",
+    "minecraft:block/smooth_basalt",
+    "minecraft:block/smooth_basalt",
+    "minecraft:block/smooth_basalt"
+  ],
+  "minecraft:raw_iron_block": [
+    "minecraft:block/raw_iron_block",
+    "minecraft:block/raw_iron_block",
+    "minecraft:block/raw_iron_block",
+    "minecraft:block/raw_iron_block",
+    "minecraft:block/raw_iron_block",
+    "minecraft:block/raw_iron_block"
+  ],
+  "minecraft:raw_copper_block": [
+    "minecraft:block/raw_copper_block",
+    "minecraft:block/raw_copper_block",
+    "minecraft:block/raw_copper_block",
+    "minecraft:block/raw_copper_block",
+    "minecraft:block/raw_copper_block",
+    "minecraft:block/raw_copper_block"
+  ],
+  "minecraft:raw_gold_block": [
+    "minecraft:block/raw_gold_block",
+    "minecraft:block/raw_gold_block",
+    "minecraft:block/raw_gold_block",
+    "minecraft:block/raw_gold_block",
+    "minecraft:block/raw_gold_block",
+    "minecraft:block/raw_gold_block"
+  ],
+  "minecraft:ochre_froglight": [
+    "minecraft:block/ochre_froglight_top",
+    "minecraft:block/ochre_froglight_top",
+    "minecraft:block/ochre_froglight_side",
+    "minecraft:block/ochre_froglight_side",
+    "minecraft:block/ochre_froglight_side",
+    "minecraft:block/ochre_froglight_side"
+  ],
+  "minecraft:verdant_froglight": [
+    "minecraft:block/verdant_froglight_top",
+    "minecraft:block/verdant_froglight_top",
+    "minecraft:block/verdant_froglight_side",
+    "minecraft:block/verdant_froglight_side",
+    "minecraft:block/verdant_froglight_side",
+    "minecraft:block/verdant_froglight_side"
+  ],
+  "minecraft:pearlescent_froglight": [
+    "minecraft:block/pearlescent_froglight_top",
+    "minecraft:block/pearlescent_froglight_top",
+    "minecraft:block/pearlescent_froglight_side",
+    "minecraft:block/pearlescent_froglight_side",
+    "minecraft:block/pearlescent_froglight_side",
+    "minecraft:block/pearlescent_froglight_side"
+  ],
+  "minecraft:reinforced_deepslate": [
+    "minecraft:block/reinforced_deepslate_bottom",
+    "minecraft:block/reinforced_deepslate_top",
+    "minecraft:block/reinforced_deepslate_side",
+    "minecraft:block/reinforced_deepslate_side",
+    "minecraft:block/reinforced_deepslate_side",
+    "minecraft:block/reinforced_deepslate_side"
+  ],
+  "minecraft:pale_moss_block": [
+    "minecraft:block/pale_moss_block",
+    "minecraft:block/pale_moss_block",
+    "minecraft:block/pale_moss_block",
+    "minecraft:block/pale_moss_block",
+    "minecraft:block/pale_moss_block",
+    "minecraft:block/pale_moss_block"
+  ],
+  "ae2:chiseled_quartz_block": [
+    "ae2:block/chiseled_quartz_block_top",
+    "ae2:block/chiseled_quartz_block_top",
+    "ae2:block/chiseled_quartz_block_side",
+    "ae2:block/chiseled_quartz_block_side",
+    "ae2:block/chiseled_quartz_block_side",
+    "ae2:block/chiseled_quartz_block_side"
+  ],
+  "ae2:cut_quartz_block": [
+    "ae2:block/cut_quartz_block",
+    "ae2:block/cut_quartz_block",
+    "ae2:block/cut_quartz_block",
+    "ae2:block/cut_quartz_block",
+    "ae2:block/cut_quartz_block",
+    "ae2:block/cut_quartz_block"
+  ],
+  "ae2:fluix_block": [
+    "ae2:block/fluix_block",
+    "ae2:block/fluix_block",
+    "ae2:block/fluix_block",
+    "ae2:block/fluix_block",
+    "ae2:block/fluix_block",
+    "ae2:block/fluix_block"
+  ],
+  "ae2:quartz_block": [
+    "ae2:block/quartz_block",
+    "ae2:block/quartz_block",
+    "ae2:block/quartz_block",
+    "ae2:block/quartz_block",
+    "ae2:block/quartz_block",
+    "ae2:block/quartz_block"
+  ],
+  "ae2:quartz_bricks": [
+    "ae2:block/quartz_bricks",
+    "ae2:block/quartz_bricks",
+    "ae2:block/quartz_bricks",
+    "ae2:block/quartz_bricks",
+    "ae2:block/quartz_bricks",
+    "ae2:block/quartz_bricks"
+  ],
+  "ae2:quartz_pillar": [
+    "ae2:block/quartz_pillar_top",
+    "ae2:block/quartz_pillar_top",
+    "ae2:block/quartz_pillar_side",
+    "ae2:block/quartz_pillar_side",
+    "ae2:block/quartz_pillar_side",
+    "ae2:block/quartz_pillar_side"
+  ],
+  "ae2:sky_stone_block": [
+    "ae2:block/sky_stone_block",
+    "ae2:block/sky_stone_block",
+    "ae2:block/sky_stone_block",
+    "ae2:block/sky_stone_block",
+    "ae2:block/sky_stone_block",
+    "ae2:block/sky_stone_block"
+  ],
+  "ae2:sky_stone_brick": [
+    "ae2:block/sky_stone_brick",
+    "ae2:block/sky_stone_brick",
+    "ae2:block/sky_stone_brick",
+    "ae2:block/sky_stone_brick",
+    "ae2:block/sky_stone_brick",
+    "ae2:block/sky_stone_brick"
+  ],
+  "ae2:sky_stone_small_brick": [
+    "ae2:block/sky_stone_small_brick",
+    "ae2:block/sky_stone_small_brick",
+    "ae2:block/sky_stone_small_brick",
+    "ae2:block/sky_stone_small_brick",
+    "ae2:block/sky_stone_small_brick",
+    "ae2:block/sky_stone_small_brick"
+  ],
+  "ae2:smooth_quartz_block": [
+    "ae2:block/smooth_quartz_block",
+    "ae2:block/smooth_quartz_block",
+    "ae2:block/smooth_quartz_block",
+    "ae2:block/smooth_quartz_block",
+    "ae2:block/smooth_quartz_block",
+    "ae2:block/smooth_quartz_block"
+  ],
+  "ae2:smooth_sky_stone_block": [
+    "ae2:block/smooth_sky_stone_block",
+    "ae2:block/smooth_sky_stone_block",
+    "ae2:block/smooth_sky_stone_block",
+    "ae2:block/smooth_sky_stone_block",
+    "ae2:block/smooth_sky_stone_block",
+    "ae2:block/smooth_sky_stone_block"
+  ]
+}

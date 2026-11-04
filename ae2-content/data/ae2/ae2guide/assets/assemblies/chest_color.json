@@ -1,0 +1,26 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:chest",
+      {
+        "facing": "north",
+        "lights_on": "true",
+        "spin": "0"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:chest",
+      {
+        "facing": "north",
+        "lights_on": "true",
+        "spin": "0"
+      }
+    ]
+  ]
+}

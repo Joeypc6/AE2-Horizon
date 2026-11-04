@@ -1,0 +1,110 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "qnb": "none"
+      },
+      "apply": {
+        "model": "ae2:block/qnb/ring"
+      }
+    },
+    {
+      "when": {
+        "qnb": "link"
+      },
+      "apply": {
+        "model": "ae2:block/hz/qnb/link_formed"
+      }
+    },
+    {
+      "when": {
+        "qnb": "corner",
+        "power": "off"
+      },
+      "apply": {
+        "model": "ae2:block/hz/qnb/corner"
+      }
+    },
+    {
+      "when": {
+        "qnb": "corner",
+        "power": "on"
+      },
+      "apply": {
+        "model": "ae2:block/hz/qnb/corner_lit"
+      }
+    },
+    {
+      "when": {
+        "qnb": "edge",
+        "power": "off"
+      },
+      "apply": {
+        "model": "ae2:block/hz/qnb/edge"
+      }
+    },
+    {
+      "when": {
+        "qnb": "edge",
+        "power": "on"
+      },
+      "apply": {
+        "model": "ae2:block/hz/qnb/edge_lit"
+      }
+    },
+    {
+      "when": {
+        "qnb": "link|corner",
+        "side_down": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/qnb/stub_down"
+      }
+    },
+    {
+      "when": {
+        "qnb": "link|corner",
+        "side_up": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/qnb/stub_up"
+      }
+    },
+    {
+      "when": {
+        "qnb": "link|corner",
+        "side_north": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/qnb/stub_north"
+      }
+    },
+    {
+      "when": {
+        "qnb": "link|corner",
+        "side_south": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/qnb/stub_south"
+      }
+    },
+    {
+      "when": {
+        "qnb": "link|corner",
+        "side_west": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/qnb/stub_west"
+      }
+    },
+    {
+      "when": {
+        "qnb": "link|corner",
+        "side_east": "true"
+      },
+      "apply": {
+        "model": "ae2:block/hz/qnb/stub_east"
+      }
+    }
+  ]
+}

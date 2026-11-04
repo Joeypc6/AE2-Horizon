@@ -1,0 +1,32 @@
+{
+  "blocks": [
+    [
+      0,
+      0,
+      0,
+      "ae2:fluix_covered_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false"
+      }
+    ],
+    [
+      1,
+      0,
+      0,
+      "ae2:fluix_covered_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false"
+      }
+    ]
+  ]
+}

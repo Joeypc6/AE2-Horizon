@@ -1,0 +1,338 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "north": "true",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/covered_light_gray_straight",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "west": "true",
+        "north": "false",
+        "south": "false",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/covered_light_gray_straight",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "up": "true",
+        "down": "true",
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false"
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/covered_light_gray_straight",
+        "x": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/covered_light_gray_center"
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "north": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/covered_light_gray_connection",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "south": "true"
+          },
+          {
+            "OR": [
+              {
+                "north": "false"
+              },
+              {
+                "south": "false"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/covered_light_gray_connection",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "west": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/covered_light_gray_connection",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "east": "true"
+          },
+          {
+            "OR": [
+              {
+                "east": "false"
+              },
+              {
+                "west": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "up": "true"
+              },
+              {
+                "down": "true"
+              }
+            ]
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/covered_light_gray_connection",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "up": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/covered_light_gray_connection",
+        "x": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "AND": [
+          {
+            "down": "true"
+          },
+          {
+            "OR": [
+              {
+                "up": "false"
+              },
+              {
+                "down": "false"
+              },
+              {
+                "north": "true"
+              },
+              {
+                "south": "true"
+              },
+              {
+                "east": "true"
+              },
+              {
+                "west": "true"
+              }
+            ]
+          }
+        ]
+      },
+      "apply": {
+        "model": "ae2:block/hz_cable/covered_light_gray_connection",
+        "x": 90,
+        "uvlock": true
+      }
+    }
+  ]
+}

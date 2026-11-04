@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "stage=0": {
+      "model": "ae2:block/energy_cell_0"
+    },
+    "stage=1": {
+      "model": "ae2:block/energy_cell_1"
+    },
+    "stage=2": {
+      "model": "ae2:block/energy_cell_2"
+    },
+    "stage=3": {
+      "model": "ae2:block/energy_cell_3"
+    },
+    "stage=4": {
+      "model": "ae2:block/energy_cell_4"
+    }
+  }
+}

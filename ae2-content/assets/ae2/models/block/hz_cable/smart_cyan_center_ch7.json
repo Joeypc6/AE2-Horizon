@@ -1,0 +1,78 @@
+{
+  "textures": {
+    "base": "ae2:block/part/cable/smart/cyan",
+    "particle": "ae2:block/part/cable/smart/cyan",
+    "channels": "ae2:block/hz_cable/smart_cyan_ch7"
+  },
+  "elements": [
+    {
+      "name": "Element",
+      "from": [
+        5.0,
+        5.0,
+        5.0
+      ],
+      "to": [
+        11.0,
+        11.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#base",
+          "uv": [
+            5.0,
+            5.0,
+            11.0,
+            11.0
+          ]
+        },
+        "east": {
+          "texture": "#base",
+          "uv": [
+            5.0,
+            5.0,
+            11.0,
+            11.0
+          ]
+        },
+        "south": {
+          "texture": "#base",
+          "uv": [
+            11.0,
+            5.0,
+            5.0,
+            11.0
+          ]
+        },
+        "west": {
+          "texture": "#base",
+          "uv": [
+            11.0,
+            5.0,
+            5.0,
+            11.0
+          ]
+        },
+        "up": {
+          "texture": "#base",
+          "uv": [
+            5.0,
+            5.0,
+            11.0,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#base",
+          "uv": [
+            5.0,
+            5.0,
+            11.0,
+            11.0
+          ]
+        }
+      }
+    }
+  ]
+}

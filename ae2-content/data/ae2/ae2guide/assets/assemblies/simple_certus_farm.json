@@ -1,0 +1,250 @@
+{
+  "blocks": [
+    [
+      1,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      2,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "1"
+      }
+    ],
+    [
+      3,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "true",
+        "west": "true",
+        "up": "true",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      3,
+      0,
+      1,
+      "ae2:growth_accelerator",
+      {
+        "facing": "north",
+        "powered": "true"
+      }
+    ],
+    [
+      3,
+      0,
+      2,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "false",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      4,
+      0,
+      0,
+      "ae2:growth_accelerator",
+      {
+        "facing": "east",
+        "powered": "true"
+      }
+    ],
+    [
+      4,
+      0,
+      1,
+      "ae2:flawless_budding_quartz",
+      {}
+    ],
+    [
+      4,
+      0,
+      2,
+      "ae2:growth_accelerator",
+      {
+        "facing": "west",
+        "powered": "true"
+      }
+    ],
+    [
+      5,
+      0,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      5,
+      0,
+      1,
+      "ae2:growth_accelerator",
+      {
+        "facing": "south",
+        "powered": "true"
+      }
+    ],
+    [
+      5,
+      0,
+      2,
+      "ae2:blue_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "false",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "0"
+      }
+    ],
+    [
+      2,
+      1,
+      0,
+      "ae2:blue_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "1"
+      }
+    ],
+    [
+      2,
+      1,
+      1,
+      "ae2:certus_quartz_crystal",
+      {
+        "facing": "south",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      2,
+      1,
+      1,
+      "minecraft:barrel",
+      {
+        "facing": "up",
+        "open": "false"
+      }
+    ],
+    [
+      3,
+      1,
+      0,
+      "ae2:orange_smart_cable",
+      {
+        "north": "false",
+        "south": "true",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "true",
+        "x_lights": "2"
+      }
+    ],
+    [
+      3,
+      0,
+      0,
+      "ae2:quartz_fiber",
+      {
+        "facing": "down",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      3,
+      1,
+      1,
+      "ae2:orange_smart_cable",
+      {
+        "north": "true",
+        "south": "false",
+        "east": "true",
+        "west": "true",
+        "up": "false",
+        "down": "false",
+        "x_lights": "2"
+      }
+    ],
+    [
+      4,
+      1,
+      1,
+      "minecraft:fortune",
+      {
+        "facing": "east",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      2,
+      1,
+      1,
+      "ae2:certus_quartz_crystal",
+      {
+        "facing": "west",
+        "powered": "true",
+        "with_channel": "true"
+      }
+    ],
+    [
+      4,
+      1,
+      1,
+      "ae2:large_quartz_bud",
+      {
+        "facing": "up",
+        "waterlogged": "false"
+      }
+    ]
+  ]
+}
