@@ -16628,6 +16628,10 @@ fn run_buses(game: &mut Game<'_>) {
     });
     let dim = game.dim.id().to_owned();
     let now = SERVER.with_borrow(|s| s.tick);
+    // A TickTracker lives with its part: a new one at the same place starts over.
+    if now % 20 == 3 {
+        BUS_RATES.with_borrow_mut(|r| r.retain(|p, _| buses.iter().any(|b| b.1 == *p)));
+    }
     for (grid, bus, target, import) in buses {
         // TickRates.ImportBus and ExportBus, TickTracker: from the middle of the range, faster by 2 each time it moves
         // something, slower by 1 each time it doesn't, at its longest while switched off.

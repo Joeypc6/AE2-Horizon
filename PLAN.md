@@ -692,6 +692,12 @@ Done:
   `level_tick`. Two networks at the same coordinates in two dimensions keep apart.
 - **A world reopened with its player in a plot** opens the other levels (`plot_levels_open`), as Java does at startup, or the port that
   gets them out never loaded.
+- **A crash in the cable bus bake.** A section gone all air returns from `mesh_reusing` before its light is padded, and the cell table is
+  up to six frames behind, so the bake read empty light and the mesh workers panicked. Breaking or clearing the last cells of a section
+  could take the game down. `bus_bake.rs` now skips an all-air section, and `airsec.py` covers it. Earlier "failures after the stress
+  test" in Rounds 21 and 22 were this crash.
+- **A new bus inherited an old bus's rate.** One placed where another stood idle started at 40 ticks a move, not from the middle of its
+  range: 27 s for 40 items against 13.7 s. Rates now go with their bus.
 - **Jade's reach.** Block aim was capped at 5 blocks, and Extended Reach replaced the range. Java's is `blockInteractionRange +
   extendedReach`, and falling blocks and dropped items use the entity range. A long-armed player now gets the tooltip.
 
@@ -704,17 +710,18 @@ Still not as Java:
 - `/forceload` acts on the level in place whatever `execute in` says. Plots work around it; anchors act on their own level anyway.
 - Standalone tunnels from old worlds still light by a light block. New ones are hosted, and light by their cell.
 
-Tested on `native-6475f62-2fcf330dd44e`, in my offscreen game, with no panic on host, guest or server:
-- Full regression. Slots, regressions 1 to 3, config, JEI, hopper, collision, light, bare cell, FE, Researcher, plots and LAN all pass.
-  Cable bus suites pass warm. In the two fresh-launch runs, one or two checks failed in the first minute after launch (a wrench aim, a
-  terminal's list) and passed on rerun, so `final.sh` now waits 30 s after a launch. The full suite hasn't run again with that wait.
+Tested on `native-6475f62-d72af06acdd9`, in my offscreen game, with no panic on host or guest:
+- Full regression, 0 panics: cable bus, kinds, hopper, collision, light, bare cell, FE, emptied section, stress, Researcher, slots,
+  regressions 1 to 3, config, JEI, plots and LAN. Its last run had two failures, both rerun clean on this build: the reload check, which
+  ran after the Researcher test cleared its rig (`final.sh` is reordered, and not rerun whole since), and one missed first click in the
+  LAN rig's placing, right after a plot trip (three of three on rerun).
 - Plot round trip on singleplayer, a LAN guest and the dedicated server, across a quit and reopen and across a server restart, with a
   chest's items, a mob and a block.
 - Guest in the Nether: the Overworld bus keeps moving items, also with a second network at the same spot there.
-- Dedicated server: `/ae2 channelmode|chunklogger|tickmonitor|reloadconfig`, `/jade`, the game rule, from the console and from a client.
+- Dedicated server (these on `2fcf330dd44e`, the smoke test again on the final export): `/ae2 channelmode|chunklogger|tickmonitor|reloadconfig`, `/jade`, the game rule, from the console and from a client.
   Hosted parts, terminal, breaking, restart survival, Researcher trades at each level.
 - Jade's rule on a dedicated server: at 21 a barrel 10 blocks away lists `3x Diamond`, at 0 the server sends nothing.
-- 740 fps average (low 720), 20.00 ticks/s, tick 1.83 ms, P99 2.90 ms on the test world; 665 fps and 20.00 ticks/s with 50 cells in view.
+- 752 fps average (low 731), 19.98 ticks/s, tick 1.73 ms, P99 2.40 ms on the test world; 588 fps and 20.01 ticks/s with 50 cells in view.
   A build's first launch loads resources in about 70 s, later ones in about 9 s, at 150,311 block states. No Java comparison was run.
 
 Not confirmed by a test: fluids from another mod's pipe into a hosted part (no such mod to test with; FE through AE2's own tunnel is

@@ -1,6 +1,10 @@
 fn ae2_bus_bake(me: &mut Mesher<'_>, region: &[[Option<&Chunk>; 3]; 3], sy: i32, scratch: &mut MeshScratch, value: SectionMesh) -> SectionMesh {
     let mut out = value;
     let center = region[1][1].expect("centre chunk");
+    // An all-air section returned before its lighting was padded, and the table is a moment behind: no cell here.
+    if center.sections[sy as usize].is_uniform(0) {
+        return out;
+    }
     let Ok(table) = hz_ae2_cells::SECTIONS.read() else { return out };
     let Some(pieces) = table.as_ref().and_then(|t| t.get(&(center.x, sy, center.z))) else { return out };
     let pad = &scratch.padded;
