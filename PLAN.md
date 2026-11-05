@@ -648,8 +648,20 @@ Still not as Java, none of it possible as a mod today:
 - Light P2P uses a light block in front of the tunnel.
 - `jade:max_position_deviation` is a setting, as `GameRules` is a fixed table.
 
-Not confirmed by a test: `Network Booting` (too brief to catch), the nested P2P error's own text line, `allowBlockEntities`, Jade's
-mouse binds and HSL colours. `craftingCalculationTimePerTick` only reads on jobs that don't come from the confirm screen, whose plan
-runs on its own thread. Nested P2P is worked out from stretches between tunnels, an approximation.
+Tested on `native-6475f62-cd2e4e69f140`, in my offscreen game, none of it panicking:
+- Cable bus: placing on each side, a cell's list, four kinds on a cell, working network I/O, each part's screen, facade over a part,
+  wrench and breaking one thing at a time, a save and reload, a cell removed by command, hoppers, panel light, plane links, an emitter
+  lighting only its own side, ME tunnels, storage bus on a hosted interface, fiber, toggle bus, monitor, spatial there and back.
+- A LAN guest: breaks a part, places one into the freed side, opens that part's screen; their world agrees.
+- Everything from Rounds 19 and 20 again: slots, water and fuzzy, P2P, inscriber, cannon, send list, wireless panel, spatial, anchor,
+  tooltip, overlay, looting, status lights, TNT, comparators, memory card, disassembly, dispensers, config, JEI's Ctrl-"+".
+- By screenshot: a full cell, the outline on one part, a facade with a part in it, a network tool's view, Jade's cards with icons, Jade
+  and AE2 lines in French, `Network Booting`, `Error: Nested P2P Tunnel` on a smart cable.
+- 733 to 983 fps across runs (other work shared the machine), 20.00 ticks/s, tick 1.80 ms average, P99 2.60 ms on the test world. No
+  Java comparison was run.
+
+Not confirmed by a test: `allowBlockEntities`, Jade's mouse binds and HSL colours. `craftingCalculationTimePerTick` only reads on jobs
+that don't come from the confirm screen, whose plan runs on its own thread. Nested P2P is worked out from stretches between tunnels,
+an approximation. Crafting ETA on the P2P furnace rig averaged 1.1% off and reached 2.0%: close to the 99% asked for, not always within it.
 
 The dedicated server has still never run: it needs the Minecraft EULA accepted, which is the owner's to do.
