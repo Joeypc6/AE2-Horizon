@@ -622,7 +622,7 @@ What it does, as CableBusContainer does:
 - Redstone goes out of an emitter's own side only. Neighbours (storage buses, providers, P2P outputs, hoppers) reach the part on
   the side facing them. Toggle buses, quartz fibers and ME tunnels join what they should. Spatial cells carry parts.
 
-Differences that remain, and why:
+Differences that remain, and why (all but the last line fixed since: see Round 22):
 - Collision: a twin's shape has twelve bits, so a part collides as a rod (arm) or a plate (facade). Aiming is exact.
 - A powered panel's light is a light block in the air in front (the twin's states are spent on its shape). In front of a wall, none.
 - Hosted parts are drawn as block entities: not past 64 blocks (`VIEW_DISTANCE`, in a generic the mixin tool refuses), and at
@@ -642,7 +642,7 @@ Also closed:
 - JEI `requestedSlots`: nothing to port. `CraftConfirmMenu` writes that field and never reads it.
 - Charger and inscriber buffers tested: a crank fills them, an empty charger holds its crystal, a full one charges.
 
-Still not as Java, none of it possible as a mod today:
+Still not as Java (overtaken: see Round 22, which found ways for most of these):
 - A spatial dimension (no mod levels), so players don't enter cells.
 - Fluix Researcher: professions are compiled-in tables.
 - Light P2P uses a light block in front of the tunnel.
@@ -664,4 +664,61 @@ Not confirmed by a test: `allowBlockEntities`, Jade's mouse binds and HSL colour
 that don't come from the confirm screen, whose plan runs on its own thread. Nested P2P is worked out from stretches between tunnels,
 an approximation. Crafting ETA on the P2P furnace rig averaged 1.1% off and reached 2.0%: close to the 99% asked for, not always within it.
 
-The dedicated server has still never run: it needs the Minecraft EULA accepted, which is the owner's to do.
+The dedicated server had still never run at this point: see Round 22.
+
+## Round 22 (2026-11-05): the last of Round 21's list, and networks per level
+
+Corrections to Round 21 above. Collision, panel light, far drawing, FE into hosted parts and a part on a block that isn't a cable were
+all fixed before this round's tests: exact shapes per position, light by block state (`hz_fcl{level}_{n}`), cells baked into the chunk
+mesh, FE by `native_energy` hooks, and a cell with no cable. Its gamerule and Researcher lines no longer hold either. The dedicated
+server has now run: the owner accepted the EULA in `test-server`.
+
+Done:
+- **Fluix Researcher.** A real profession through mixins on the compiled-in tables: job at a charger, Java's trades per level, level-ups,
+  its look, its title. It stayed offerless at first because `Game::offers_from_set` finds a set in the world's tables and then rolls it
+  from the resource root's, which have no mod's files. `researcher_offers.rs` rolls `ae2:` sets on the world's tables. That engine line
+  would hit any data pack's new trade set too.
+- **`jade:max_position_deviation`.** A real game rule: on the Edit Game Rules screen under Miscellaneous, range enforced, saved with the
+  world, read by commands, completed on a guest's chat line.
+- **Players in spatial cells.** Native mods can't register a level (arismoko/horizon#1042), so a cell with a player in its volume gets a
+  plot in the End, as a teleport allows. `plot_swap`: the port pays, force-loads the plot, and once it is loaded does the whole swap in
+  one tick. A live plot goes back into the cell first, the ordinary swap runs, and what it took goes out to the plot with matrix frame
+  walls. Then the players teleport. A cell with nobody in it stays in its item as before, and costs nothing new.
+  The band is x and z from 1,000,000, with a 65,536 margin: void terrain (`plot_void`), no far terrain (`plot_lod_*`), black sky, no End
+  sky mesh, the game's music, and no "The End?" advancement.
+- **Networks per level.** `server_tick` ran once, at the end of the levels' pass, against whichever level was last. With players in two
+  dimensions the other level's devices weren't found and its networks went offline. This hit LAN and servers, not only plots. Now
+  `level_in_place` (a hook on `Game::enter_level`) swaps `SERVER` and the part tables with the level, and every ticking level gets
+  `level_tick`. Two networks at the same coordinates in two dimensions keep apart.
+- **A world reopened with its player in a plot** opens the other levels (`plot_levels_open`), as Java does at startup, or the port that
+  gets them out never loaded.
+- **Jade's reach.** Block aim was capped at 5 blocks, and Extended Reach replaced the range. Java's is `blockInteractionRange +
+  extendedReach`, and falling blocks and dropped items use the entity range. A long-armed player now gets the tooltip.
+
+Still not as Java:
+- Inside a plot, `/tp`, `/data`, F3 and maps say `minecraft:the_end` and x past 1,000,000. `execute in ae2:spatial_storage` fails. Region
+  files sit in the End's folder. This goes when #1042 lands.
+- The plot has a black sky without `SpatialSkyRender`'s stars.
+- A swap with a player or a live plot takes about half a second to a second while the plot loads. Java's plot is always there.
+- The Researcher and the game rule hang on mixins into compiled-in tables, so a Horizon update can break them. #1043 tracks the API.
+- `/forceload` acts on the level in place whatever `execute in` says. Plots work around it; anchors act on their own level anyway.
+- Standalone tunnels from old worlds still light by a light block. New ones are hosted, and light by their cell.
+
+Tested on `native-6475f62-2fcf330dd44e`, in my offscreen game, with no panic on host, guest or server:
+- Full regression. Slots, regressions 1 to 3, config, JEI, hopper, collision, light, bare cell, FE, Researcher, plots and LAN all pass.
+  Cable bus suites pass warm. In the two fresh-launch runs, one or two checks failed in the first minute after launch (a wrench aim, a
+  terminal's list) and passed on rerun, so `final.sh` now waits 30 s after a launch. The full suite hasn't run again with that wait.
+- Plot round trip on singleplayer, a LAN guest and the dedicated server, across a quit and reopen and across a server restart, with a
+  chest's items, a mob and a block.
+- Guest in the Nether: the Overworld bus keeps moving items, also with a second network at the same spot there.
+- Dedicated server: `/ae2 channelmode|chunklogger|tickmonitor|reloadconfig`, `/jade`, the game rule, from the console and from a client.
+  Hosted parts, terminal, breaking, restart survival, Researcher trades at each level.
+- Jade's rule on a dedicated server: at 21 a barrel 10 blocks away lists `3x Diamond`, at 0 the server sends nothing.
+- 740 fps average (low 720), 20.00 ticks/s, tick 1.83 ms, P99 2.90 ms on the test world; 665 fps and 20.00 ticks/s with 50 cells in view.
+  A build's first launch loads resources in about 70 s, later ones in about 9 s, at 150,311 block states. No Java comparison was run.
+
+Not confirmed by a test: fluids from another mod's pipe into a hosted part (no such mod to test with; FE through AE2's own tunnel is
+tested), a hosted Light P2P end to end, Jade's mouse binds. Crafting ETA stays as Round 20: 1.1% off on average, 2.0% at worst.
+
+The owner's PC rebooted six times since Oct 29 with bugcheck 0x124, a CPU machine check, including once during these tests. That is
+hardware, not these mods, but builds and two games at once load it. Builds here now run with `CARGO_BUILD_JOBS=12`.
