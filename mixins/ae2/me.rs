@@ -10262,6 +10262,11 @@ pub fn client_command(game: &mut Game<'_>, command: &str, ran: &mut bool) {
 }
 
 fn debug_command(game: &mut Game<'_>, uuid: u128, position: [f64; 3], command: &str) {
+    // Operators only, whichever way it came: any client can send `ae2:debug`, and the server's list is what counts.
+    let level = game.native_server_players().into_iter().find(|p| p.uuid == uuid).map_or(0, |p| p.permission);
+    if level < 2 {
+        return;
+    }
     let mut words = command.split_whitespace();
     words.next();
     let say = |game: &mut Game<'_>, text: String| {

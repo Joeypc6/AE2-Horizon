@@ -729,3 +729,22 @@ Not confirmed by a test: an actual pipe from another mod (no such mod exists to 
 
 The owner's PC rebooted six times since Oct 29 with bugcheck 0x124, a CPU machine check, including once during these tests. That is
 hardware, not these mods, but builds and two games at once load it. Builds here now run with `CARGO_BUILD_JOBS=12`.
+
+## Round 23 (2026-11-05): one AE2 for the registry
+
+The registry gives an id one entry and one kind, and a content mod's id is its blocks' namespace, so the content mod and the native
+mod couldn't share `ae2`. A native `.hmod` holding both isn't published yet, and the check reads one as content only. So:
+
+- The native mod carries the content: `data/ae2-content.hmod`, written to `.horizon-cache` and passed to `content_root` as a dev mod
+  (`me_embedded_content.rs`). An installed copy of the content wins.
+- AE2 JEI Integration and the Jade plugin are now in this bundle (`int_jei_*`, `int_jade_*`), at their old priority 110. The small
+  `optional` crate keeps each out of the build unless its mod's module is in the staged `game.rs`, so a player's next build follows what
+  they have. Their own Mods page rows and switches are gone: they follow `ae2`, and JEI's and Jade's own switches still apply.
+
+Tested on `native-6475f62-a7ce977ec518`: the full suite, 0 panics, with no separate content mod; LAN; a dedicated server with none.
+The only failures were a missed click in the LAN rig's setup, right after a plot trip. AE2 alone, with JEI, with Jade and with both all
+compile. AE2 alone was played: network, tunnels, spatial plots and Researcher trades pass, no JEI panel, and `/jade` is unknown. With
+another game running, the old and merged builds measured alike (271 and 297-365 fps).
+
+A cargo cache note: switching mod sets can leave a crate's old build in place, since the stage restores a file's mtime. Clearing
+that crate's `.fingerprint` folder fixes it. `hz_jei_keys` being always in AE2 keeps players' builds clear of it.

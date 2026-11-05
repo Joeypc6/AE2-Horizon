@@ -1,0 +1,10 @@
+[package]
+name = "ae2_optional"
+version = "1.0.0"
+edition = "2021"
+license = "LGPL-3.0-only"
+description = "Keeps AE2's integrations in the build only when the mod they work with is there."
+
+[lib]
+proc-macro = true
+path = "src/lib.rs"

@@ -1970,3 +1970,243 @@ bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
   { name = "target", ty = "Dim", value = "target" },
 ]
+
+[[injection]]
+id = "me-embedded-content"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::mods::content_root"
+helper = "me_embedded_content.rs"
+bindings = [
+  { name = "root", ty = "&std::path::Path", value = "root" },
+  { name = "enabled", ty = "&std::collections::BTreeSet<String>", value = "enabled" },
+  { name = "dev", ty = "&[std::path::PathBuf]", value = "dev" },
+]
+
+# The integrations below are compiled in only when JEI or Jade is in the same build.
+[[crate]]
+id = "optional"
+path = "optional"
+
+[[module]]
+id = "int-jei-jei"
+file = "crates/horizon-client/src/game.rs"
+name = "port_ae2_jei"
+source = "int_jei_jei.rs"
+
+[[injection]]
+id = "int-jei-panel-event"
+priority = 110
+kind = "HEAD"
+hook = "panel_event"
+hook_version = 1
+helper = "int_jei_jei_event.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "mod_id", ty = "&str", value = "mod_id" },
+  { name = "event", ty = "&crate::game::native_hooks::NativePanelEvent", value = "event" },
+]
+
+[[injection]]
+id = "int-jei-frame"
+priority = 110
+kind = "HEAD"
+hook = "frame"
+hook_version = 1
+helper = "int_jei_frame.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+[[module]]
+id = "int-jei-collection"
+file = "crates/horizon-client/src/game.rs"
+name = "port_jei_collection"
+source = "int_jei_collection.rs"
+
+[[module]]
+id = "int-jei-collection-size"
+file = "crates/horizon-client/src/game/native_panel.rs"
+name = "port_jei_panel_size"
+source = "int_jei_collection_size.rs"
+
+[[module]]
+id = "int-jei-loot-items"
+file = "crates/horizon-items/src/items.rs"
+name = "hz_jei_loot"
+source = "int_jei_loot_items.rs"
+
+[[module]]
+id = "int-jei-loot-keys"
+file = "crates/horizon-world/src/loot.rs"
+name = "hz_jei_keys"
+source = "int_jei_loot_keys.rs"
+
+[[module]]
+id = "int-jei-window"
+file = "crates/horizon-client/src/game.rs"
+name = "port_jei_window"
+source = "int_jei_window.rs"
+
+[[module]]
+id = "int-jei-creative"
+file = "crates/horizon-client/src/game.rs"
+name = "port_jei_creative"
+source = "int_jei_creative.rs"
+
+[[injection]]
+id = "int-jei-window-hud-before"
+priority = 110
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::hud"
+helper = "int_jei_window_hud_before.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+[[injection]]
+id = "int-jei-window-hud-after"
+priority = 110
+kind = "HEAD"
+target = "horizon_client::game::music::Game<'_>::draw_music_toast"
+helper = "int_jei_window_hud_after.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "int-jei-window-pressed"
+priority = 110
+kind = "HEAD"
+hook = "screen_mouse_button_pressed_pre"
+hook_version = 1
+helper = "int_jei_window_pressed.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "screen", ty = "&crate::game::native_hooks::NativeScreenView<'_>", value = "screen" },
+  { name = "button", ty = "i32", value = "button" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "int-jei-window-render-post"
+priority = 110
+kind = "HEAD"
+hook = "screen_render_post"
+hook_version = 1
+helper = "int_jei_window_render_post.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "screen", ty = "&crate::game::native_hooks::NativeScreenView<'_>", value = "&*screen" },
+]
+
+[[injection]]
+id = "int-jei-window-released"
+priority = 110
+kind = "HEAD"
+hook = "screen_mouse_button_released_pre"
+hook_version = 1
+helper = "int_jei_panel_released.rs"
+bindings = [
+  { name = "screen", ty = "&crate::game::native_hooks::NativeScreenView<'_>", value = "screen" },
+]
+
+[[injection]]
+id = "int-jei-window-key"
+priority = 110
+kind = "HEAD"
+hook = "screen_key_pressed_pre"
+hook_version = 1
+helper = "int_jei_window_key.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "screen", ty = "&crate::game::native_hooks::NativeScreenView<'_>", value = "screen" },
+  { name = "key", ty = "&str", value = "key" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "int-jei-window-char"
+priority = 110
+kind = "HEAD"
+hook = "screen_char_typed_pre"
+hook_version = 1
+helper = "int_jei_window_char.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "c", ty = "char", value = "c" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "int-jei-window-scrolled"
+priority = 110
+kind = "HEAD"
+hook = "screen_mouse_scrolled_pre"
+hook_version = 1
+helper = "int_jei_window_scrolled.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "scroll", ty = "[f64; 2]", value = "scroll" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "int-jei-panel-tint"
+priority = 110
+kind = "HEAD"
+target = "horizon_client::game::native_panel::Game<'_>::draw_mod_browser"
+helper = "int_jei_panel_tint.rs"
+bindings = [
+  { name = "game", ty = "&Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "int-jei-no-recipes-line"
+priority = 110
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::native_hooks::Game<'_>::native_chat"
+helper = "int_jei_no_recipes_line.rs"
+bindings = [
+  { name = "text", ty = "&str", value = "text" },
+]
+
+[[injection]]
+id = "int-jei-creative-width"
+priority = 110
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_width"
+helper = "int_jei_creative_width.rs"
+
+[[module]]
+id = "int-jade-jade_ae2"
+file = "crates/horizon-client/src/game.rs"
+name = "jade_ae2"
+source = "int_jade_jade_ae2.rs"
+
+[[injection]]
+id = "int-jade-frame"
+priority = 110
+kind = "HEAD"
+hook = "frame"
+hook_version = 1
+helper = "int_jade_register.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+[[injection]]
+id = "int-jade-server-tick"
+priority = 110
+kind = "HEAD"
+hook = "server_tick"
+hook_version = 1
+helper = "int_jade_register_server.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
