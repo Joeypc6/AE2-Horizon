@@ -8,6 +8,12 @@ priority = 100
 horizon_revision = "6475f62f3c834b7489e1816bf47f47ea5eb2b879"
 
 [[module]]
+id = "bus-cells"
+file = "crates/horizon-client-render/src/mesher.rs"
+name = "hz_ae2_cells"
+source = "bus_cells.rs"
+
+[[module]]
 id = "runtime"
 file = "crates/horizon-client/src/game.rs"
 name = "port_ae2"
@@ -1509,4 +1515,458 @@ helper = "bus_hopper_eject.rs"
 bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
   { name = "pos", ty = "Pos", value = "pos" },
+]
+
+[[injection]]
+id = "me-perform-console"
+kind = "HEAD"
+hook = "perform_console_command"
+hook_version = 1
+helper = "me_perform_console.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "command", ty = "&str", value = "command" },
+  { name = "ran", ty = "&mut bool", value = "&mut *ran" },
+]
+
+[[injection]]
+id = "bus-energy-at"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::native_energy::Game<'_>::native_energy_at"
+helper = "bus_energy_at.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+[[injection]]
+id = "bus-energy"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::native_energy::Game<'_>::native_energy"
+helper = "bus_energy.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "face", ty = "Direction", value = "face" },
+]
+
+[[injection]]
+id = "bus-energy-transfer"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::native_energy::Game<'_>::native_energy_transfer"
+helper = "bus_energy_transfer.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "face", ty = "Direction", value = "face" },
+  { name = "amount", ty = "i32", value = "amount" },
+  { name = "insert", ty = "bool", value = "insert" },
+  { name = "simulate", ty = "bool", value = "simulate" },
+]
+
+[[injection]]
+id = "bus-fluid-at"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::native_fluids::Game<'_>::native_fluid_at"
+helper = "bus_fluid_at.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+[[injection]]
+id = "bus-fluid-insert"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::native_fluids::Game<'_>::native_fluid_insert"
+helper = "bus_fluid_insert.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "face", ty = "Direction", value = "face" },
+  { name = "fluid", ty = "&str", value = "fluid" },
+  { name = "amount", ty = "i32", value = "amount" },
+]
+
+[[injection]]
+id = "bus-fluid-tanks"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::native_fluids::Game<'_>::native_fluid_tanks"
+helper = "bus_fluid_tanks.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "face", ty = "Direction", value = "face" },
+]
+
+[[injection]]
+id = "bus-fluid-extract"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::native_fluids::Game<'_>::native_fluid_extract"
+helper = "bus_fluid_extract.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "face", ty = "Direction", value = "face" },
+  { name = "amount", ty = "i32", value = "amount" },
+]
+
+[[injection]]
+id = "bus-move-fluids"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::native_fluids::Game<'_>::native_move_fluids"
+helper = "bus_move_fluids.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "from", ty = "[i32; 3]", value = "from" },
+  { name = "from_face", ty = "Direction", value = "from_face" },
+  { name = "to", ty = "[i32; 3]", value = "to" },
+  { name = "to_face", ty = "Direction", value = "to_face" },
+  { name = "max", ty = "i32", value = "max" },
+]
+
+[[injection]]
+id = "bus-container-slots"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::native_items::Game<'_>::native_container_slots"
+helper = "bus_container_slots.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "face", ty = "Direction", value = "face" },
+]
+
+[[injection]]
+id = "bus-extract-item"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::native_items::Game<'_>::native_extract_item"
+helper = "bus_extract_item.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "face", ty = "Direction", value = "face" },
+  { name = "slot", ty = "usize", value = "slot" },
+  { name = "count", ty = "u32", value = "count" },
+]
+
+[[injection]]
+id = "bus-move-items"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::native_items::Game<'_>::native_move_items"
+helper = "bus_move_items.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "from", ty = "[i32; 3]", value = "from" },
+  { name = "from_face", ty = "Direction", value = "from_face" },
+  { name = "to", ty = "[i32; 3]", value = "to" },
+  { name = "to_face", ty = "Direction", value = "to_face" },
+  { name = "item", ty = "Option<&str>", value = "item" },
+  { name = "max", ty = "u32", value = "max" },
+]
+
+[[injection]]
+id = "bus-view"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Containers<'_>::view"
+helper = "bus_view.rs"
+bindings = [
+  { name = "world_of", ty = "&Containers<'_>", value = "&*self" },
+  { name = "pos", ty = "Pos", value = "pos" },
+]
+
+[[injection]]
+id = "bus-collision"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_render::collisions::<SceneCollisions<'_,'_> as BlockCollisionWorld>::context_shape"
+helper = "bus_collision.rs"
+bindings = [
+  { name = "scene", ty = "&SceneCollisions<'_, '_>", value = "&*self" },
+  { name = "p", ty = "BlockPos", value = "p" },
+]
+
+[[injection]]
+id = "bus-bake"
+kind = "RETURN"
+target = "horizon_client_render::mesher::Mesher<'_>::mesh_reusing"
+helper = "bus_bake.rs"
+bindings = [
+  { name = "me", ty = "&mut Mesher<'_>", value = "&mut *self" },
+  { name = "region", ty = "&[[Option<&Chunk>; 3]; 3]", value = "region" },
+  { name = "sy", ty = "i32", value = "sy" },
+  { name = "scratch", ty = "&mut MeshScratch", value = "&mut *scratch" },
+  { name = "value", ty = "SectionMesh", value = "$value" },
+]
+
+# AE2's Fluix Researcher (appeng.init.InitVillager): profession 15, past render::PROFESSIONS, so sites that take it
+# modulo 15 read "none" and raw comparisons read it employed.
+[[injection]]
+id = "researcher-job-site"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_lib::mobs::villager::job_site_profession"
+helper = "researcher_job_site.rs"
+bindings = [
+  { name = "block", ty = "&str", value = "block" },
+]
+
+[[injection]]
+id = "researcher-poi-type"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_lib::save::poi_type"
+helper = "researcher_poi_type.rs"
+bindings = [
+  { name = "state", ty = "&horizon_world::chunk::BlockState", value = "state" },
+]
+
+[[injection]]
+id = "researcher-trades"
+kind = "HEAD"
+hook = "data_pack_files"
+hook_version = 1
+helper = "researcher_trades.rs"
+bindings = [
+  { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" },
+]
+
+[[injection]]
+id = "researcher-set-for"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_lib::merchant::Trades::set_for"
+helper = "researcher_set_for.rs"
+bindings = [
+  { name = "profession", ty = "&str", value = "profession" },
+  { name = "level", ty = "i32", value = "level" },
+]
+
+[[injection]]
+id = "researcher-offers"
+kind = "MODIFY_VARIABLE"
+target = "horizon_client::game::trading::Game<'_>::ensure_offers"
+variable = { name = "profession", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "researcher_profession.rs"
+bindings = [
+  { name = "value", ty = "&'static str", value = "$value" },
+  { name = "m", ty = "&horizon_client::mobs::Mob", value = "$local:m:0" },
+]
+
+# The merchant session's profession: level-ups (set_for) and the screen's title (entity.minecraft.villager.<it>).
+[[injection]]
+id = "researcher-session"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::trading::Game<'_>::interact_trader"
+helper = "researcher_session.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "index", ty = "usize", value = "index" },
+  { name = "item", ty = "&str", value = "item" },
+]
+
+[[injection]]
+id = "researcher-layers"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_lib::mobs::render::layers"
+helper = "researcher_layers.rs"
+bindings = [
+  { name = "m", ty = "&Mob", value = "m" },
+]
+
+[[injection]]
+id = "researcher-name"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_lib::mobs::Mob::command_name"
+helper = "researcher_name.rs"
+bindings = [
+  { name = "m", ty = "&Mob", value = "&*self" },
+]
+
+[[injection]]
+id = "researcher-nbt-write"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_lib::entity_nbt::villager_data"
+helper = "researcher_nbt_write.rs"
+bindings = [
+  { name = "m", ty = "&Mob", value = "m" },
+]
+
+[[injection]]
+id = "researcher-nbt-read"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_lib::entity_nbt::read_villager"
+helper = "researcher_nbt_read.rs"
+bindings = [
+  { name = "m", ty = "&mut Mob", value = "&mut *m" },
+  { name = "tag", ty = "&Tag", value = "tag" },
+]
+
+# mob_meta has a `use` in its body, which only HEAD allows; this runs on its meta right after.
+[[injection]]
+id = "researcher-net-encode"
+kind = "HEAD"
+target = "horizon_client::game::lan::mob_freeze_meta"
+helper = "researcher_net_encode.rs"
+bindings = [
+  { name = "m", ty = "&Mob", value = "m" },
+  { name = "meta", ty = "&mut Vec<(u8, i32, Value)>", value = "&mut *meta" },
+]
+
+[[injection]]
+id = "researcher-net-decode"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::remote_mob_data::villager_data"
+helper = "researcher_net_decode.rs"
+bindings = [
+  { name = "m", ty = "&mut Mob", value = "&mut *m" },
+  { name = "data", ty = "&[i32]", value = "data" },
+  { name = "builtin", ty = "&Builtin", value = "builtin" },
+]
+
+[[injection]]
+id = "researcher-work-sound"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_lib::mobs::villager::work_sound"
+helper = "researcher_work_sound.rs"
+bindings = [
+  { name = "profession", ty = "u8", value = "profession" },
+]
+
+[[injection]]
+id = "researcher-offers-world-tables"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::trading::Game<'_>::offers_from_set"
+helper = "researcher_offers.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "set", ty = "&str", value = "set" },
+  { name = "variant", ty = "&str", value = "variant" },
+  { name = "origin", ty = "[f64; 3]", value = "origin" },
+]
+
+[[injection]]
+id = "plot-void"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_lib::vanillagen::<VanillaTerrain as ChunkGenerator>::proto"
+helper = "plot_void.rs"
+bindings = [
+  { name = "terrain", ty = "&VanillaTerrain", value = "&*self" },
+  { name = "x", ty = "i32", value = "x" },
+  { name = "z", ty = "i32", value = "z" },
+]
+
+[[injection]]
+id = "plot-travel"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::advancements::Game<'_>::trigger_dimension"
+helper = "plot_travel.rs"
+bindings = [
+  { name = "to", ty = "Dim", value = "to" },
+  { name = "at", ty = "[f64; 3]", value = "at" },
+]
+
+[[injection]]
+id = "plot-end-sky"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_render::gfx::end_sky::EndSky::draw"
+helper = "plot_end_sky.rs"
+bindings = []
+
+[[injection]]
+id = "plot-sky"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::end::Game<'_>::end_flash_sky"
+helper = "plot_sky.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "sky", ty = "&mut horizon_client::environment::Sky", value = "&mut *sky" },
+]
+
+[[injection]]
+id = "plot-music"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::music::Game<'_>::situational_music"
+helper = "plot_music.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+]
+
+[[injection]]
+id = "plot-lod-column"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_lib::vanillagen::lod::<VanillaLodSampler as LodSampler>::reduced_column"
+helper = "plot_lod_column.rs"
+bindings = [
+  { name = "sampler", ty = "&VanillaLodSampler", value = "&*self" },
+  { name = "x", ty = "i32", value = "x" },
+  { name = "z", ty = "i32", value = "z" },
+]
+
+[[injection]]
+id = "plot-lod-grid"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_lib::vanillagen::lod::<VanillaLodSampler as LodSampler>::grid"
+helper = "plot_lod_grid.rs"
+bindings = [
+  { name = "sampler", ty = "&VanillaLodSampler", value = "&*self" },
+  { name = "x", ty = "i32", value = "x" },
+  { name = "z", ty = "i32", value = "z" },
+  { name = "side", ty = "usize", value = "side" },
+]
+
+[[injection]]
+id = "plot-lod-detail"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client_lib::vanillagen::lod::<VanillaLodSampler as LodSampler>::request_detail"
+helper = "plot_lod_detail.rs"
+bindings = [
+  { name = "sampler", ty = "&VanillaLodSampler", value = "&*self" },
+  { name = "chunks", ty = "&[(i32, i32)]", value = "chunks" },
+]
+
+[[injection]]
+id = "me-enter-level"
+kind = "HEAD"
+target = "horizon_client::game::levels::Game<'_>::enter_level"
+helper = "me_enter_level.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "target", ty = "Dim", value = "target" },
 ]

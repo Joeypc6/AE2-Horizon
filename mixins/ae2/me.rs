@@ -950,6 +950,9 @@ pub fn block_entity_container(block: &str, out: &mut Option<ModContainer>) {
 /// their slot and hand it to the network; vibration chambers burn fuel.
 pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
     if is_twin(&entity.id) {
+        if entity.id.starts_with("ae2:hz_fcb") {
+            OLD_TWINS.with_borrow_mut(|t| t.push(pos));
+        }
         hosted_tick(game, pos, entity);
         return;
     }
@@ -1068,8 +1071,10 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
             if signal != was {
                 set_nbt_i64(&mut entity.nbt, "rs", i64::from(signal));
             }
-            if signal && !was && active && let Some(g) = grid {
-                spatial_swap(game, g, pos, entity);
+            if signal && !was && active && let Some(g) = grid
+                && !plot_swap_begin(game, g, pos, entity)
+            {
+                spatial_swap(game, g, pos, entity, false);
             }
         }
         "wireless_access_point" => {
@@ -1711,7 +1716,77 @@ fn grid_energy_per_node() -> f64 {
 
 /// `native_server_tick` (end): once a second the grids are worked out again and power is paid; every half
 /// second open terminals get their items.
+/// Every level with a player or forced chunks has its own networks, as AE2's Grid has its level's nodes. The hook runs
+/// after the levels' pass, with the last of them in place.
 pub fn server_tick(game: &mut Game<'_>) {
+    let back = game.dim;
+    for dim in game.levels_to_tick() {
+        if game.enter_level(None, dim).is_ok() {
+            level_tick(game);
+        }
+    }
+    let _ = game.enter_level(None, back);
+    plot_swaps_tick(game);
+}
+
+#[derive(Default)]
+struct LevelState {
+    server: Server,
+    formed: HashSet<Pos>,
+    parts: HashMap<Pos, PartState>,
+    dirty: HashSet<Pos>,
+    gone: Vec<Pos>,
+    light: HashMap<Pos, u8>,
+    resync: Vec<(Pos, u64)>,
+    twins: Vec<Pos>,
+    rates: HashMap<Pos, (u64, u64)>,
+    plans: Vec<PlanRunning>,
+    due: Vec<(Pos, &'static str)>,
+}
+
+thread_local! {
+    static PARKED_LEVELS: RefCell<HashMap<crate::game::Dim, LevelState>> = RefCell::new(HashMap::new());
+    static LEVEL_HELD: std::cell::Cell<Option<crate::game::Dim>> = const { std::cell::Cell::new(None) };
+}
+
+/// A level goes in place (Game::enter_level): this port's tables, kept by position, go with it.
+pub fn level_in_place(current: crate::game::Dim, target: crate::game::Dim) {
+    let held = LEVEL_HELD.get().unwrap_or(current);
+    LEVEL_HELD.set(Some(target));
+    if held == target {
+        return;
+    }
+    let out = LevelState {
+        server: SERVER.with_borrow_mut(std::mem::take),
+        formed: FORMED.with_borrow_mut(std::mem::take),
+        parts: PARTS.with_borrow_mut(std::mem::take),
+        dirty: PART_DIRTY.with_borrow_mut(std::mem::take),
+        gone: PART_GONE.with_borrow_mut(std::mem::take),
+        light: PART_LIGHT.with_borrow_mut(std::mem::take),
+        resync: CELL_RESYNC.with_borrow_mut(std::mem::take),
+        twins: OLD_TWINS.with_borrow_mut(std::mem::take),
+        rates: BUS_RATES.with_borrow_mut(std::mem::take),
+        plans: PLANS_RUNNING.with_borrow_mut(std::mem::take),
+        due: ADVANCEMENTS_DUE.with_borrow_mut(std::mem::take),
+    };
+    let next = PARKED_LEVELS.with_borrow_mut(|p| {
+        p.insert(held, out);
+        p.remove(&target)
+    }).unwrap_or_default();
+    SERVER.set(next.server);
+    FORMED.set(next.formed);
+    PARTS.set(next.parts);
+    PART_DIRTY.set(next.dirty);
+    PART_GONE.set(next.gone);
+    PART_LIGHT.set(next.light);
+    CELL_RESYNC.set(next.resync);
+    OLD_TWINS.set(next.twins);
+    BUS_RATES.set(next.rates);
+    PLANS_RUNNING.set(next.plans);
+    ADVANCEMENTS_DUE.set(next.due);
+}
+
+fn level_tick(game: &mut Game<'_>) {
     parts_tick(game);
     let tick = SERVER.with_borrow_mut(|s| {
         s.tick += 1;
@@ -1744,12 +1819,14 @@ pub fn server_tick(game: &mut Game<'_>) {
         status_tick(game);
     }
     for pos in SERVER.with_borrow_mut(|s| std::mem::take(&mut s.signal_updates)) {
-        game.native_update_signal_neighbors("minecraft:overworld", pos);
+        let dim = game.dim.id().to_owned();
+        game.native_update_signal_neighbors(&dim, pos);
     }
     for (pos, on) in SERVER.with_borrow_mut(|s| std::mem::take(&mut s.emitter_changes)) {
         if matches!(block_id(game, pos).as_str(), "ae2:level_emitter" | "ae2:energy_level_emitter") {
             game.native_set_block_property_with(pos, "powered", if on { "true" } else { "false" }, 3);
-            game.native_update_signal_neighbors("minecraft:overworld", pos);
+            let dim = game.dim.id().to_owned();
+            game.native_update_signal_neighbors(&dim, pos);
         }
     }
     if tick % 1200 == 0 {
@@ -1862,8 +1939,9 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
             // A hosted part joins its cell's cable and nothing else; the cable finds its parts.
             if is_virtual(p) {
                 let host = host_of(p);
-                if !blocks.contains_key(&host) {
-                    queue.push_back((host, block_id(game, host)));
+                let there = block_id(game, host);
+                if !blocks.contains_key(&host) && !is_twin(&there) {
+                    queue.push_back((host, there));
                 }
                 if let Some(q) = toggle_reach(game, p, &name)
                     && !blocks.contains_key(&q)
@@ -1898,7 +1976,9 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
     let positions: Vec<Pos> = blocks.keys().copied().collect();
     for p in &positions {
         if is_virtual(*p) {
-            net.connect(pack(*p), pack(host_of(*p)));
+            if blocks.contains_key(&host_of(*p)) {
+                net.connect(pack(*p), pack(host_of(*p)));
+            }
             if let Some(q) = toggle_reach(game, *p, &blocks[p])
                 && blocks.contains_key(&q)
             {
@@ -3544,6 +3624,7 @@ pub fn hotkey(game: &Game<'_>, name: &str) {
 
 /// The cursor as the server left it (`cursor` on `NET_UI`).
 pub fn cursor_frame(game: &mut Game<'_>) {
+    bake_cells(game);
     let Some((n, item)) = CLIENT.with_borrow_mut(|c| c.cursor_back.take()) else { return };
     game.carried = match game.carried.take() {
         _ if n == 0 => None,
@@ -7084,7 +7165,7 @@ pub fn update_tag(entity: &ModBlockEntity, tag: &mut Option<Compound>) {
     }
     if cable(&entity.id).is_some() || is_twin(&entity.id) {
         let mut out = Compound::new();
-        for key in ["facades", "cable", "lights", "parts", "arms"] {
+        for key in ["facades", "cable", "lights", "parts", "arms", "shape"] {
             if let Some(f) = entity.nbt.get(&java(key)) {
                 out.insert(java(key), f.clone());
             }
@@ -7446,9 +7527,8 @@ pub fn submit(
         return;
     }
     if is_twin(block) {
-        twin_submit(game, block, state, entity, draw);
         hosted_submit(game, entity, draw);
-        facade_submit(game, pos, entity, draw);
+        facade_submit(game, pos, entity);
         if facade_mask(&entity.nbt) == 0 && !hosts_monitor(entity) {
             draw.keep();
         }
@@ -10151,6 +10231,16 @@ pub fn perform_command(game: &mut Game<'_>, player: &super::native_server::Nativ
     }
 }
 
+/// `native_perform_console_command`: `/ae2` on a server's console, level 4 and nobody's position.
+pub fn perform_console_command(game: &mut Game<'_>, command: &str, ran: &mut bool) {
+    let mut words = command.split_whitespace();
+    if words.next() == Some("ae2") {
+        *ran = true;
+        let args: Vec<&str> = words.collect();
+        ae2_run(game, None, 4, [0.0; 3], &args);
+    }
+}
+
 /// The owner's `/ae2debug`, typed on their client (single player's own commands stay on the client): to the
 /// server, which runs it for them.
 pub const NET_DEBUG: &str = "ae2:debug";
@@ -11076,6 +11166,13 @@ fn p2p_input_tick(game: &mut Game<'_>, pos: Pos, kind: &str, freq: i64, tick: u6
             let level = block_light.max(sky);
             let dim = game.dim.id().to_owned();
             for out in &outputs {
+                // Hosted, its cell gives the light.
+                if is_virtual(*out) {
+                    if PART_LIGHT.with_borrow_mut(|l| l.insert(*out, level) != Some(level)) {
+                        PART_DIRTY.with_borrow_mut(|d| d.insert(host_of(*out)));
+                    }
+                    continue;
+                }
                 let facing = game.native_block_property(*out, "facing");
                 let front = add(*out, facing_dir(facing.as_deref()));
                 let here = block_id(game, front);
@@ -11626,16 +11723,30 @@ fn preview_line(from: [f64; 3], to: [f64; 3]) {
 fn part_preview(game: &Game<'_>, item: &str, pos: Pos, face: Pos) {
     let replaceable = |p: Pos| game.res.facts().get(game.world.block(p[0], p[1], p[2])).replaceable;
     // PartPlacement: on a cable with this side free the part goes into the cable's own block.
-    let hosted = is_part(item) && SIDES.contains(&face) && cable(&block_id(game, pos)).is_some() && !side_taken(game, pos, face);
+    let hosted = is_part(item) && SIDES.contains(&face) && (cable(&block_id(game, pos)).is_some() || is_bare(game, pos)) && !side_taken(game, pos, face);
     let on_clicked = !hosted && replaceable(pos);
     let cell = if on_clicked || hosted { pos } else { add(pos, face) };
-    if !hosted && !replaceable(cell) {
+    let back = [-face[0], -face[1], -face[2]];
+    let front_cell = !hosted && !on_clicked && is_part(item) && (cable(&block_id(game, cell)).is_some() || is_bare(game, cell) || replaceable(cell)) && !side_taken(game, cell, back);
+    if !hosted && !front_cell && !replaceable(cell) {
+        return;
+    }
+    // On the cell's near side (PartPlacement), its shape there as it will stand.
+    if hosted || front_cell {
+        let side = if hosted { face } else { back };
+        let Some(i) = SIDES.iter().position(|d| *d == side) else { return };
+        let at = cell.map(f64::from);
+        for b in part_boxes(game, i, item, &format!("facing={}", TWIN_SIDES[i])) {
+            let size: [f64; 3] = std::array::from_fn(|k| b[k + 3] - b[k]);
+            for e in horizon_client::blocks::cube_edges().iter() {
+                let point = |end: usize| -> [f64; 3] { std::array::from_fn(|k| at[k] + b[k] + e[k + 3 * end] * size[k]) };
+                preview_line(point(0), point(1));
+            }
+        }
         return;
     }
     let toward = if on_clicked { clicked_side(game, cell, game.yaw, game.pitch) } else { Some([-face[0], -face[1], -face[2]]) };
-    let facing = if hosted {
-        facing_name(face)
-    } else if cable(item).is_some() {
+    let facing = if cable(item).is_some() {
         ""
     } else {
         let Some(d) = toward else { return };
@@ -11777,44 +11888,8 @@ fn anchor_release(game: &mut Game<'_>, pos: Pos) {
     }
 }
 
-fn spatial_swap(game: &mut Game<'_>, grid: usize, pos: Pos, entity: &mut ModBlockEntity) {
-    let Some(mut cell) = entity.items.first().cloned().flatten() else { return };
-    let Some(limit) = spatial_limit(&cell.item) else { return };
-    if entity.items.get(1).is_some_and(Option::is_some) {
-        return;
-    }
-    let Some((lo, hi)) = spatial_region(game, grid) else { return };
-    let size = [hi[0] - lo[0] + 1, hi[1] - lo[1] + 1, hi[2] - lo[2] + 1];
-    if size.iter().any(|s| *s > limit) {
-        return;
-    }
-    // SpatialIOPortBlockEntity: it runs only with all the power it needs at hand.
-    let (required, _) = spatial_power(game, grid, lo, hi);
-    if !take_energy(pos, required) {
-        return;
-    }
-    let data = match cell.extra.as_ref().and_then(|e| e.other.iter().find(|(k, _)| k == CELL_DATA)).map(|(_, t)| t.clone()) {
-        Some(Tag::Compound(c)) => c,
-        _ => Compound::new(),
-    };
-    // A used cell keeps its size (AE2: it can't be reformatted).
-    if let Some(Tag::IntArray(s)) = data.get(&java("ae2:spatial_size"))
-        && s.as_slice() != size.as_slice()
-    {
-        return;
-    }
-    let stored: Vec<String> = match data.get(&java("ae2:spatial_blocks")) {
-        Some(Tag::List(l)) => l.iter().filter_map(|t| if let Tag::String(j) = t { j.to_string().ok() } else { None }).collect(),
-        _ => Vec::new(),
-    };
-    let stored_entities = match data.get(&java("ae2:spatial_entities")) {
-        Some(Tag::List(l)) => l.clone(),
-        _ => Vec::new(),
-    };
-    let stored_mobs = match data.get(&java("ae2:spatial_mobs")) {
-        Some(Tag::List(l)) => l.clone(),
-        _ => Vec::new(),
-    };
+/// What a volume holds, its block entities and mobs with it, and the volume cleared.
+fn volume_take(game: &mut Game<'_>, lo: Pos, hi: Pos) -> (Vec<String>, Vec<Tag>, Vec<Tag>) {
     let dim = game.dim.id().to_owned();
     let inside = |p: [f64; 3]| (0..3).all(|i| p[i] >= f64::from(lo[i]) && p[i] < f64::from(hi[i]) + 1.0);
     // SpatialStorageHelper.TelDestination: the mobs inside go with it, into the cell since there's no plot to send them to.
@@ -11871,6 +11946,12 @@ fn spatial_swap(game: &mut Game<'_>, grid: usize, pos: Pos, entity: &mut ModBloc
             }
         }
     }
+    (captured, captured_entities, captured_mobs)
+}
+
+/// A cell's or a plot's contents into a volume.
+fn volume_put(game: &mut Game<'_>, lo: Pos, stored: Vec<String>, stored_entities: Vec<Tag>, stored_mobs: Vec<Tag>) {
+    let dim = game.dim.id().to_owned();
     // The cell's blocks into the volume, then what they held.
     for entry in stored {
         let Some((rel, state)) = entry.split_once('|') else { continue };
@@ -11914,6 +11995,320 @@ fn spatial_swap(game: &mut Game<'_>, grid: usize, pos: Pos, entity: &mut ModBloc
             game.native_summon(&dim, &kind, [f64::from(lo[0]) + rx, f64::from(lo[1]) + ry, f64::from(lo[2]) + rz], nbt.clone());
         }
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// SpatialStoragePlot, for the players in a cell. A native mod can't add AE2's spatial_storage level, so a cell with a
+// player gets a walled plot in a band of the End far past anything vanilla reaches, void by ae2_plot_void; a cell with
+// nobody in it stays in its item as ever. Both ends of a swap must be loaded here, where Java's plot always is.
+
+const PLOT_BAND: i32 = 1_000_000;
+const PLOT_MARGIN: i32 = 65_536;
+const PLOT_STEP: i32 = 512;
+const PLOT_ROW: i32 = 64;
+const PLOT_LIVE: &str = "ae2:plot_live";
+const THE_END: &str = "minecraft:the_end";
+
+struct PlotSwap {
+    pos: Pos,
+    dim: crate::game::Dim,
+    plot: i32,
+    lo: Pos,
+    hi: Pos,
+    waited: u32,
+}
+
+thread_local! {
+    static PLOT_SWAPS: RefCell<Vec<PlotSwap>> = const { RefCell::new(Vec::new()) };
+    /// The other levels are open: a world reopened with its player in a plot starts in the End alone.
+    static PLOT_LEVELS_OPEN: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    /// Players about to arrive in a plot: not the vanilla End to the advancements.
+    static PLOT_ARRIVALS: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+/// A chunk of the band.
+pub fn in_plot_band(x: i32, z: i32) -> bool {
+    let (from, to) = (PLOT_BAND >> 4, (PLOT_BAND + PLOT_MARGIN * 2 + PLOT_STEP * PLOT_ROW) >> 4);
+    (from..to).contains(&x) && (from..to).contains(&z)
+}
+
+/// Going to or leaving a plot isn't the End, to CriteriaTriggers.CHANGED_DIMENSION.
+pub fn plot_travel(to_end: bool, at: [f64; 3]) -> bool {
+    if in_plot_band((at[0] as i32) >> 4, (at[2] as i32) >> 4) {
+        return true;
+    }
+    let due = PLOT_ARRIVALS.get();
+    if to_end && due > 0 {
+        PLOT_ARRIVALS.set(due - 1);
+        return true;
+    }
+    false
+}
+
+fn plot_origin(plot: i32) -> Pos {
+    let plot = plot.rem_euclid(PLOT_ROW * PLOT_ROW);
+    let start = PLOT_BAND + PLOT_MARGIN + 16;
+    [start + plot % PLOT_ROW * PLOT_STEP, 64, start + plot / PLOT_ROW * PLOT_STEP]
+}
+
+fn cell_data(cell: &ItemStack) -> Compound {
+    match cell.extra.as_ref().and_then(|e| e.other.iter().find(|(k, _)| k == CELL_DATA)).map(|(_, t)| t.clone()) {
+        Some(Tag::Compound(c)) => c,
+        _ => Compound::new(),
+    }
+}
+
+fn set_cell_data(cell: &mut ItemStack, data: Compound) {
+    let extra = cell.extra.get_or_insert_with(Default::default);
+    extra.other.retain(|(k, _)| k != CELL_DATA);
+    extra.other.push((CELL_DATA.to_owned(), Tag::Compound(data)));
+    extra.other.sort_by(|a, b| a.0.cmp(&b.0));
+}
+
+/// The players standing in a volume of this level: their names and where in it.
+fn players_in_volume(game: &Game<'_>, lo: Pos, hi: Pos) -> Vec<(String, [f64; 3])> {
+    let dim = game.dim.id();
+    game.native_server_players()
+        .into_iter()
+        .filter(|p| p.dimension == dim && (0..3).all(|i| p.position[i] >= f64::from(lo[i]) && p.position[i] < f64::from(hi[i]) + 1.0))
+        .map(|p| (p.name, [p.position[0] - f64::from(lo[0]), p.position[1] - f64::from(lo[1]), p.position[2] - f64::from(lo[2])]))
+        .collect()
+}
+
+/// SpatialStoragePlot's frame: matrix frame around the plot, none once it's empty.
+fn plot_walls(game: &mut Game<'_>, o: Pos, size: [i32; 3], up: bool) {
+    let block = if up { "ae2:matrix_frame" } else { "minecraft:air" };
+    let Some(state) = game.pack.assets.registry.default_state(block) else { return };
+    for x in -1..=size[0] {
+        for y in -1..=size[1] {
+            for z in -1..=size[2] {
+                if x == -1 || y == -1 || z == -1 || x == size[0] || y == size[1] || z == size[2] {
+                    game.native_set_block(THE_END, [o[0] + x, o[1] + y, o[2] + z], state, 2);
+                }
+            }
+        }
+    }
+}
+
+fn plot_force(game: &mut Game<'_>, plot: i32, size: [i32; 3], add: bool) {
+    let o = plot_origin(plot);
+    let verb = if add { "add" } else { "remove" };
+    // /forceload acts on the level in place, whatever `execute in` says.
+    let back = game.dim;
+    if game.enter_level(None, crate::game::Dim::End).is_ok() {
+        game.native_run_command(&format!("forceload {verb} {} {} {} {}", o[0] - 1, o[2] - 1, o[0] + size[0], o[2] + size[2]));
+        let _ = game.enter_level(None, back);
+    }
+}
+
+/// SpatialIOPortBlockEntity.transition, when it needs a plot: true when it's taken care of. The power goes now, the
+/// blocks once the plot is loaded.
+fn plot_swap_begin(game: &mut Game<'_>, grid: usize, pos: Pos, entity: &mut ModBlockEntity) -> bool {
+    let Some(mut cell) = entity.items.first().cloned().flatten() else { return false };
+    let Some(limit) = spatial_limit(&cell.item) else { return false };
+    if entity.items.get(1).is_some_and(Option::is_some) {
+        return false;
+    }
+    let Some((lo, hi)) = spatial_region(game, grid) else { return false };
+    let size = [hi[0] - lo[0] + 1, hi[1] - lo[1] + 1, hi[2] - lo[2] + 1];
+    let mut data = cell_data(&cell);
+    let live = data.get(&java(PLOT_LIVE)).is_some();
+    if !live && players_in_volume(game, lo, hi).is_empty() {
+        return false;
+    }
+    if PLOT_SWAPS.with_borrow(|j| j.iter().any(|j| j.pos == pos)) {
+        return true;
+    }
+    if size.iter().any(|s| *s > limit)
+        || matches!(data.get(&java("ae2:spatial_size")), Some(Tag::IntArray(s)) if s.as_slice() != size.as_slice())
+    {
+        return true;
+    }
+    let (required, _) = spatial_power(game, grid, lo, hi);
+    if !take_energy(pos, required) {
+        return true;
+    }
+    let plot = match data.get(&java("plot_id")) {
+        Some(Tag::Int(p)) => *p,
+        _ => {
+            let p = next_spatial_plot();
+            data.insert(java("plot_id"), Tag::Int(p));
+            set_cell_data(&mut cell, data);
+            entity.items[0] = Some(cell);
+            p
+        }
+    };
+    plot_force(game, plot, size, true);
+    let dim = game.dim;
+    PLOT_SWAPS.with_borrow_mut(|j| j.push(PlotSwap { pos, dim, plot, lo, hi, waited: 0 }));
+    true
+}
+
+/// Every chunk of the plot loaded in the End.
+fn plot_loaded(game: &mut Game<'_>, o: Pos, size: [i32; 3]) -> bool {
+    let (x0, x1, z0, z1) = ((o[0] - 1) >> 4, (o[0] + size[0]) >> 4, (o[2] - 1) >> 4, (o[2] + size[2]) >> 4);
+    let back = game.dim;
+    if game.enter_level(None, crate::game::Dim::End).is_err() {
+        return false;
+    }
+    let ready = (x0..=x1).all(|x| (z0..=z1).all(|z| game.world.chunks.contains_key(&(x, z))));
+    let _ = game.enter_level(None, back);
+    ready
+}
+
+/// The camera's in a plot: AE2's sky and music, not the End's.
+pub fn in_plot(game: &Game<'_>) -> bool {
+    game.dim == crate::game::Dim::End && game.eye_position().is_some_and(|e| in_plot_band((e[0] as i32) >> 4, (e[2] as i32) >> 4))
+}
+
+/// Java opens every level at startup, forced chunks and all. Here a player reopening the world in a plot would leave
+/// the port that gets them out, anchored in another level, unloaded.
+fn plot_levels_open(game: &mut Game<'_>) {
+    if PLOT_LEVELS_OPEN.get() {
+        return;
+    }
+    let inside = game.native_server_players().iter().any(|p| p.dimension == THE_END && in_plot_band((p.position[0] as i32) >> 4, (p.position[2] as i32) >> 4));
+    if !inside {
+        return;
+    }
+    PLOT_LEVELS_OPEN.set(true);
+    let back = game.dim;
+    for dim in [crate::game::Dim::Overworld, crate::game::Dim::Nether] {
+        let _ = game.enter_level(None, dim);
+    }
+    let _ = game.enter_level(None, back);
+}
+
+fn plot_swaps_tick(game: &mut Game<'_>) {
+    plot_levels_open(game);
+    if PLOT_SWAPS.with_borrow(Vec::is_empty) {
+        return;
+    }
+    // This runs after the levels' pass: any of them may be in place.
+    let back = game.dim;
+    for mut job in PLOT_SWAPS.take() {
+        if game.enter_level(None, job.dim).is_err() {
+            PLOT_SWAPS.with_borrow_mut(|j| j.push(job));
+            continue;
+        }
+        job.waited += 1;
+        let size = [job.hi[0] - job.lo[0] + 1, job.hi[1] - job.lo[1] + 1, job.hi[2] - job.lo[2] + 1];
+        if plot_loaded(game, plot_origin(job.plot), size) {
+            plot_swap(game, &job, size);
+            plot_force(game, job.plot, size, false);
+        } else if job.waited < 600 {
+            PLOT_SWAPS.with_borrow_mut(|j| j.push(job));
+        } else {
+            plot_force(game, job.plot, size, false);
+        }
+    }
+    let _ = game.enter_level(None, back);
+}
+
+fn plot_swap(game: &mut Game<'_>, job: &PlotSwap, size: [i32; 3]) {
+    let key = (job.pos[0], job.pos[1], job.pos[2]);
+    let Some(grid) = SERVER.with_borrow(|s| s.grid_of.get(&job.pos).copied()) else { return };
+    match game.world.block_entities.get(&key) {
+        Some(horizon_client::containers::BlockEntity::Mod(e)) if e.id == "ae2:spatial_io_port" && e.items.first().is_some_and(Option::is_some) => {}
+        _ => return,
+    }
+    let Some(horizon_client::containers::BlockEntity::Mod(mut entity)) = game.world.block_entities.remove(&key) else { return };
+    let here = game.dim;
+    let o = plot_origin(job.plot);
+    let far = [o[0] + size[0] - 1, o[1] + size[1] - 1, o[2] + size[2] - 1];
+    let leaving = players_in_volume(game, job.lo, job.hi);
+    let mut returning = Vec::new();
+    // Out of the plot into the cell, for the swap to carry into the volume.
+    if let Some(mut cell) = entity.items[0].clone() {
+        let mut data = cell_data(&cell);
+        if data.get(&java(PLOT_LIVE)).is_some() && game.enter_level(None, crate::game::Dim::End).is_ok() {
+            returning = players_in_volume(game, o, far);
+            let (blocks, entities, mobs) = volume_take(game, o, far);
+            plot_walls(game, o, size, false);
+            let _ = game.enter_level(None, here);
+            data.remove(&java(PLOT_LIVE));
+            data.insert(java("ae2:spatial_blocks"), Tag::List(blocks.iter().map(|s| Tag::String(java(s))).collect()));
+            data.insert(java("ae2:spatial_entities"), Tag::List(entities));
+            data.insert(java("ae2:spatial_mobs"), Tag::List(mobs));
+            set_cell_data(&mut cell, data);
+            entity.items[0] = Some(cell);
+        }
+    }
+    spatial_swap(game, grid, job.pos, &mut entity, true);
+    // And what the swap took, into the plot for those who were in it.
+    if !leaving.is_empty()
+        && let Some(mut cell) = entity.items.get(1).cloned().flatten()
+        && game.enter_level(None, crate::game::Dim::End).is_ok()
+    {
+        let mut data = cell_data(&cell);
+        let list = |d: &Compound, k: &str| match d.get(&java(k)) {
+            Some(Tag::List(l)) => l.clone(),
+            _ => Vec::new(),
+        };
+        let blocks = list(&data, "ae2:spatial_blocks").iter().filter_map(|t| if let Tag::String(j) = t { j.to_string().ok() } else { None }).collect();
+        let (entities, mobs) = (list(&data, "ae2:spatial_entities"), list(&data, "ae2:spatial_mobs"));
+        plot_walls(game, o, size, true);
+        volume_put(game, o, blocks, entities, mobs);
+        let _ = game.enter_level(None, here);
+        for key in ["ae2:spatial_blocks", "ae2:spatial_entities", "ae2:spatial_mobs"] {
+            data.remove(&java(key));
+        }
+        data.insert(java(PLOT_LIVE), Tag::Byte(1));
+        set_cell_data(&mut cell, data);
+        entity.items[1] = Some(cell);
+    }
+    game.world.block_entities.insert(key, horizon_client::containers::BlockEntity::Mod(entity));
+    game.mark_block_entity_updated(key);
+    let dim = here.id().to_owned();
+    PLOT_ARRIVALS.set(PLOT_ARRIVALS.get() + leaving.len() as u32);
+    for (name, r) in leaving {
+        game.native_run_command(&format!("execute in {THE_END} run tp {name} {} {} {}", f64::from(o[0]) + r[0], f64::from(o[1]) + r[1], f64::from(o[2]) + r[2]));
+    }
+    for (name, r) in returning {
+        game.native_run_command(&format!("execute in {dim} run tp {name} {} {} {}", f64::from(job.lo[0]) + r[0], f64::from(job.lo[1]) + r[1], f64::from(job.lo[2]) + r[2]));
+    }
+}
+
+fn spatial_swap(game: &mut Game<'_>, grid: usize, pos: Pos, entity: &mut ModBlockEntity, paid: bool) {
+    let Some(mut cell) = entity.items.first().cloned().flatten() else { return };
+    let Some(limit) = spatial_limit(&cell.item) else { return };
+    if entity.items.get(1).is_some_and(Option::is_some) {
+        return;
+    }
+    let Some((lo, hi)) = spatial_region(game, grid) else { return };
+    let size = [hi[0] - lo[0] + 1, hi[1] - lo[1] + 1, hi[2] - lo[2] + 1];
+    if size.iter().any(|s| *s > limit) {
+        return;
+    }
+    // SpatialIOPortBlockEntity: it runs only with all the power it needs at hand.
+    let (required, _) = spatial_power(game, grid, lo, hi);
+    if !paid && !take_energy(pos, required) {
+        return;
+    }
+    let data = match cell.extra.as_ref().and_then(|e| e.other.iter().find(|(k, _)| k == CELL_DATA)).map(|(_, t)| t.clone()) {
+        Some(Tag::Compound(c)) => c,
+        _ => Compound::new(),
+    };
+    // A used cell keeps its size (AE2: it can't be reformatted).
+    if let Some(Tag::IntArray(s)) = data.get(&java("ae2:spatial_size"))
+        && s.as_slice() != size.as_slice()
+    {
+        return;
+    }
+    let stored: Vec<String> = match data.get(&java("ae2:spatial_blocks")) {
+        Some(Tag::List(l)) => l.iter().filter_map(|t| if let Tag::String(j) = t { j.to_string().ok() } else { None }).collect(),
+        _ => Vec::new(),
+    };
+    let stored_entities = match data.get(&java("ae2:spatial_entities")) {
+        Some(Tag::List(l)) => l.clone(),
+        _ => Vec::new(),
+    };
+    let stored_mobs = match data.get(&java("ae2:spatial_mobs")) {
+        Some(Tag::List(l)) => l.clone(),
+        _ => Vec::new(),
+    };
+    let (captured, captured_entities, captured_mobs) = volume_take(game, lo, hi);
+    volume_put(game, lo, stored, stored_entities, stored_mobs);
     let mut data = data;
     if data.get(&java("plot_id")).is_none() {
         data.insert(java("plot_id"), Tag::Int(next_spatial_plot()));
@@ -16530,6 +16925,9 @@ fn links(game: &Game<'_>, p: Pos, a: &str, q: Pos, b: &str) -> bool {
     if !joins(a, b) {
         return false;
     }
+    if is_twin(a) || is_twin(b) {
+        return false;
+    }
     let d = [q[0] - p[0], q[1] - p[1], q[2] - p[2]];
     let back = [-d[0], -d[1], -d[2]];
     if part_blocks(game, p, d) || part_blocks(game, q, back) {
@@ -17975,7 +18373,7 @@ fn panel_light(game: &mut Game<'_>, p: Pos, on: bool) {
         game.native_set_block_property_with(p, "powered", if on { "true" } else { "false" }, 3);
     }
     if is_virtual(p) {
-        part_face_light(game, p, on);
+        PART_DIRTY.with_borrow_mut(|d| d.insert(host_of(p)));
     }
 }
 
@@ -19358,6 +19756,8 @@ fn ae2_run(game: &mut Game<'_>, player: Option<u128>, level: u8, at: [f64; 3], a
         Some(uuid) => {
             game.native_tell(uuid, horizon_client::text::Text::legacy(t));
         }
+        // The server's console answers there; a window's own command, in its chat.
+        None if game.options.dedicated.is_some() => game.native_feedback(horizon_client::text::Text::legacy(t)),
         None => game.native_chat(t),
     };
     // Commands' level 4.
@@ -20002,21 +20402,11 @@ fn facade_see_through(game: &Game<'_>, pos: Pos, entity: &ModBlockEntity) {
 }
 
 /// FacadeBuilder: each facade a plate two pixels thick against its side, the block's own faces on it.
-fn facade_submit(game: &Game<'_>, pos: Pos, entity: &ModBlockEntity, draw: &mut super::native_block_entity_draw::BlockEntityDraw) {
-    use super::native_block_entity_draw::CubeFace;
+fn facade_submit(game: &Game<'_>, pos: Pos, entity: &ModBlockEntity) {
     // CableRenderMode.CABLE_VIEW (AppEngBase.getCableRenderModeForPlayer): a network tool in either hand sees through
-    // facades. Block entity drawing has no alpha, so the translucent pass draws them.
+    // facades. Block entity drawing has no alpha, so the translucent pass draws them. Otherwise they're in the chunk.
     if cable_view(game) {
         facade_see_through(game, pos, entity);
-        return;
-    }
-    for (side, block) in cable_facades(&entity.nbt) {
-        let Some(faces) = facade_faces(game, &block) else { continue };
-        let (from, to) = facade_plate(&side);
-        // Vanilla's sprites go by their bare name in the atlas.
-        let names: Vec<&str> = faces.iter().map(|f| f.strip_prefix("minecraft:").unwrap_or(f)).collect();
-        let face = |i: usize| Some(CubeFace { sprite: names[i], uv: None });
-        game.native_draw_cube(draw, from, to, [face(0), face(1), face(2), face(3), face(4), face(5)], 0xFFFFFF);
     }
 }
 
@@ -20113,7 +20503,7 @@ fn swap_cable(game: &mut Game<'_>, pos: Pos, to_twin: bool) {
 /// rotation` holds the joined arms (bits 0 to 5, `TWIN_SIDES` order) and the facades (bits 6 to 11), and so the
 /// twin's collision (CableBusContainer's boxes); the cable it is, its lights and the facades are its block entity's.
 fn is_twin(block: &str) -> bool {
-    block.starts_with("ae2:hz_fcb")
+    block.starts_with("ae2:hz_fcl") || block.starts_with("ae2:hz_fcb")
 }
 
 const TWIN_SIDES: [&str; 6] = ["down", "up", "north", "south", "west", "east"];
@@ -20166,9 +20556,9 @@ fn facade_mask(nbt: &Compound) -> u32 {
 /// Puts `cable`'s twin with `arms` and `facades` at `pos`, its block entity's data kept (another twin block makes
 /// a new block entity).
 fn place_twin(game: &mut Game<'_>, pos: Pos, cable: &str, arms: u32, facades: u32) {
-    let (rods, plates) = part_shapes(game, pos);
-    let look = ((facades | plates) << 6) | arms | rods;
-    let want = format!("ae2:hz_fcb{}_{}", twin_core(cable), look / 16);
+    // Its state holds what can't be asked per position: the light, and the facades' support and occlusion.
+    let look = facades;
+    let want = format!("ae2:hz_fcl{}_{}", cell_light(game, pos), look / 16);
     let rotation = (look % 16).to_string();
     let raw = game.native_block(pos);
     let kept = game.native_with_mod_block_entity(pos, |e| e.nbt.clone()).filter(|_| is_twin(&raw));
@@ -20189,40 +20579,35 @@ fn place_twin(game: &mut Game<'_>, pos: Pos, cable: &str, arms: u32, facades: u3
         e.nbt.insert(java("cable"), Tag::String(java(cable)));
         e.nbt.insert(java("arms"), Tag::Long(i64::from(arms)));
     });
+    write_cell_shape(game, pos);
     game.native_block_entity_sync(pos);
+    // A tag sent in the tick the block changed can reach a client before it has made the block entity, which drops it
+    // (remote.rs, `sync_block_entity`): again, once it has.
+    let due = SERVER.with_borrow(|s| s.tick) + 2;
+    CELL_RESYNC.with_borrow_mut(|r| r.push((pos, due)));
 }
 
 /// A twin's facades changed: the twin for them, or the plain cable once none is left.
 fn refresh_twin(game: &mut Game<'_>, pos: Pos) {
-    let Some(arms) = twin_arms(game, pos) else { return };
-    let Some(cable) = twin_cable(game, pos) else { return };
+    let arms = twin_arms(game, pos).unwrap_or(0);
+    let Some(cable) = twin_cable(game, pos) else {
+        // No cable: a cell of parts alone, gone with its last one.
+        if parts_of(game, pos).is_empty() {
+            let dim = game.dim.id().to_owned();
+            if let Some(air) = game.pack.assets.registry.default_state("minecraft:air") {
+                game.native_set_block(&dim, pos, air, 3);
+            }
+        } else {
+            place_twin(game, pos, "", 0, 0);
+        }
+        return;
+    };
     let facades = game.native_with_mod_block_entity(pos, |e| facade_mask(&e.nbt)).unwrap_or(0);
     if facades == 0 && parts_of(game, pos).is_empty() {
         swap_cable(game, pos, false);
     } else {
         place_twin(game, pos, &cable, arms, facades);
     }
-}
-
-/// The cable a twin holds, drawn as its block (its arms and lights as the plain cable's state would be).
-fn twin_submit(game: &Game<'_>, block: &str, state: horizon_world::registry::BlockStateId, entity: &ModBlockEntity, draw: &mut super::native_block_entity_draw::BlockEntityDraw) {
-    let cable = nbt_string(&entity.nbt, "cable");
-    if cable.is_empty() {
-        return;
-    }
-    let Some(n) = block.strip_prefix("ae2:hz_fcb").and_then(|r| r.split_once('_')).and_then(|(_, n)| n.parse::<u32>().ok()) else { return };
-    let rotation = game.pack.assets.registry.state(state).and_then(|s| s.properties.get("rotation").and_then(|r| r.parse::<u32>().ok())).unwrap_or(0);
-    // The look's arm bits take in the parts' shapes: the real arms are kept beside it.
-    let arms = match entity.nbt.get(&java("arms")) {
-        Some(Tag::Long(a)) => *a as u32,
-        _ => (n * 16 + rotation) & 63,
-    };
-    let lights = nbt_string(&entity.nbt, "lights");
-    let mut props: Vec<(&str, &str)> = TWIN_SIDES.iter().enumerate().map(|(i, k)| (*k, if arms >> i & 1 == 1 { "true" } else { "false" })).collect();
-    if cable.contains("smart") {
-        props.push(("x_lights", if lights.is_empty() { "0" } else { lights.as_str() }));
-    }
-    game.native_draw_block(draw, &format!("ae2:{cable}"), &props);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -21132,6 +21517,9 @@ pub fn part_host_name(game: &Game<'_>, pos: Pos, block: &str, hit: [f64; 3]) -> 
         Some(horizon_client::containers::BlockEntity::Mod(m)) => (nbt_string(&m.nbt, "cable"), cable_facades(&m.nbt)),
         _ => return None,
     };
+    if cable.is_empty() {
+        return None;
+    }
     let at = [hit[0] - f64::from(pos[0]), hit[1] - f64::from(pos[1]), hit[2] - f64::from(pos[2])];
     let near = |v: f64, edge: f64| (v - edge).abs() <= 2.0 / 16.0 + 1e-4;
     let on = |side: &str| match side {
@@ -21568,27 +21956,57 @@ fn new_part_entity(id: &str, nbt: Compound) -> ModBlockEntity {
     ModBlockEntity::new(horizon_client::containers::ModBlockEntityFields { id: id.to_owned(), nbt, items: vec![None; slots], data: Vec::new() })
 }
 
-/// PartPlacement.place on a cable: into the cable's own block, on the clicked side, when that side is free. Taken
-/// already, the part goes the old way, a block of its own beside.
+/// A cell's block with no cable in it (a part alone on a chest's side).
+fn is_bare(game: &Game<'_>, pos: Pos) -> bool {
+    is_twin(&game.native_block(pos)) && twin_cable(game, pos).is_none()
+}
+
+/// PartPlacement.place: into the clicked cell, on the clicked side, if that cell can host and the side is free; else into
+/// the cell in front, on the side toward what was clicked, making one if that place is free.
 fn hosted_place(game: &mut Game<'_>, stack: &ItemStack, pos: Pos, face: Pos) -> bool {
     let item = stack.item.to_string();
-    if !is_part(&item) || !is_device(&item) || cable(&block_id(game, pos)).is_none() {
-        return false;
-    }
-    let Some(i) = SIDES.iter().position(|d| *d == face) else { return false };
-    if side_taken(game, pos, face) {
+    if !SIDES.contains(&face) {
         return false;
     }
     let Some(player) = game.native_acting_player() else { return false };
+    let front = add(pos, face);
+    // A cable into a cell of parts.
+    if cable(&item).is_some() {
+        let Some(cell) = [pos, front].into_iter().find(|p| is_bare(game, *p)) else { return false };
+        let name = item.strip_prefix("ae2:").unwrap_or(&item).to_owned();
+        game.native_with_mod_block_entity(cell, |e| e.nbt.insert(java("cable"), Tag::String(java(&name))));
+        spend_placed(game, player.game_mode, cell);
+        return true;
+    }
+    if !is_part(&item) || !is_device(&item) {
+        return false;
+    }
+    let hosts = |game: &Game<'_>, p: Pos| cable(&block_id(game, p)).is_some() || is_bare(game, p);
+    let back = [-face[0], -face[1], -face[2]];
+    let (cell, side) = if hosts(game, pos) && !side_taken(game, pos, face) {
+        (pos, face)
+    } else if hosts(game, front) {
+        if side_taken(game, front, back) {
+            return false;
+        }
+        (front, back)
+    } else {
+        if !game.res.facts().get(game.world.block(front[0], front[1], front[2])).replaceable {
+            return false;
+        }
+        place_twin(game, front, "", 0, 0);
+        (front, back)
+    };
+    let Some(i) = SIDES.iter().position(|d| *d == side) else { return false };
     let registry = &game.pack.assets.registry;
     let Some(state) = registry.default_state(&item).and_then(|id| registry.state(id)) else { return false };
     let mut props: std::collections::BTreeMap<String, String> = state.properties.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
     props.insert("facing".to_owned(), TWIN_SIDES[i].to_owned());
-    swap_cable(game, pos, true);
-    if !is_twin(&game.native_block(pos)) {
+    swap_cable(game, cell, true);
+    if !is_twin(&game.native_block(cell)) {
         return false;
     }
-    let v = part_pos(pos, i);
+    let v = part_pos(cell, i);
     let mut nbt = Compound::new();
     if let Some(Tag::Compound(settings)) = custom_tag(stack, "ae2:settings") {
         for (k, t) in settings.iter() {
@@ -21599,7 +22017,7 @@ fn hosted_place(game: &mut Game<'_>, stack: &ItemStack, pos: Pos, face: Pos) -> 
     let mut entry = Compound::new();
     entry.insert(java("id"), Tag::String(java(&item)));
     entry.insert(java("p"), Tag::String(java(&part.encoded())));
-    game.native_with_mod_block_entity(pos, |e| {
+    game.native_with_mod_block_entity(cell, |e| {
         let mut list = match e.nbt.get(&java("parts")) {
             Some(Tag::Compound(c)) => c.clone(),
             _ => Compound::new(),
@@ -21617,27 +22035,30 @@ fn hosted_place(game: &mut Game<'_>, stack: &ItemStack, pos: Pos, face: Pos) -> 
             });
         }
     }
-    if player.game_mode != 1
+    repath(v);
+    spend_placed(game, player.game_mode, cell);
+    true
+}
+
+/// A part or cable went into a cell: the item, the sound, the cell's shape and arms and its neighbours'.
+fn spend_placed(game: &mut Game<'_>, game_mode: i32, cell: Pos) {
+    if game_mode != 1
         && let Some(h) = game.native_carried_stack(game.selected as i32)
     {
         h.count -= 1;
     }
-    let at = pos.map(|c| f64::from(c) + 0.5);
+    let at = cell.map(|c| f64::from(c) + 0.5);
     game.with_level(|_, level, _| level.native_play_sound("minecraft:block.metal.place", at, 4, 1.0, 0.8));
-    repath(v);
-    repath(pos);
-    if let Some(cable) = twin_cable(game, pos) {
-        let arms = twin_arms(game, pos).unwrap_or(0);
-        let arms = arms & !(1 << i);
-        let facades = game.native_with_mod_block_entity(pos, |e| facade_mask(&e.nbt)).unwrap_or(0);
-        place_twin(game, pos, &cable, arms, facades);
-    }
-    cable_sides(game, pos);
+    repath(cell);
+    let arms = twin_arms(game, cell).unwrap_or(0);
+    let cable = twin_cable(game, cell).unwrap_or_default();
+    let facades = game.native_with_mod_block_entity(cell, |e| facade_mask(&e.nbt)).unwrap_or(0);
+    place_twin(game, cell, &cable, arms, facades);
+    cable_sides(game, cell);
     for d in SIDES {
-        cable_sides(game, add(pos, d));
+        cable_sides(game, add(cell, d));
     }
-    game.native_block_entity_sync(pos);
-    true
+    game.native_block_entity_sync(cell);
 }
 
 /// The twin's real arms.
@@ -21648,30 +22069,6 @@ fn twin_arms(game: &Game<'_>, pos: Pos) -> Option<u32> {
         return Some(*a as u32);
     }
     twin_masks(game, pos).map(|(_, arms, _)| arms)
-}
-
-/// Which side's part reads as a rod from the side's edge to the core, and which as a plate: how the twin's collision
-/// takes in its parts (twins are keyed on twelve bits, none to spare for each part's own boxes; aiming uses `cell_outline`).
-fn part_shapes(game: &Game<'_>, host: Pos) -> (u32, u32) {
-    let (mut rods, mut plates) = (0, 0);
-    for (i, id, _) in parts_of(game, host) {
-        if part_is_plate(&id) {
-            plates |= 1 << i;
-        } else {
-            rods |= 1 << i;
-        }
-    }
-    (rods, plates)
-}
-
-fn part_is_plate(id: &str) -> bool {
-    let n = id.strip_prefix("ae2:").unwrap_or(id);
-    n.ends_with("terminal")
-        || n.ends_with("monitor")
-        || n.ends_with("_lit")
-        || n.ends_with("_plane")
-        || n.ends_with("_p2p_tunnel")
-        || matches!(n, "storage_bus" | "cable_interface" | "cable_pattern_provider" | "cable_energy_acceptor")
 }
 
 thread_local! {
@@ -21746,7 +22143,7 @@ pub fn cell_outline(game: &Game<'_>, pos: Pos) -> Option<Vec<[f64; 6]>> {
     let parts = parts_of(game, pos);
     // CableRenderMode.CABLE_VIEW: a network tool's holder selects through facades.
     let through = cable_view(game);
-    if parts.is_empty() && !(through && is_twin(&game.native_block(pos))) {
+    if !matches!(game.world.block_entities.get(&(pos[0], pos[1], pos[2])), Some(horizon_client::containers::BlockEntity::Mod(m)) if is_twin(&m.id)) {
         return None;
     }
     let mut boxes: Vec<[f64; 6]> = Vec::new();
@@ -21773,6 +22170,33 @@ pub fn cell_outline(game: &Game<'_>, pos: Pos) -> Option<Vec<[f64; 6]>> {
     }
     let base = pos.map(f64::from);
     Some(boxes.into_iter().map(|b| std::array::from_fn(|i| base[i % 3] + b[i])).collect())
+}
+
+/// The cell's collision for `<SceneCollisions as BlockCollisionWorld>::context_shape`, in its tag, so a client's movement
+/// and the server's check agree (CableBusContainer.getCollisionShape): the cable, the parts and the facades, as sixteenths of
+/// a sixteenth to the box.
+fn write_cell_shape(game: &mut Game<'_>, pos: Pos) {
+    let Some(mut boxes) = cell_outline_solid(game, pos) else { return };
+    let ints: Vec<i32> = boxes.drain(..).flat_map(|b| b.map(|v| (v * 65536.0).round() as i32)).collect();
+    game.native_with_mod_block_entity(pos, |e| e.nbt.insert(java("shape"), Tag::IntArray(ints)));
+}
+
+/// The cell's solid boxes in block space.
+fn cell_outline_solid(game: &Game<'_>, pos: Pos) -> Option<Vec<[f64; 6]>> {
+    let mut boxes: Vec<[f64; 6]> = Vec::new();
+    if let Some((cable, props)) = cable_props(game, pos) {
+        boxes.extend(state_shape(game, &cable, &props).0.iter().copied());
+    }
+    for (i, id, props) in parts_of(game, pos) {
+        boxes.extend(part_boxes(game, i, &id, &props));
+    }
+    if let Some(horizon_client::containers::BlockEntity::Mod(m)) = game.world.block_entities.get(&(pos[0], pos[1], pos[2])) {
+        for (side, _) in cable_facades(&m.nbt) {
+            let (from, to) = facade_plate(&side);
+            boxes.push(std::array::from_fn(|i| f64::from(if i < 3 { from[i] } else { to[i - 3] }) / 16.0));
+        }
+    }
+    Some(boxes)
 }
 
 /// CableBusContainer.selectPartWorld: the part where the crosshair meets the cell; none means the cable (or a facade).
@@ -21806,15 +22230,33 @@ fn part_at(game: &Game<'_>, host: Pos, point: [f64; 3]) -> Option<usize> {
 
 /// RenderBlockOutlineHook on a cell: what the crosshair selects, part, facade or cable, not the cell's whole shape.
 fn cell_highlight(game: &Game<'_>, pos: Pos) -> bool {
-    let parts = parts_of(game, pos);
-    if parts.is_empty() {
+    if !is_twin(&game.native_block(pos)) {
         return false;
     }
+    let parts = parts_of(game, pos);
     let Some(hit) = game.pick().filter(|h| h.pos == pos) else { return true };
     let selected = part_at(game, pos, hit.point).and_then(|i| parts.into_iter().find(|p| p.0 == i));
     let at = pos.map(f64::from);
     let Some((i, id, props)) = selected else {
-        let Some((cable, props)) = cable_props(game, pos) else { return false };
+        // A facade's plate under the crosshair, else the cable.
+        if !cable_view(game)
+            && let Some(horizon_client::containers::BlockEntity::Mod(m)) = game.world.block_entities.get(&(pos[0], pos[1], pos[2]))
+        {
+            let local: [f64; 3] = std::array::from_fn(|k| hit.point[k] - at[k]);
+            for (side, _) in cable_facades(&m.nbt) {
+                let (from, to) = facade_plate(&side);
+                let b: [f64; 6] = std::array::from_fn(|k| f64::from(if k < 3 { from[k] } else { to[k - 3] }) / 16.0);
+                if in_box(&b, local) {
+                    let size: [f64; 3] = std::array::from_fn(|k| b[k + 3] - b[k]);
+                    for e in horizon_client::blocks::cube_edges().iter() {
+                        let point = |end: usize| -> [f64; 3] { std::array::from_fn(|k| at[k] + b[k] + e[k + 3 * end] * size[k]) };
+                        pass_line(false, point(0), point(1), PREVIEW_HALF_WIDTH, [0, 0, 0, 102], 1.0 / 3.0);
+                    }
+                    return true;
+                }
+            }
+        }
+        let Some((cable, props)) = cable_props(game, pos) else { return true };
         for e in state_shape(game, &cable, &props).1.iter() {
             pass_line(false, [at[0] + e[0], at[1] + e[1], at[2] + e[2]], [at[0] + e[3], at[1] + e[4], at[2] + e[5]], PREVIEW_HALF_WIDTH, [0, 0, 0, 102], 1.0 / 3.0);
         }
@@ -21944,10 +22386,10 @@ fn part_take(game: &mut Game<'_>, v: Pos, drop: bool) {
     let entity = game.world.block_entities.remove(&(v[0], v[1], v[2]));
     forget_part(v);
     if !drop {
-        part_face_light(game, v, false);
+        PART_LIGHT.with_borrow_mut(|l| l.remove(&v));
         return;
     }
-    part_face_light(game, v, false);
+    PART_LIGHT.with_borrow_mut(|l| l.remove(&v));
     let centre = host_of(v).map(|c| f64::from(c) + 0.5);
     if let Some(id) = id {
         game.spawn_item(ItemStack::new(&part_item(&id), 1), centre, [0.0, 0.1, 0.0], 10);
@@ -22035,11 +22477,37 @@ fn hosted_tick(game: &mut Game<'_>, host: Pos, entity: &mut ModBlockEntity) {
 /// Each server tick: cells whose parts changed get their list rewritten and sent; parts left without a cell (an
 /// explosion, a command, a plane) drop what they are.
 fn parts_tick(game: &mut Game<'_>) {
+    let now = SERVER.with_borrow(|s| s.tick);
+    if CELL_RESYNC.with_borrow(|r| !r.is_empty()) {
+        let due: Vec<Pos> = CELL_RESYNC.with_borrow_mut(|r| {
+            let (ready, later): (Vec<_>, Vec<_>) = std::mem::take(r).into_iter().partition(|(_, at)| *at <= now);
+            *r = later;
+            ready.into_iter().map(|(p, _)| p).collect()
+        });
+        for pos in due {
+            game.native_block_entity_sync(pos);
+        }
+    }
     for v in PART_GONE.with_borrow_mut(std::mem::take) {
         part_left_cell(game, host_of(v), side_of(v));
     }
+    for host in OLD_TWINS.with_borrow_mut(std::mem::take) {
+        let arms = twin_arms(game, host).unwrap_or(0);
+        let cable = twin_cable(game, host).unwrap_or_default();
+        let facades = game.native_with_mod_block_entity(host, |e| facade_mask(&e.nbt)).unwrap_or(0);
+        place_twin(game, host, &cable, arms, facades);
+    }
     for host in PART_DIRTY.with_borrow_mut(std::mem::take) {
         flush_parts(game, host);
+        // A part's light changed: the state that gives it.
+        let raw = game.native_block(host);
+        let lit = raw.strip_prefix("ae2:hz_fcl").and_then(|r| r.split_once('_')).and_then(|(l, _)| l.parse::<u8>().ok());
+        if lit.is_some_and(|l| l != cell_light(game, host)) {
+            let arms = twin_arms(game, host).unwrap_or(0);
+            let cable = twin_cable(game, host).unwrap_or_default();
+            let facades = game.native_with_mod_block_entity(host, |e| facade_mask(&e.nbt)).unwrap_or(0);
+            place_twin(game, host, &cable, arms, facades);
+        }
     }
     let tick = SERVER.with_borrow(|s| s.tick);
     if tick % 20 != 7 || PARTS.with_borrow(HashMap::is_empty) {
@@ -22108,11 +22576,13 @@ fn hosted_submit(game: &Game<'_>, entity: &ModBlockEntity, draw: &mut super::nat
         let Some(Tag::Compound(p)) = list.get(&java(side)) else { continue };
         let id = nbt_string(p, "id");
         let props = nbt_string(p, "p");
-        let pairs: Vec<(&str, &str)> = props.split(',').filter_map(|e| e.split_once('=')).collect();
+        // The model's in the chunk (`cell_pieces`); what changes all the time is drawn here.
+        if !is_monitor(&id) {
+            continue;
+        }
         let shift = part_fit(game, i, &id, &props).map_or([0.0; 3], |f| f.1);
         draw.push();
         draw.translate(shift.map(|v| v as f32));
-        game.native_draw_block(draw, &id, &pairs);
         if is_monitor(&id)
             && let Some(Tag::Compound(tag)) = p.get(&java("tag"))
             && let Some(state) = horizon_client::block_sprites::parse_state(&game.pack.assets.registry, &format!("{id}[facing={side}]"))
@@ -22138,7 +22608,7 @@ fn side_index(face: horizon_core::geometry::Direction) -> usize {
 }
 
 /// The part on that face of a cell.
-fn part_on_face(game: &Game<'_>, q: Pos, face: horizon_core::geometry::Direction) -> Option<Pos> {
+pub fn part_on_face(game: &Game<'_>, q: Pos, face: horizon_core::geometry::Direction) -> Option<Pos> {
     if is_virtual(q) {
         return None;
     }
@@ -22264,22 +22734,37 @@ fn hosts_monitor(entity: &ModBlockEntity) -> bool {
     TWIN_SIDES.iter().any(|side| matches!(list.get(&java(side)), Some(Tag::Compound(p)) if is_monitor(&nbt_string(p, "id"))))
 }
 
-/// AbstractReportingPart.getLightLevel on a cell: Horizon's light goes by block state, and a cell's shape uses up its twin's
-/// states. The air in front of a powered panel holds the light, as the light P2P's front does.
-fn part_face_light(game: &mut Game<'_>, v: Pos, on: bool) {
-    let front = add(v, SIDES[side_of(v)]);
-    let there = game.native_block(front);
-    let dim = game.dim.id().to_owned();
-    if on && there == "minecraft:air" {
-        if let Some(light) = game.pack.assets.registry.default_state("minecraft:light") {
-            game.native_set_block(&dim, front, light, 3);
-        }
-    } else if !on && there == "minecraft:light" {
-        let lit_by_tunnel = block_id(game, add(front, [-SIDES[side_of(v)][0], -SIDES[side_of(v)][1], -SIDES[side_of(v)][2]])) == "ae2:light_p2p_tunnel";
-        if !lit_by_tunnel && let Some(air) = game.pack.assets.registry.default_state("minecraft:air") {
-            game.native_set_block(&dim, front, air, 3);
-        }
-    }
+thread_local! {
+    /// What a hosted light tunnel's input sees, for its output's light.
+    static PART_LIGHT: RefCell<HashMap<Pos, u8>> = RefCell::new(HashMap::new());
+    /// Cells whose tag goes out again, and when.
+    static CELL_RESYNC: RefCell<Vec<(Pos, u64)>> = const { RefCell::new(Vec::new()) };
+    /// Twins of the older family, to go over to this one.
+    static OLD_TWINS: RefCell<Vec<Pos>> = const { RefCell::new(Vec::new()) };
+}
+
+/// CableBusContainer.getLightValue: the most of its parts'. AbstractReportingPart.getLightLevel: powered, 15 for a light
+/// source (the illuminated panels), else 9. LightP2PTunnelPart.getLightLevel: an output's input.
+fn cell_light(game: &Game<'_>, host: Pos) -> u8 {
+    parts_of(game, host)
+        .into_iter()
+        .map(|(i, id, props)| {
+            let powered = props.split(',').any(|p| p == "powered=true");
+            let n = id.strip_prefix("ae2:").unwrap_or(&id);
+            if n == "light_p2p_tunnel" {
+                PART_LIGHT.with_borrow(|l| l.get(&part_pos(host, i)).copied().unwrap_or(0))
+            } else if !powered {
+                0
+            } else if n.ends_with("_lit") || matches!(n, "monitor" | "semi_dark_monitor" | "dark_monitor") {
+                15
+            } else if n.ends_with("terminal") || n.ends_with("_monitor") {
+                9
+            } else {
+                0
+            }
+        })
+        .max()
+        .unwrap_or(0)
 }
 
 /// `hopper_eject` into a cell: the part on the side it points at takes what its inputs take. None: not a part's.
@@ -22348,4 +22833,122 @@ fn part_to_hopper(game: &mut Game<'_>, v: Pos, to: Pos) -> bool {
 /// AppEngBase.getCableRenderModeForPlayer: a network tool in either hand.
 fn cable_view(game: &Game<'_>) -> bool {
     game.held().is_some_and(|h| &*h.item == "ae2:network_tool") || game.offhand.as_ref().is_some_and(|h| &*h.item == "ae2:network_tool")
+}
+
+/// What a hosted part's block is, for the engine's lookups that go by a block's state; none for any other position.
+pub fn part_id_at(game: &Game<'_>, pos: Pos) -> Option<String> {
+    if !is_virtual(pos) {
+        return None;
+    }
+    part_view(game, pos).map(|p| p.id)
+}
+
+/// One thing a cell's section draws: where in its section, the block state, how far its model moves, and the box a facade's
+/// faces are cut to.
+type Piece = ([i32; 3], u32, [f32; 3], Option<[f32; 6]>);
+
+thread_local! {
+    /// The client's cells as baked: each one's revision, whether with a network tool in hand, and its pieces.
+    static BAKED: RefCell<HashMap<Pos, (horizon_client::containers::ModRevision, bool, Vec<Piece>)>> = RefCell::new(HashMap::new());
+    static BAKE_FRAME: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+/// CableBusBakedModel's pieces for a cell: the cable, each part on its side and the facades (not with a network tool, whose
+/// see-through ones the translucent pass draws).
+fn cell_pieces(game: &Game<'_>, pos: Pos, nbt: &Compound, min_y: i32, view: bool) -> Vec<Piece> {
+    let registry = &game.pack.assets.registry;
+    let at = [pos[0].rem_euclid(16), (pos[1] - min_y).rem_euclid(16), pos[2].rem_euclid(16)];
+    let parse = |text: &str| horizon_client::block_sprites::parse_state(registry, text).map(|s| s.0);
+    let mut out = Vec::new();
+    let cable = nbt_string(nbt, "cable");
+    if !cable.is_empty() {
+        let arms = match nbt.get(&java("arms")) {
+            Some(Tag::Long(a)) => *a as u32,
+            _ => 0,
+        };
+        let mut props: Vec<String> = TWIN_SIDES.iter().enumerate().map(|(i, k)| format!("{k}={}", arms >> i & 1 == 1)).collect();
+        if cable.contains("smart") {
+            let lights = nbt_string(nbt, "lights");
+            props.push(format!("x_lights={}", if lights.is_empty() { "0" } else { lights.as_str() }));
+        }
+        if let Some(state) = parse(&format!("ae2:{cable}[{}]", props.join(","))) {
+            out.push((at, state, [0.0; 3], None));
+        }
+    }
+    if let Some(Tag::Compound(list)) = nbt.get(&java("parts")) {
+        for (i, side) in TWIN_SIDES.iter().enumerate() {
+            let Some(Tag::Compound(p)) = list.get(&java(side)) else { continue };
+            let (id, props) = (nbt_string(p, "id"), nbt_string(p, "p"));
+            let shift = part_fit(game, i, &id, &props).map_or([0.0; 3], |f| f.1);
+            if let Some(state) = parse(&format!("{id}[{props}]")) {
+                out.push((at, state, shift.map(|v| v as f32), None));
+            }
+        }
+    }
+    if !view {
+        for (side, block) in cable_facades(nbt) {
+            let (from, to) = facade_plate(&side);
+            if let Some(state) = parse(&block) {
+                let clip: [f32; 6] = std::array::from_fn(|k| (if k < 3 { from[k] } else { to[k - 3] }) / 16.0);
+                out.push((at, state, [0.0; 3], Some(clip)));
+            }
+        }
+    }
+    out
+}
+
+/// A few times a second on the client: cells that changed go to the mesher's table, their sections to be meshed again.
+fn bake_cells(game: &mut Game<'_>) {
+    let frame = BAKE_FRAME.get().wrapping_add(1);
+    BAKE_FRAME.set(frame);
+    if frame % 6 != 0 || !game.native_window() {
+        return;
+    }
+    let Some(position) = game.player.as_ref().map(|p| p.position) else { return };
+    const RADIUS: f64 = 768.0;
+    let view = cable_view(game);
+    let min_y = game.world.shape.min_y;
+    let near: Vec<(i32, i32, i32)> = game.world.block_entities.mods_near(position.x, position.z, RADIUS).copied().collect();
+    let mut changed: HashSet<(i32, i32, i32)> = HashSet::new();
+    let mut seen: HashSet<Pos> = HashSet::new();
+    for key in near {
+        let Some(horizon_client::containers::BlockEntity::Mod(m)) = game.world.block_entities.get(&key) else { continue };
+        if !is_twin(&m.id) {
+            continue;
+        }
+        let pos = [key.0, key.1, key.2];
+        seen.insert(pos);
+        let revision = m.revision();
+        let same = BAKED.with_borrow(|b| b.get(&pos).is_some_and(|(r, v, _)| *r == revision && *v == view));
+        if same {
+            continue;
+        }
+        let pieces = cell_pieces(game, pos, &m.nbt, min_y, view);
+        BAKED.with_borrow_mut(|b| b.insert(pos, (revision, view, pieces)));
+        changed.insert((key.0.div_euclid(16), (key.1 - min_y).div_euclid(16), key.2.div_euclid(16)));
+    }
+    // Cells gone, near enough to know.
+    let gone: Vec<Pos> = BAKED.with_borrow(|b| {
+        b.keys()
+            .filter(|p| !seen.contains(*p))
+            .filter(|p| !game.world.loaded(p[0], p[2]) || (f64::from(p[0]) - position.x).abs().max((f64::from(p[2]) - position.z).abs()) < RADIUS - 32.0)
+            .copied()
+            .collect()
+    });
+    for pos in gone {
+        BAKED.with_borrow_mut(|b| b.remove(&pos));
+        changed.insert((pos[0].div_euclid(16), (pos[1] - min_y).div_euclid(16), pos[2].div_euclid(16)));
+    }
+    for section in changed {
+        let pieces: Vec<Piece> = BAKED.with_borrow(|b| {
+            b.iter()
+                .filter(|(p, _)| (p[0].div_euclid(16), (p[1] - min_y).div_euclid(16), p[2].div_euclid(16)) == section)
+                .flat_map(|(_, (_, _, pieces))| pieces.iter().cloned())
+                .collect()
+        });
+        horizon_client::mesher::Mesher::hz_ae2_set_section(section, pieces);
+        if (0..24).contains(&section.1) {
+            game.world.dirty_sections.insert(section);
+        }
+    }
 }

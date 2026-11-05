@@ -1038,6 +1038,20 @@ def twin_boxes(lo, hi, index):
 def add_facade_twins(write, report):
     write(f"assets/{ID}/models/block/hz/empty.json",
           {"textures": {"particle": f"{ID}:block/part/cable/glass/transparent"}, "elements": []})
+    # A cell: its light (CableBusBlock's light_level) and its facades in the state; the arms and parts' shapes per position,
+    # from its block entity. This state's own shape is what the engine's few direct callers see: a small core and the plates.
+    for level in range(16):
+        for n in range(4):
+            name = f"hz_fcl{level}_{n}"
+            write(f"data/{ID}/horizon/block/{name}.json", {
+                "template": "minecraft:skeleton_skull", "item": False,
+                "properties": {"hardness": 0.3, "sounds": "minecraft:glass", "requires_tool": False, "light": level},
+                "shapes": {"property": "rotation", "values": {str(r): twin_boxes(6, 10, (n * 16 + r) << 6) for r in range(16)}},
+            })
+            write(f"assets/{ID}/blockstates/{name}.json", {"multipart": [{"apply": {"model": f"{ID}:block/hz/empty"}}]})
+            write(f"data/{ID}/loot_table/blocks/{name}.json", {"type": "minecraft:block", "pools": []})
+            report["blocks"][name] = "minecraft:skeleton_skull"
+            TWINS.append(name)
     for core, (lo, hi) in enumerate(TWIN_CORES):
         for n in range(256):
             name = f"hz_fcb{core}_{n}"
