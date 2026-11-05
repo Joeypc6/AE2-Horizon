@@ -13,8 +13,32 @@ Start the game with the content mod: `--dev-mod path/to/ae2-content`.
 ## What differs from AE2
 
 The Java mod was rewritten in Rust for Horizon's hooks, so no original code runs. Some parts work differently inside to
-behave the same in play. A cable with facades is one of 768 helper blocks, because Horizon sets a block's collision per
-block state. Parts on a cable are separate blocks. What is still not 1:1 is listed under Left in `PLAN.md` (Round 17 has the current list).
+behave the same in play. Parts on a cable share one block, as in AE2, through helper blocks and block entities the game
+doesn't show you.
+
+### Missing or not the same
+
+- **Spatial storage's dimension.** Horizon mods can't add a dimension, so AE2's `spatial_storage` level doesn't exist. A
+  cell with nobody in it keeps its contents in the item. A cell with a player in its volume sends them to a walled plot in
+  a far, empty band of the End. Inside a plot, `/tp`, `/data`, F3 and maps say `minecraft:the_end` with x past 1,000,000,
+  `execute in ae2:spatial_storage` fails, the sky has no sparkles, and its region files are in the End's folder. A swap with
+  a player or an occupied plot takes up to about a second, where AE2's is instant.
+- **AE2's Java API.** Java addons for AE2 can't run on this port.
+- **Crafting ETA.** The time left is an estimate. It averaged 1.1% off on the test rig and was 2.0% off at worst.
+- **Nested P2P error.** Worked out from the stretches between tunnels, so it is an approximation.
+- **`craftingCalculationTimePerTick`.** Only applies to jobs that don't come from the confirm screen, whose plan runs on its
+  own thread.
+- **World height.** Parts on cables assume a world from -64 to 319.
+
+The Fluix Researcher and its trades are there, but through mixins on tables compiled into the game, so they are the part
+most likely to break on a Horizon update.
+
+### Not tested
+
+A real pipe from another mod into a part on a cable (no such mod exists yet; the engine lookup it would use is tested),
+more than one guest at a time, and speed against the Java mod.
+
+`PLAN.md` has the full history; Round 22 is the current list.
 
 ## Build
 
@@ -31,7 +55,8 @@ horizon-launcher native-build "path/to/that/folder" --trust-native-code
 ## Status
 
 An unofficial port, not made or endorsed by the original authors. Please report problems here, not to them.
-It was tested on Windows, in single player and on LAN with one guest. Other platforms and dedicated servers were not tested.
+It was tested on Windows, in single player, on LAN with one guest, and on a dedicated server with one client. Other platforms were not tested.
+A Horizon update can break it until it is rebuilt: it is built for the one Horizon commit named under Build.
 
 ## Credits and licences
 
