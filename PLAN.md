@@ -563,8 +563,6 @@ AE2's JEI: "+" state with marks and tooltips, machine recipes refused, Ctrl-clic
 recipes, terminal catalysts, U on a catalyst, three certus pages, API attunements, inscriber click area, wireless search sync.
 
 Not possible as a Horizon mod today, by what the API and source show:
-- One part per block. Every device here is a block with its own position, entity and menu; a cable bus would need all of
-  AE2's logic rekeyed from position to position-and-side. Large, not attempted.
 - A spatial dimension (no mod levels), so players don't enter cells: entities in the volume go into the cell's data.
 - Fluix Researcher: professions are compiled-in tables (render, brain, network ids) with no hook.
 - Light P2P uses a light block in front of the tunnel.
@@ -593,10 +591,65 @@ Tested on that build in my offscreen game:
 Not confirmed by a test: `Network Booting` (too brief for a screenshot), the nested error's own text line, chest and inscriber
 buffers, `allowBlockEntities`, mouse binds, non-English config text, HSL colours.
 
-Left that could still be done:
-- AE2's sleeping tick rates (the port has fixed cadences). `craftingCalculationTimePerTick` only reads on non-confirm jobs.
-- JEI `requestedSlots`, card icons, see-through selection shapes, more of Jade's overlay lines in other languages.
-- Nested P2P is worked out from stretches between tunnels, an approximation: this port has one node to a tunnel.
-
 The dedicated-server engine builds with all five mods (`--server-output`). It hasn't been run: that needs the Minecraft EULA
 accepted, which is the owner's to do.
+
+## Round 21 (2026-11-05): the cable bus, and what Round 20 left
+
+Round 20 listed one part per block as not attempted. It is done now, without rekeying AE2's logic.
+
+The cell is a facade twin (`ae2:hz_fcb*`), whose block entity lists its parts (`parts`: side to id, state, and what its client
+draws). Each part is a block entity of its own under a position past the top of the world: same x and z, y `1024 + (host y + 64)
+* 6 + side`. Those stay on the server and are saved with their chunk by the engine as they are. Clients never see them; they draw
+from the twin's tag. `add` and `face_toward` step from the host's cell, so a part's target is the real neighbour, and the
+device code is the code of a part with a block of its own.
+
+Engine hooks, raw and pinned to this revision: `native_block`, `native_block_property`, `native_set_block_property_with`,
+`native_set_block`, `native_block_entity_sync`, `native_neighbor_signal`, `native_update_signal_neighbors`, `native_insert_item`,
+`mod_menu_at`, `native_hidden_slots`, `open_native_screen`, `remote_block_reacts`, `predict_break`, `outline_boxes`,
+`hopper_eject`, `lan::menu::shown`, `lan::menu::Slots::still_valid`. Named: `is_signal_source`, plus new bindings on
+`destroy_block`, `block_signal` and `block_highlight`.
+
+What it does, as CableBusContainer does:
+- A part on a cable goes into the cable's block, on the clicked side. The side's arm closes. A taken side, a sneak on one, or
+  anything but a cable: a block of its own beside, the old way, so old worlds keep working.
+- Aiming and the outline are each part's own shape. Standalone shapes are made for a block beside a cable (a plate at its back, a
+  bus with a stub), so `part_fit` moves and trims them; the model moves with them.
+- Each part has its own screen and reach. Tools, memory cards, wrenches, monitors and Jade act on the part aimed at. A facade and
+  the applicator act on the cell. A network tool selects through facades.
+- Breaking takes what the crosshair is on, a part or a facade, and the cell stays; a wrench the same, into the inventory. The cable
+  takes the rest with it. A cell removed any other way (explosion, command, plane) drops its parts at the next sweep.
+- Redstone goes out of an emitter's own side only. Neighbours (storage buses, providers, P2P outputs, hoppers) reach the part on
+  the side facing them. Toggle buses, quartz fibers and ME tunnels join what they should. Spatial cells carry parts.
+
+Differences that remain, and why:
+- Collision: a twin's shape has twelve bits, so a part collides as a rod (arm) or a plate (facade). Aiming is exact.
+- A powered panel's light is a light block in the air in front (the twin's states are spent on its shape). In front of a wall, none.
+- Hosted parts are drawn as block entities: not past 64 blocks (`VIEW_DISTANCE`, in a generic the mixin tool refuses), and at
+  some frame cost. 99 hosted parts in view: 443 fps against about 800-900 without, 20.02 ticks/s.
+- FE and fluids from other mods' pipes don't reach a hosted part: the engine finds those by block state. AE2's own buses do reach
+  items in hosted interfaces, and hoppers reach hosted parts.
+- A part placed on anything but a cable is its own block, and a second part on it goes beside rather than into that block.
+- Positions assume worlds no taller than -64 to 319, and server tables aren't per dimension (as the port's other tables aren't).
+
+Also closed:
+- Sneak with a wrench on a cable with facades lost both and put an air item in the inventory.
+- Import and export buses tick as AE2's (`TickRates`: 5 to 40 and 5 to 60, faster by 2 on work, slower by 1 without). 40 items took
+  14.8 s against 13.4 s worked out from Java's rates, which is the test's polling.
+- Jade's overlay and AE2's lines use the jars' language keys: 170 of 185 `jade.*`, 28 of 28 `waila.ae2.*`. Time reads as Java's
+  (`3m 2s`). Item words go through the language files. Checked in French. The rest of `jade.*` have no such line in the port.
+- Jade's 53 card icons, from each provider's `getConfigIcon`.
+- JEI `requestedSlots`: nothing to port. `CraftConfirmMenu` writes that field and never reads it.
+- Charger and inscriber buffers tested: a crank fills them, an empty charger holds its crystal, a full one charges.
+
+Still not as Java, none of it possible as a mod today:
+- A spatial dimension (no mod levels), so players don't enter cells.
+- Fluix Researcher: professions are compiled-in tables.
+- Light P2P uses a light block in front of the tunnel.
+- `jade:max_position_deviation` is a setting, as `GameRules` is a fixed table.
+
+Not confirmed by a test: `Network Booting` (too brief to catch), the nested P2P error's own text line, `allowBlockEntities`, Jade's
+mouse binds and HSL colours. `craftingCalculationTimePerTick` only reads on jobs that don't come from the confirm screen, whose plan
+runs on its own thread. Nested P2P is worked out from stretches between tunnels, an approximation.
+
+The dedicated server has still never run: it needs the Minecraft EULA accepted, which is the owner's to do.
