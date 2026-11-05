@@ -711,21 +711,21 @@ Still not as Java:
 - Standalone tunnels from old worlds still light by a light block. New ones are hosted, and light by their cell.
 
 Tested on `native-6475f62-d72af06acdd9`, in my offscreen game, with no panic on host or guest:
-- Full regression, 0 panics: cable bus, kinds, hopper, collision, light, bare cell, FE, emptied section, stress, Researcher, slots,
-  regressions 1 to 3, config, JEI, plots and LAN. Its last run had two failures, both rerun clean on this build: the reload check, which
-  ran after the Researcher test cleared its rig (`final.sh` is reordered, and not rerun whole since), and one missed first click in the
-  LAN rig's placing, right after a plot trip (three of three on rerun).
+- Full regression in one unbroken run, every suite passing, 0 panics: cable bus, kinds, hopper, collision, light, bare cell, FE,
+  tunnels, emptied section, stress, reload, Researcher, slots, regressions 1 to 3, config, JEI, plots and LAN.
+- Hosted Light P2P: the output's cell follows the input's level, 0 to 15 and back. Fluid enters a hosted part through
+  `native_fluid_insert`, the lookup another mod's pipe uses.
 - Plot round trip on singleplayer, a LAN guest and the dedicated server, across a quit and reopen and across a server restart, with a
   chest's items, a mob and a block.
 - Guest in the Nether: the Overworld bus keeps moving items, also with a second network at the same spot there.
 - Dedicated server (these on `2fcf330dd44e`, the smoke test again on the final export): `/ae2 channelmode|chunklogger|tickmonitor|reloadconfig`, `/jade`, the game rule, from the console and from a client.
   Hosted parts, terminal, breaking, restart survival, Researcher trades at each level.
 - Jade's rule on a dedicated server: at 21 a barrel 10 blocks away lists `3x Diamond`, at 0 the server sends nothing.
-- 752 fps average (low 731), 19.98 ticks/s, tick 1.73 ms, P99 2.40 ms on the test world; 588 fps and 20.01 ticks/s with 50 cells in view.
+- 731 fps average (low 694), 20.01 ticks/s, tick 1.80 ms, P99 3.40 ms on the test world; 664 fps and 20.02 ticks/s with 50 cells in view,
+  tick P99 60.5 ms in that last run against about 7 ms in the runs before it, unexplained.
   A build's first launch loads resources in about 70 s, later ones in about 9 s, at 150,311 block states. No Java comparison was run.
 
-Not confirmed by a test: fluids from another mod's pipe into a hosted part (no such mod to test with; FE through AE2's own tunnel is
-tested), a hosted Light P2P end to end, Jade's mouse binds. Crafting ETA stays as Round 20: 1.1% off on average, 2.0% at worst.
+Not confirmed by a test: an actual pipe from another mod (no such mod exists to test with), Jade's mouse binds. Crafting ETA stays as Round 20: 1.1% off on average, 2.0% at worst.
 
 The owner's PC rebooted six times since Oct 29 with bugcheck 0x124, a CPU machine check, including once during these tests. That is
 hardware, not these mods, but builds and two games at once load it. Builds here now run with `CARGO_BUILD_JOBS=12`.
