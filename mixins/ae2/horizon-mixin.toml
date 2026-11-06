@@ -1,6 +1,6 @@
 [mod]
 id = "ae2"
-version = "15.4.12"
+version = "15.4.13"
 priority = 100
 
 # The Horizon commit this bundle was built and tested on.
