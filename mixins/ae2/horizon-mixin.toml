@@ -1,11 +1,11 @@
 [mod]
 id = "ae2"
-version = "15.4.13"
+version = "15.4.14"
 priority = 100
 
 # The Horizon commit this bundle was built and tested on.
 [compatibility]
-horizon_revision = "6475f62f3c834b7489e1816bf47f47ea5eb2b879"
+horizon_revision = "66f3981f522b24c250b21523a70080965b940424"
 
 [[module]]
 id = "bus-cells"

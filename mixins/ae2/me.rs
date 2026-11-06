@@ -9833,6 +9833,8 @@ pub fn dispense(game: &mut Game<'_>, pos: Pos, facing: horizon_core::geometry::D
                     join: Default::default(),
                     no_gravity: false,
                     power: 4.0,
+                    rotation: [0.0; 2],
+                    block_state: None,
                 })
             });
             let mut rest = stack.clone();
@@ -19905,6 +19907,8 @@ fn tiny_tnt_tick(game: &mut Game<'_>) {
                 join: Default::default(),
                 no_gravity: false,
                 power: 4.0,
+                rotation: [0.0; 2],
+                block_state: None,
             })
         });
         game.audio.play("minecraft:entity.tnt.primed", Some([at.x, at.y, at.z]), 1.0, 1.0);
@@ -19915,7 +19919,7 @@ fn tiny_tnt_tick(game: &mut Game<'_>) {
     }
     let mut keep = Vec::new();
     for mut t in lit.drain(..) {
-        let _ = t.tick(&game.world, game.collision, &game.pack.assets, game.res.facts(), &game.res.motion().fluids, Some(game.border.geometry()));
+        let _ = t.tick(&game.world, game.collision, &game.pack.assets, game.res.facts(), &game.res.motion().fluids, Some(game.border.geometry()), Some(&game.res.motion().blocks));
         let at = [t.position.x, t.position.y, t.position.z];
         let cell = [at[0].floor() as i32, at[1].floor() as i32, at[2].floor() as i32];
         if block_id(game, cell) == "minecraft:water" {
@@ -19985,7 +19989,7 @@ fn tiny_tnt_explode(game: &mut Game<'_>, dim: &str, at: [f64; 3]) {
         hi.x > at[0] - 1.5 && lo.x < at[0] + 1.5 && hi.y > at[1] - 1.5 && lo.y < at[1] + 1.5 && hi.z > at[2] - 1.5 && lo.z < at[2] + 1.5
     };
     for m in game.mobs.iter_mut().filter(|m| m.alive() && inside(m.bounds())) {
-        m.damage(6.0, Damage { kind: DamageKind::Explosion, attacker: None, from: Some(at) });
+        m.damage(6.0, Damage { kind: DamageKind::Explosion, attacker: None, from: Some(at), attacker_species: None });
     }
     if game.player_view().is_some_and(|p| p.alive && inside(p.bounds)) {
         game.hurt_player_by("minecraft:explosion", 6.0);
@@ -20921,7 +20925,7 @@ fn cannon_standard(game: &mut Game<'_>, eye: [f64; 3], dir: [f64; 3], mut penetr
                 let mob = &mut game.mobs[i];
                 mob.velocity.x -= dir[0] * 0.4;
                 mob.velocity.z -= dir[2] * 0.4;
-                mob.damage(dmg, Damage { kind: DamageKind::PlayerAttack, attacker: None, from: Some(at) });
+                mob.damage(dmg, Damage { kind: DamageKind::PlayerAttack, attacker: None, from: Some(at), attacker_species: None });
                 destroyed = !mob.alive();
             }
             (_, Some((pos, _))) => {

@@ -821,3 +821,11 @@ Tests changed to AE2's rules, each a rig that relied on what's now closed: a dri
 
 The terminal placement failure of Round 24 is no longer thought to be the terminal: an import bus failed the same way later. The failing runs had tick spikes of 44-77 ms against a click held 100 ms, so the tests now hold it 180 ms.
 Unproven, but it's not specific to any part. Frame rates vary with what else runs: the owner had a game open for some of these runs.
+
+## Round 26 (2026-11-06): Horizon 66f3981
+
+The registry's check builds on the newest Nightly, where AE2 15.4.13 didn't compile: engine types it fills in had gained fields. `PrimedTnt` takes `rotation` and `block_state`, `Damage` takes
+`attacker_species`, `OpenNativeScreen` takes `extra`, and TNT's `tick` takes the block movement properties. Pinned to Horizon `66f3981`, horizon-mixins `5a64af9`, as version 15.4.14.
+
+AE2 alone compiled as `native-66f3981-dd348c92bfbf`. **It wasn't run**, at the owner's choice. The last build to pass the test suites is `native-6475f62-6b04867df72c`, on Horizon `6475f62`. With JEI or Jade on this Horizon it wasn't compiled either.
+The registry log's `ItemRenderState` and `title::Button` errors aren't in this source, and didn't come up in this compile: nothing was needed for them.

@@ -12,7 +12,7 @@ fn ae2_bus_open_screen(game: &mut crate::game::Game<'_>, key: Pos, target: Optio
         let mut screen = None;
         game.native_screen(&block, &mut screen);
         if let Some(screen) = screen {
-            game.mod_screen = Some(OpenNativeScreen { key, window, block, screen, data: Vec::new() });
+            game.mod_screen = Some(OpenNativeScreen { key, window, block, screen, data: Vec::new(), extra: None });
             return core::ops::ControlFlow::Break(());
         }
     }

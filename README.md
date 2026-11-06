@@ -60,7 +60,7 @@ most likely to break on a Horizon update.
 A real pipe from another mod into a part on a cable (no such mod exists yet; the engine lookup it would use is tested),
 more than one guest at a time, and speed against the Java mod.
 
-`PLAN.md` has the full history; Round 25 is the current list.
+`PLAN.md` has the full history; Round 25 is the current list, and Round 26 the move to this Horizon.
 
 ## Multiplayer
 
@@ -71,7 +71,7 @@ and `PLAN.md` Round 24 has the list. Report anything found to the issues page.
 ## Build
 
 This is a [Horizon](https://github.com/horizon-rust/horizon) native mod bundle: Rust mixins compiled into the game.
-It was built and tested on Horizon commit `6475f62` (Minecraft 26.3, native hooks API 359), as `native-6475f62-36ab65da36ed`.
+It compiles on Horizon commit `66f3981` (Minecraft 26.3) as `native-66f3981-dd348c92bfbf`, alone, but wasn't run there. It was last tested on Horizon commit `6475f62` (native hooks API 359), as `native-6475f62-6b04867df72c`.
 Native mods are unsandboxed code that runs with your rights, so read what you build.
 
 Put each bundle's `mixins/<id>` folder in one folder, then:
