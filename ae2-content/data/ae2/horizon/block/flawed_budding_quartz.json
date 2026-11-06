@@ -4,5 +4,8 @@
     "hardness": 3.0,
     "sounds": "minecraft:amethyst_block",
     "explosion_resistance": 5.0
+  },
+  "components": {
+    "!minecraft:cooking_fuel": {}
   }
 }

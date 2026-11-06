@@ -106,7 +106,15 @@ fn node_kind(block: &str) -> NodeKind {
         "controller" => NodeKind::CONTROLLER,
         "drive" => NodeKind::device(2.0),
         "chest" => NodeKind::device(1.0),
-        "terminal" | "crafting_terminal" | "pattern_encoding_terminal" | "pattern_access_terminal" | "level_emitter" | "energy_level_emitter" => NodeKind::device(0.5),
+        "terminal" | "crafting_terminal" | "pattern_encoding_terminal" | "pattern_access_terminal" => NodeKind::device(0.5),
+        // AbstractLevelEmitterPart: no channel.
+        "level_emitter" | "energy_level_emitter" => NodeKind::passive(1.0),
+        // The access point's draw goes with its boosters (`rebuild`). It and the anchor need a channel.
+        "wireless_access_point" | "spatial_anchor" => NodeKind::device(0.0),
+        // A whole CPU, and a whole spatial structure, take one channel (`Network::set_multiblock`).
+        n if is_crafting(&format!("ae2:{n}")) => NodeKind::device(1.0),
+        // QuantumBridgeBlockEntity: dense capacity, 22 AE/t.
+        "quantum_ring" | "quantum_link" => NodeKind { max_channels: 32, dense: true, ..NodeKind::passive(22.0) },
         "storage_monitor" | "conversion_monitor" => NodeKind::device(0.5),
         "monitor" | "semi_dark_monitor" | "dark_monitor" => NodeKind::passive(1.0 / 16.0),
         "quartz_fiber" | "toggle_bus" | "inverted_toggle_bus" | "light_detector" => NodeKind::passive(0.0),
@@ -114,11 +122,13 @@ fn node_kind(block: &str) -> NodeKind {
         "annihilation_plane" | "formation_plane" | "spatial_io_port" => NodeKind::device(1.0),
         // P2PTunnelPart.getPowerDrainPerTick and its overrides.
         "redstone_p2p_tunnel" | "light_p2p_tunnel" => NodeKind::device(0.5),
-        "me_p2p_tunnel" | "item_p2p_tunnel" | "fluid_p2p_tunnel" | "fe_p2p_tunnel" => NodeKind::device(2.0),
+        // MEP2PTunnelPart.outerNode: dense capacity.
+        "me_p2p_tunnel" => NodeKind { max_channels: 32, dense: true, ..NodeKind::device(2.0) },
+        "item_p2p_tunnel" | "fluid_p2p_tunnel" | "fe_p2p_tunnel" => NodeKind::device(2.0),
         n if n.ends_with("_p2p_tunnel") => NodeKind::device(1.0),
         "spatial_pylon" => NodeKind::device(0.5),
-        "inscriber" => NodeKind::passive(1.0),
-        "growth_accelerator" => NodeKind::passive(2.0),
+        "inscriber" => NodeKind::passive(0.0),
+        "growth_accelerator" => NodeKind::passive(8.0),
         _ => NodeKind::passive(0.0),
     }
 }
@@ -516,6 +526,19 @@ struct Server {
     subnet_links: HashMap<usize, Vec<usize>>,
     /// AE each grid had at the last power pass, by its lowest position.
     energy: HashMap<Pos, f64>,
+    /// What each store (cell, controller; a node, on a grid with none) held at the last rebuild. `energy` is the grid's
+    /// total while it stands; this is what a split, a lost block or a reload goes by.
+    node_power: HashMap<Pos, f64>,
+    /// The capacity each store counted for at the last rebuild, and what its block entity holds of its share.
+    store_caps: HashMap<Pos, f64>,
+    power_saved: HashMap<Pos, f64>,
+    /// Stores that left with their share on the item, since the last rebuild.
+    stores_gone: HashSet<Pos>,
+    /// Grids (by root) that lost power, and when: EnergyService lets one back after 30 ticks with power.
+    power_lost: HashMap<Pos, u64>,
+    crank_breaks: Vec<Pos>,
+    /// Grids a quartz fiber joins share one store: each grid's root, and the root that holds it.
+    power_roots: HashMap<Pos, Pos>,
     /// Drives whose cells changed look: their block state is flipped so clients get the update tag.
     flips: Vec<Pos>,
     /// The `powered` state last set on blocks that show it.
@@ -630,7 +653,7 @@ pub fn block_entity(block: &str, entity: &mut Option<(String, Compound)>) {
 
 pub fn block_entity_ticks(block: &str, ticks: &mut bool) {
     // (The tank ticks for nothing: Horizon keeps a mod block entity for a block in its ticking table.)
-    if is_device(block) || block == "ae2:sky_stone_tank" || block == "ae2:tiny_tnt" || is_twin(block) || is_legacy_twin(block) || is_paint(block) {
+    if is_device(block) || block == "ae2:crank" || block == "ae2:sky_stone_tank" || block == "ae2:tiny_tnt" || is_twin(block) || is_legacy_twin(block) || is_paint(block) {
         *ticks = true;
     }
 }
@@ -974,6 +997,10 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
         hosted_tick(game, pos, entity);
         return;
     }
+    if entity.id == "ae2:crank" {
+        crank_tick(game, pos, entity);
+        return;
+    }
     if is_legacy_twin(&entity.id) {
         let nbt = entity.nbt.clone();
         SERVER.with_borrow_mut(|s| {
@@ -1007,36 +1034,12 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
         "terminal" => {
             entity.data.resize(4, 0);
             entity.data[0] = i32::from(active);
-            if active
-                && let Some(g) = grid
-                && let Some(stack) = entity.items.first_mut().and_then(|s| s.take())
-            {
-                let key = key_of(game, &stack);
-                let stored = with_storage(game, g, None, |st| st.insert(&key, i64::from(stack.count), Actionable::Modulate));
-                let left = stack.count.saturating_sub(stored as u32);
-                if left > 0 {
-                    let mut back = stack;
-                    back.count = left;
-                    entity.items[0] = Some(back);
-                }
-            }
+            terminal_insert_slot(game, pos, grid.filter(|_| active), entity);
         }
         "crafting_terminal" => {
             entity.data.resize(4, 0);
             entity.data[0] = i32::from(active);
-            if active
-                && let Some(g) = grid
-                && let Some(stack) = entity.items.first_mut().and_then(|s| s.take())
-            {
-                let key = key_of(game, &stack);
-                let stored = with_storage(game, g, None, |st| st.insert(&key, i64::from(stack.count), Actionable::Modulate));
-                let left = stack.count.saturating_sub(stored as u32);
-                if left > 0 {
-                    let mut back = stack;
-                    back.count = left;
-                    entity.items[0] = Some(back);
-                }
-            }
+            terminal_insert_slot(game, pos, grid.filter(|_| active), entity);
             crafting_terminal_tick(entity);
         }
         "pattern_access_terminal" => {
@@ -1222,10 +1225,8 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
                 let root = g.nodes.iter().min().copied()?;
                 Some(s.energy.get(&root).copied().unwrap_or(0.0) / grid_capacity(g, &s.devices).max(1.0))
             });
-            let stage = match ratio.unwrap_or(0.0) {
-                r if r < 0.01 => 0,
-                r => ((r * 4.0).ceil() as i32).clamp(1, 4),
-            };
+            // EnergyCellBlock.getStorageLevelFromFillFactor.
+            let stage = (4.0 * (ratio.unwrap_or(0.0) + 0.01).clamp(0.0, 1.0)).floor() as i32;
             let stage = stage.to_string();
             if game.native_block_property(pos, "stage").is_some_and(|v| v != stage) {
                 game.native_set_block_property_with(pos, "stage", &stage, 2);
@@ -1527,6 +1528,73 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
 /// takes twenty ticks to fill its buffer and then has one chance in five every ten).
 const CHARGE_TICKS: i64 = 100;
 
+/// MEStorageMenu.transferStackToMenu: a shift-click's stack into the network, as far as it goes. What it won't take goes back
+/// to the player: AE2 leaves it in the inventory, and here it would wait in a slot the screen doesn't show.
+fn terminal_insert_slot(game: &mut Game<'_>, pos: Pos, grid: Option<usize>, entity: &mut ModBlockEntity) {
+    let Some(stack) = entity.items.first_mut().and_then(|s| s.take()) else { return };
+    let mut left = stack.count;
+    if let Some(g) = grid {
+        let key = key_of(game, &stack);
+        let want = power_allows(g, &key, i64::from(stack.count));
+        let stored = with_storage(game, g, None, |st| st.insert(&key, want, Actionable::Modulate));
+        pay_moved(g, &key, stored);
+        left = left.saturating_sub(stored as u32);
+    }
+    if left == 0 {
+        return;
+    }
+    let back = ItemStack { count: left, ..stack };
+    match menu_player(pos) {
+        Some(uuid) => SERVER.with_borrow_mut(|s| s.pending_gives.push((uuid, grid.unwrap_or(usize::MAX), back))),
+        None => entity.items[0] = Some(back),
+    }
+}
+
+/// How much of `key` per AE (AEKeyType.transferFactor).
+fn transfer_factor(key: &AeKey) -> f64 {
+    if key.key_type() == super::port_ae2_core::KeyType::Fluids { 1000.0 } else { 1.0 }
+}
+
+/// How much of `want` the grid's power can move: StorageHelper's `availablePower * factor + 0.9`.
+fn power_allows(grid: usize, key: &AeKey, want: i64) -> i64 {
+    if want <= 0 {
+        return 0;
+    }
+    let factor = transfer_factor(key);
+    let stored = SERVER.with_borrow(|s| {
+        let root = s.grids.get(grid).and_then(|g| g.nodes.iter().min().copied());
+        let root = root.map(|r| s.power_roots.get(&r).copied().unwrap_or(r));
+        root.and_then(|r| s.energy.get(&r).copied()).unwrap_or(0.0)
+    });
+    let need = want as f64 / factor;
+    if stored >= need { want } else { want.min((stored * factor + 0.9) as i64) }
+}
+
+/// The power for `moved` of `key`, as far as there is any.
+fn pay_moved(grid: usize, key: &AeKey, moved: i64) {
+    if moved <= 0 {
+        return;
+    }
+    SERVER.with_borrow_mut(|s| {
+        let Some(root) = s.grids.get(grid).and_then(|g| g.nodes.iter().min().copied()) else { return };
+        let root = s.power_roots.get(&root).copied().unwrap_or(root);
+        let e = s.energy.entry(root).or_insert(0.0);
+        let got = e.min(moved as f64 / transfer_factor(key) * config().power_usage_multiplier);
+        *e -= got;
+        s.energy_flow.entry(root).or_default()[1] += got;
+    });
+}
+
+/// The grid a player's terminal screen is on; a chest's own cell has none, and pays nothing here.
+fn viewer_grid(player: u128) -> Option<usize> {
+    SERVER.with_borrow(|s| {
+        if s.chest_terms.contains(&player) {
+            return None;
+        }
+        s.viewers.get(&player).and_then(|p| s.grid_of.get(p)).copied()
+    })
+}
+
 /// AEBasePoweredBlockEntity's stored power, saved as Java saves it. (The crank's AE of older builds, `stored`, counts
 /// until the next change.)
 fn internal_power(nbt: &Compound) -> f64 {
@@ -1588,6 +1656,7 @@ fn charger_work(game: &mut Game<'_>, pos: Pos, on_grid: bool, entity: &mut ModBl
                 }
             }
         } else if stored > MAX - 1.0
+            && stack.count == 1
             && let Some(charged) = charger_result(&stack.item)
             && chance(game, 0.2)
         {
@@ -1712,6 +1781,16 @@ fn add_energy(pos: Pos, ae: f64) {
 /// CreativeEnergyCellBlockEntity.getAEMaxPower.
 const CREATIVE_POWER: f64 = 9.22337203685477E14;
 
+/// What a block holds of its grid's power, saved on it (AEBasePoweredBlockEntity.internalCurrentPower).
+fn store_capacity(block: &str) -> f64 {
+    match ae2_name(block).unwrap_or("") {
+        "controller" => 8_000.0,
+        "energy_cell" => 200_000.0,
+        "dense_energy_cell" => 1_600_000.0,
+        _ => 0.0,
+    }
+}
+
 fn grid_capacity(grid: &GridInfo, devices: &HashMap<Pos, (String, u64)>) -> f64 {
     grid.nodes
         .iter()
@@ -1827,6 +1906,10 @@ fn level_tick(game: &mut Game<'_>) {
         if game.native_block_property(pos, key).is_some_and(|v| v != value) {
             game.native_set_block_property_with(pos, key, value, 3);
         }
+    }
+    // (Not from its own tick, while its block entity is out of the world.)
+    for pos in SERVER.with_borrow_mut(|s| std::mem::take(&mut s.crank_breaks)) {
+        crank_break(game, pos);
     }
     for pos in SERVER.with_borrow_mut(|s| std::mem::take(&mut s.flips)) {
         // The block and its block entity's update tag go to the clients again.
@@ -2057,6 +2140,32 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
     let by_id: HashMap<u64, Pos> = positions.iter().map(|p| (pack(*p), *p)).collect();
     let (formed, clusters) = crafting_clusters(&blocks);
     let mut grids = Vec::new();
+    // A CPU's blocks, and a spatial structure's pylons, each touching: one channel between them.
+    {
+        let wanted = |name: &str| is_crafting(name) || ae2_name(name) == Some("spatial_pylon");
+        let mut seen: HashSet<Pos> = HashSet::new();
+        for (start, name) in &blocks {
+            if !wanted(name) || !seen.insert(*start) {
+                continue;
+            }
+            let pylon = ae2_name(name) == Some("spatial_pylon");
+            let mut members = vec![*start];
+            let mut queue = vec![*start];
+            while let Some(p) = queue.pop() {
+                for d in SIDES {
+                    let q = add(p, d);
+                    if blocks.get(&q).is_some_and(|n| wanted(n) && (ae2_name(n) == Some("spatial_pylon")) == pylon) && seen.insert(q) {
+                        members.push(q);
+                        queue.push(q);
+                    }
+                }
+            }
+            let group = members.iter().copied().map(pack).min().unwrap_or(0);
+            for p in members {
+                net.set_multiblock(pack(p), group);
+            }
+        }
+    }
     let mut grid_of = HashMap::new();
     for g in net.grids() {
         let nodes: HashSet<Pos> = g.nodes.iter().map(|n| by_id[n]).collect();
@@ -2074,6 +2183,11 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
             if blocks.get(p).map(String::as_str) == Some("ae2:wireless_access_point") {
                 let boosters = game.native_with_mod_block_entity(*p, |e| wap_boosters(e)).unwrap_or(0.0);
                 idle += config().wireless_power_drain(boosters);
+            }
+            // DriveBlockEntity.updateState, ChestBlockEntity: each cell's own drain on top of the block's.
+            if matches!(blocks.get(p).and_then(|b| ae2_name(b)), Some("drive" | "chest")) {
+                let held = game.native_with_mod_block_entity(*p, |e| e.items.clone()).unwrap_or_default();
+                idle += held.iter().flatten().filter_map(|c| cell_type(&c.item)).map(|t| t.idle_drain).sum::<f64>();
             }
         }
         // Pattern providers' patterns, and the CPU the crafting storage forms.
@@ -2150,7 +2264,7 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
             conflict: g.controller_state == ControllerState::ControllerConflict,
             too_many: g.controller_state == ControllerState::NoController
                 && !g.nested_p2p
-                && g.nodes.iter().filter(|n| net.kinds().get(*n).is_some_and(|k| k.requires_channel)).count() > 8,
+                && net.channels_wanted(&g.nodes) > super::port_ae2_grid::ad_hoc_channels(),
             nested_p2p: g.nested_p2p,
             booting: false,
             // PathingService.setChannelPowerUsage: channelsByBlocks / 128. Ad hoc, what the nodes hold: their number times
@@ -2207,7 +2321,39 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
         }
     }
     let pools: Vec<usize> = (0..grids.len()).map(|i| find(&mut pool, i)).collect();
+    // A store this level hasn't counted yet (a reload, its chunk back): what its block entity saved.
+    let unread: Vec<Pos> = blocks
+        .iter()
+        .filter(|(p, name)| store_capacity(name) > 0.0 && SERVER.with_borrow(|s| !s.node_power.contains_key(*p)))
+        .map(|(p, _)| *p)
+        .collect();
+    let read: Vec<(Pos, f64)> = unread.into_iter().map(|p| (p, game.native_with_mod_block_entity(p, |e| internal_power(&e.nbt)).unwrap_or(0.0))).collect();
     let changes = SERVER.with_borrow_mut(|s| {
+        // Each old grid's power, back into its stores: a split or a lost cable loses none of it, and a store takes its
+        // own with it. A creative grid's isn't real, and leaves its stores as they were.
+        let mut node_power: HashMap<Pos, f64> = read.into_iter().collect();
+        for g in &s.grids {
+            let Some(root) = g.nodes.iter().min().copied() else { continue };
+            let stores: Vec<(Pos, f64)> = g.nodes.iter().filter(|p| !s.stores_gone.contains(*p)).filter_map(|p| s.store_caps.get(p).map(|c| (*p, *c))).collect();
+            let creative = g.nodes.iter().any(|p| blocks.get(p).map(String::as_str) == Some("ae2:creative_energy_cell") || s.devices.get(p).is_some_and(|(id, _)| id == "ae2:creative_energy_cell"));
+            if creative {
+                node_power.extend(stores.iter().map(|(p, _)| (*p, s.node_power.get(p).copied().unwrap_or(0.0))));
+                continue;
+            }
+            let e = s.energy.get(&root).copied().unwrap_or(0.0);
+            let total: f64 = stores.iter().map(|(_, c)| *c).sum();
+            if total > 0.0 {
+                node_power.extend(stores.iter().map(|(p, c)| (*p, e * c / total)));
+            } else if !g.nodes.is_empty() {
+                let each = e / g.nodes.len() as f64;
+                node_power.extend(g.nodes.iter().map(|p| (*p, each)));
+            }
+        }
+        // What's gone from the level goes with its block entity, saved.
+        node_power.retain(|p, _| blocks.contains_key(p));
+        s.stores_gone.clear();
+        s.node_power = node_power;
+        s.store_caps = blocks.iter().filter_map(|(p, name)| Some((*p, store_capacity(name))).filter(|(_, c)| *c > 0.0)).collect();
         // Power: each grid pays a second of idle draw from its buffer (carried over by its lowest position); grids a
         // quartz fiber joins pay from, and fill, one store.
         let mut energy = HashMap::new();
@@ -2215,7 +2361,7 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
         for (i, g) in grids.iter().enumerate() {
             let Some(root) = g.nodes.iter().min().copied() else { continue };
             let creative = g.nodes.iter().any(|p| s.devices.get(p).is_some_and(|(id, _)| id == "ae2:creative_energy_cell"));
-            let had: f64 = s.energy.iter().filter(|(p, _)| g.nodes.contains(*p)).map(|(_, e)| *e).sum();
+            let had: f64 = g.nodes.iter().filter_map(|p| s.node_power.get(p)).sum();
             let cap: f64 = g
                 .nodes
                 .iter()
@@ -2238,10 +2384,29 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
             // EnergyService.onServerEndTick pays getIdlePowerUsage, the channels' too, and judges the power by drainPerTick.
             e.5 += g.channel_drain * 20.0 * config().power_usage_multiplier;
         }
+        s.power_roots = grids
+            .iter()
+            .enumerate()
+            .filter_map(|(i, g)| Some((g.nodes.iter().min().copied()?, pooled.get(&pools[i])?.4)))
+            .collect();
         for (i, g) in grids.iter_mut().enumerate() {
             let Some(&(creative, had, need, cap, root, channels)) = pooled.get(&pools[i]) else { continue };
-            // AE2's grid is powered while it has stored energy for its draw: none stored is off, even drawing none.
-            let powered = creative || (had > 0.0 && had >= need);
+            // AE2's grid is powered while it has stored energy for a tick's draw: none stored is off, even drawing none.
+            let has_power = creative || (had > 0.0 && had >= need / 20.0);
+            // EnergyService.onServerEndTick: once down, back only after 30 ticks with power. This looks once a second, so
+            // that's the second look. A new grid has never been down.
+            let powered = if has_power {
+                let lost = s.power_lost.get(&root).copied();
+                if lost.is_some_and(|t| tick.saturating_sub(t) <= 30) {
+                    false
+                } else {
+                    s.power_lost.remove(&root);
+                    true
+                }
+            } else {
+                s.power_lost.insert(root, tick);
+                false
+            };
             once(&format!("power: creative {creative}, had {had}, need {need}"));
             g.online &= powered;
             if g.nodes.contains(&root) {
@@ -2314,6 +2479,35 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
         s.booting_new.clear();
         changes
     });
+    // Each store's share on its block, so a reload or an unloaded chunk finds it.
+    let saves: Vec<(Pos, f64)> = SERVER.with_borrow_mut(|s| {
+        let mut out = Vec::new();
+        for g in &s.grids {
+            if g.nodes.iter().any(|p| s.devices.get(p).is_some_and(|(id, _)| id == "ae2:creative_energy_cell")) {
+                continue;
+            }
+            let Some(root) = g.nodes.iter().min().copied() else { continue };
+            let e = s.energy.get(&root).copied().unwrap_or(0.0);
+            let stores: Vec<(Pos, f64)> = g.nodes.iter().filter_map(|p| s.store_caps.get(p).map(|c| (*p, *c))).collect();
+            let total: f64 = stores.iter().map(|(_, c)| *c).sum();
+            for (p, c) in stores {
+                let share = if total > 0.0 { e * c / total } else { 0.0 };
+                if s.power_saved.get(&p).is_none_or(|was| (was - share).abs() >= 1.0 || (share == 0.0 && *was != 0.0)) {
+                    out.push((p, share));
+                }
+            }
+        }
+        for (p, share) in &out {
+            s.power_saved.insert(*p, *share);
+        }
+        let caps = std::mem::take(&mut s.store_caps);
+        s.power_saved.retain(|p, _| caps.contains_key(p));
+        s.store_caps = caps;
+        out
+    });
+    for (p, share) in saves {
+        game.native_with_mod_block_entity(p, |e| set_internal_power(&mut e.nbt, share));
+    }
     // The lit look follows the block's own state (a block placed again starts unlit).
     for (p, on, powered) in changes {
         let channel = game.native_block_property(p, "with_channel");
@@ -2589,6 +2783,8 @@ fn storage_open(game: &mut Game<'_>, grid: usize, own: &mut Option<(Pos, &mut Mo
                         // ColorApplicatorItem.isBlackListed: only what has a colour.
                         let paints = paint_items(game);
                         basic.accepts = Some(Box::new(move |k: &AeKey| paints.contains(k.id())));
+                    } else if &*stack.item != "ae2:matter_cannon" {
+                        basic.accepts = Some(Box::new(|k: &AeKey| !is_filled_cell(k)));
                     }
                     let inv: Box<dyn super::port_ae2_grid::MeStorage> = Box::new(basic);
                     // A cell keeps its id, unless one mounted already has it (a copy): then it gets its own, and
@@ -3325,6 +3521,11 @@ fn stream_terminals(game: &mut Game<'_>) {
                                 v.keys.len() - 1
                             });
                             lines.push(format!("{i} {} {amount}", wire_id(&key)));
+                            // The stack's data, unless it's too big to send (it's drawn plain then, as before).
+                            let whole = key_to_string(&key);
+                            if key_has_data(&key) && whole.len() <= ENTRY_DATA_BYTES {
+                                lines.push(format!("#k {i} {whole}"));
+                            }
                             v.keys[i] = (key.clone(), amount);
                             v.index.insert(key, i);
                             now.insert(i);
@@ -3950,7 +4151,9 @@ fn interface_tick(game: &mut Game<'_>, grid: usize, entity: &mut ModBlockEntity)
                     None
                 };
                 let take = fuzzy.unwrap_or_else(|| key.clone());
-                let got = with_storage(game, grid, None, |s| s.extract(&take, n - now, Actionable::Modulate));
+                let want = power_allows(grid, &take, n - now);
+                let got = with_storage(game, grid, None, |s| s.extract(&take, want, Actionable::Modulate));
+                pay_moved(grid, &take, got);
                 if got > 0 {
                     match entity.items[i].as_mut() {
                         Some(slot) => slot.count += got as u32,
@@ -4113,7 +4316,7 @@ pub fn wireless_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
     let [gx, gy] = [mouse[0] - ox - TERM_GRID[0], mouse[1] - oy - TERM_GRID[1]];
     if gx >= 0.0 && gy >= 0.0 && gx < TERM_COLS as f32 * 18.0 && gy < rows as f32 * 18.0 {
         let cell = CLIENT.with_borrow(|c| c.scroll * TERM_COLS) + (gy / 18.0) as usize * TERM_COLS + (gx / 18.0) as usize;
-        hovered = CLIENT.with_borrow(|c| visible(c).get(cell).and_then(|&i| c.items.get(i)).map(|(id, n)| (ItemStack::new(&icon_of(id), 1), Some(*n))));
+        hovered = CLIENT.with_borrow(|c| visible(c).get(cell).and_then(|&i| c.items.get(i).map(|(id, n)| (c.item_stacks.get(&i).cloned().unwrap_or_else(|| ItemStack::new(&icon_of(id), 1)), Some(*n)))));
     }
     // The crafting grid (kept on the terminal) and what it makes.
     if craft {
@@ -4760,8 +4963,9 @@ pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, i
     }
     if let Some(stack) = carried.as_mut() {
         let key = key_of(game, stack);
-        let amount = if right { 1 } else { i64::from(stack.count) };
+        let amount = power_allows(grid, &key, if right { 1 } else { i64::from(stack.count) });
         let stored = with_storage(game, grid, None, |st| st.insert(&key, amount, Actionable::Modulate));
+        pay_moved(grid, &key, stored);
         stat_moved(uuid, stored, 0);
         stack.count -= stored as u32;
         if stack.count == 0 {
@@ -4785,8 +4989,9 @@ pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, i
         }
         let most = i64::from(max_stack(game, key.id()));
         let have = with_storage(game, grid, None, |st| st.extract(&key, most, Actionable::Simulate));
-        let want = if right { (have + 1) / 2 } else { have };
+        let want = power_allows(grid, &key, if right { (have + 1) / 2 } else { have });
         let got = with_storage(game, grid, None, |st| st.extract(&key, want, Actionable::Modulate));
+        pay_moved(grid, &key, got);
         stat_moved(uuid, 0, got);
         log::info!("ae2: terminal take {:?}: had {have}, took {got}", key.id());
         if got <= 0 {
@@ -4849,10 +5054,12 @@ fn terminal_action(game: &mut Game<'_>, grid: usize, uuid: u128, index: usize, a
     if action == MOVE_REGION {
         // A stack for each of the inventory's 36 slots (what doesn't fit comes back).
         for _ in 0..36 {
-            let got = with_storage(game, grid, None, |st| st.extract(&key, i64::from(most), Actionable::Modulate));
+            let want = power_allows(grid, &key, i64::from(most));
+            let got = with_storage(game, grid, None, |st| st.extract(&key, want, Actionable::Modulate));
             if got <= 0 {
                 break;
             }
+            pay_moved(grid, &key, got);
             stat_moved(uuid, 0, got);
             SERVER.with_borrow_mut(|s| s.pending_gives.push((uuid, grid, stack_of(&key, got as u32))));
         }
@@ -4864,7 +5071,8 @@ fn terminal_action(game: &mut Game<'_>, grid: usize, uuid: u128, index: usize, a
     {
         return;
     }
-    if with_storage(game, grid, None, |st| st.extract(&key, 1, Actionable::Modulate)) > 0 {
+    if power_allows(grid, &key, 1) > 0 && with_storage(game, grid, None, |st| st.extract(&key, 1, Actionable::Modulate)) > 0 {
+        pay_moved(grid, &key, 1);
         stat_moved(uuid, 0, 1);
         match carried.as_mut() {
             Some(stack) => stack.count += 1,
@@ -4983,6 +5191,8 @@ struct Client {
     toolbelt_at: Option<[f32; 2]>,
     /// The item the crafting terminal's grid makes now.
     craft_result: Option<String>,
+    /// The list's entries with more on them than an id.
+    item_stacks: HashMap<usize, ItemStack>,
     toolbelt_presses: Vec<i32>,
     /// What the server left on the cursor, after a stack went into a portable cell.
     cursor_back: Option<(u32, String)>,
@@ -5078,8 +5288,18 @@ pub fn from_server(channel: &str, data: &[u8]) {
         let text = String::from_utf8_lossy(data);
         CLIENT.with_borrow_mut(|c| {
             for l in text.lines() {
+                if let Some(rest) = l.strip_prefix("#k ") {
+                    if let Some((i, whole)) = rest.split_once(' ')
+                        && let Ok(i) = i.parse::<usize>()
+                        && let Some(key) = key_from_string(whole)
+                    {
+                        c.item_stacks.insert(i, stack_of(&key, 1));
+                    }
+                    continue;
+                }
                 if l == "#reset" {
                     c.items.clear();
+                    c.item_stacks.clear();
                     c.scroll = 0;
                     // AE2's terminal settings: the search box focused, the last search kept or not.
                     let s = settings(c);
@@ -5103,6 +5323,7 @@ pub fn from_server(channel: &str, data: &[u8]) {
                 }
                 if let Some(id) = id {
                     c.items[i].0 = id.to_owned();
+                    c.item_stacks.remove(&i);
                 }
                 c.items[i].1 = amount;
             }
@@ -6467,7 +6688,13 @@ fn draw_terminal_items(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32, 
                     let (id, amount) = &c.items[n];
                     let x = ox + TERM_GRID[0] + (i % TERM_COLS) as f32 * 18.0;
                     let y = oy + TERM_GRID[1] + (i / TERM_COLS) as f32 * 18.0;
-                    draw_key(game, batch, id, [x, y], 16.0);
+                    // A stack with more on it than its id: its glint and damage bar too.
+                    match c.item_stacks.get(&n) {
+                        Some(stack) => {
+                            game.native_item_stack(batch, stack, [x, y], 16.0);
+                        }
+                        None => draw_key(game, batch, id, [x, y], 16.0),
+                    }
                     if c.pinned.contains(id) && c.jobs.iter().any(|j| j.0 == *id) {
                         static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
                         let frame = (START.get_or_init(std::time::Instant::now).elapsed().as_millis() / 100 % 12) as f32;
@@ -7127,6 +7354,12 @@ pub fn screen_tooltip(block: &str, at: [f32; 2], lines: &mut Vec<String>) {
             let id = id.trim_start_matches('~');
             super::port_ae2_guide::hovered(id);
             lines.push(item_words(id));
+            // What's on the stack: AEKeyRendering shows the key's own tooltip.
+            if let Some(extra) = visible(c).get(cell).and_then(|i| c.item_stacks.get(i)).and_then(|st| st.extra.as_ref()) {
+                for (enchant, level) in &extra.enchantments {
+                    lines.push(format!("§7{} {level}", item_words(enchant)));
+                }
+            }
             if *amount == 0 {
                 lines.push("§7Craftable: click 1, right-click 16, shift 64".to_owned());
             } else if fluid {
@@ -7437,39 +7670,107 @@ fn sky_chest_submit(
 /// A turn of the crank: it first faces away from a charger beside it (what it sits on), then each turn charges
 /// that charger's crystal a tenth, and turns the handle a quarter.
 fn crank_turn(game: &mut Game<'_>, pos: Pos) {
-    let facing = game.native_block_property(pos, "facing");
-    let mut target = add(pos, facing_dir(facing.as_deref()).map(|v| -v));
-    // ICrankable: the charger, inscriber and growth accelerator take 160 AE a turn.
-    let crankable = |b: &str| matches!(b, "ae2:charger" | "ae2:inscriber" | "ae2:growth_accelerator");
-    if !crankable(&block_id(game, target)) {
-        let names = ["down", "up", "north", "south", "west", "east"];
-        let Some((d, name)) = SIDES.iter().zip(names).find(|(d, _)| crankable(&block_id(game, add(pos, **d)))) else {
-            return;
-        };
-        target = add(pos, *d);
-        // Facing away from the charger.
-        let away = names[SIDES.iter().position(|s| *s == d.map(|v| -v)).unwrap_or(0)];
-        let _ = name;
-        game.native_set_block_property_with(pos, "facing", away, 3);
+    let Some(target) = crank_target(game, pos) else { return };
+    // CrankBlockEntity.power: another turn only as this one ends.
+    if game.native_with_mod_block_entity(pos, |e| nbt_i64(&e.nbt, "rotation")).unwrap_or(0) >= 3 {
+        return;
     }
-    if block_id(game, target) == "ae2:growth_accelerator" {
-        game.native_with_mod_block_entity(target, |e| {
-            let was = nbt_i64(&e.nbt, "stored");
-            set_nbt_i64(&mut e.nbt, "stored", (was + 160).min(1600));
-        });
-    } else {
-        // ChargerBlockEntity's and InscriberBlockEntity's Crankable.applyTurn: injectExternalPower into their buffers.
-        game.native_with_mod_block_entity(target, |e| {
-            let was = internal_power(&e.nbt);
-            let most = internal_max_power(&e.id);
-            set_internal_power(&mut e.nbt, (was + 160.0).min(most));
-        });
+    if !crankable_has_room(game, target) {
+        // More than ten turns against a full machine and it breaks.
+        let hits = game
+            .native_with_mod_block_entity(pos, |e| {
+                let hits = nbt_i64(&e.nbt, "hits") + 1;
+                set_nbt_i64(&mut e.nbt, "hits", hits);
+                hits
+            })
+            .unwrap_or(0);
+        if hits > 10 {
+            crank_break(game, pos);
+        }
+        return;
     }
     game.native_with_mod_block_entity(pos, |e| {
+        set_nbt_i64(&mut e.nbt, "hits", 0);
+        let rotation = nbt_i64(&e.nbt, "rotation");
+        set_nbt_i64(&mut e.nbt, "rotation", rotation + CRANK_TICKS);
         let t = nbt_i64(&e.nbt, "turns");
         set_nbt_i64(&mut e.nbt, "turns", t + 1);
     });
     SERVER.with_borrow_mut(|s| s.flips.push(pos));
+}
+
+/// A turn takes this long, and pays at its end.
+const CRANK_TICKS: i64 = 18;
+
+/// What the crank turns: behind it, or beside it, when that's a machine that takes a crank on that side (it then faces
+/// away from it). Charger and inscriber refuse their front; an accelerator takes its front and back only.
+fn crank_target(game: &mut Game<'_>, pos: Pos) -> Option<Pos> {
+    let takes = |game: &Game<'_>, target: Pos, from: Pos| {
+        let block = block_id(game, target);
+        if !matches!(block.as_str(), "ae2:charger" | "ae2:inscriber" | "ae2:growth_accelerator") {
+            return false;
+        }
+        let d = [from[0] - target[0], from[1] - target[1], from[2] - target[2]];
+        let Some(facing) = game.native_block_property(target, "facing") else { return true };
+        let front = facing_dir(Some(facing.as_str()));
+        if block == "ae2:growth_accelerator" { d == front || d == [-front[0], -front[1], -front[2]] } else { d != front }
+    };
+    let facing = game.native_block_property(pos, "facing");
+    let behind = add(pos, facing_dir(facing.as_deref()).map(|v| -v));
+    if takes(game, behind, pos) {
+        return Some(behind);
+    }
+    let names = ["down", "up", "north", "south", "west", "east"];
+    let d = SIDES.iter().copied().find(|d| takes(game, add(pos, *d), pos))?;
+    let away = names[SIDES.iter().position(|s| *s == d.map(|v| -v)).unwrap_or(0)];
+    game.native_set_block_property_with(pos, "facing", away, 3);
+    Some(add(pos, d))
+}
+
+/// ICrankable.canTurn.
+fn crankable_has_room(game: &mut Game<'_>, target: Pos) -> bool {
+    game.native_with_mod_block_entity(target, |e| {
+        if e.id == "ae2:growth_accelerator" { nbt_i64(&e.nbt, "stored") < 1600 } else { internal_power(&e.nbt) < internal_max_power(&e.id) }
+    })
+    .unwrap_or(false)
+}
+
+/// Breaks the crank as a player's break would: its item drops.
+fn crank_break(game: &mut Game<'_>, pos: Pos) {
+    let dim = game.dim.id().to_owned();
+    if let Some(air) = game.pack.assets.registry.default_state("minecraft:air") {
+        game.native_set_block(&dim, pos, air, 3);
+    }
+    let at = [f64::from(pos[0]) + 0.5, f64::from(pos[1]) + 0.5, f64::from(pos[2]) + 0.5];
+    game.spawn_item(ItemStack::new("ae2:crank", 1), at, [0.0, 0.1, 0.0], 10);
+}
+
+/// CrankBlockEntity's tick and CrankBlock.canSurvive: a turn in progress pays at its end, and with nothing to turn the
+/// crank drops.
+pub fn crank_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
+    let Some(target) = crank_target(game, pos) else {
+        SERVER.with_borrow_mut(|s| s.crank_breaks.push(pos));
+        return;
+    };
+    let rotation = nbt_i64(&entity.nbt, "rotation");
+    if rotation <= 0 {
+        return;
+    }
+    set_nbt_i64(&mut entity.nbt, "rotation", rotation - 1);
+    if rotation > 1 {
+        return;
+    }
+    // ChargerBlockEntity's and InscriberBlockEntity's Crankable.applyTurn: injectExternalPower into their buffers.
+    game.native_with_mod_block_entity(target, |e| {
+        if e.id == "ae2:growth_accelerator" {
+            let was = nbt_i64(&e.nbt, "stored");
+            set_nbt_i64(&mut e.nbt, "stored", (was + 160).min(1600));
+        } else {
+            let was = internal_power(&e.nbt);
+            let most = internal_max_power(&e.id);
+            set_internal_power(&mut e.nbt, (was + 160.0).min(most));
+        }
+    });
 }
 
 /// The crank's handle (`ae2:hz_crank_handle`, AE2's crank_handle model) turning about the crank's axis: a quarter
@@ -9168,7 +9469,7 @@ fn submit_craft(game: &mut Game<'_>, grid: usize, uuid: u128, key: &AeKey, amoun
 // The inscriber, budding quartz and the growth accelerator.
 
 /// Ticks an inscribe takes, and AE a tick it draws from its network.
-const INSCRIBE_MAX: i32 = 100;
+const INSCRIBE_MAX: i32 = 200;
 const INSCRIBE_AE_PER_TICK: f64 = 10.0;
 
 /// An inscriber recipe: its three ingredients (top and bottom optional), whether the presses are used up
@@ -9367,6 +9668,12 @@ pub fn hopper_pull(game: &mut Game<'_>, above: Pos, to: Pos) -> Option<bool> {
     }
     let block = block_id(game, above);
     let name = ae2_name(&block)?;
+    // ChargerInvFilter.allowExtract: what's still charging stays.
+    if name == "charger" {
+        let held = game.native_with_mod_block_entity(above, |e| e.items.first().cloned().flatten()).flatten()?;
+        let charging = charger_result(&held.item).is_some() || item_battery(&held.item).is_some_and(|(most, _)| portable_power(&held) < most);
+        return charging.then_some(false);
+    }
     if !matches!(name, "item_p2p_tunnel" | "inscriber") || block_id(game, to) != "minecraft:hopper" {
         return None;
     }
@@ -9411,6 +9718,11 @@ pub fn automation_can_place(block: &str, slot: usize, item: &str) -> Option<bool
     }
 }
 
+/// ChargerInvFilter.allowInsert: one item, that it can charge.
+pub fn charger_can_place(entity: &ModBlockEntity, item: &str) -> bool {
+    entity.items.first().is_some_and(Option::is_none) && (charger_result(item).is_some() || item_battery(item).is_some())
+}
+
 /// `AutomationFilter.allowInsert` and `BaseFilter.allowInsert`, for a hopper or pipe.
 pub fn inscriber_can_place(entity: &ModBlockEntity, slot: usize, item: &str) -> bool {
     // The result and the cards take nothing, nor does anything go in while the press is shut.
@@ -9447,15 +9759,14 @@ pub fn inscriber_can_place(entity: &ModBlockEntity, slot: usize, item: &str) -> 
 const BUDS: [&str; 4] = ["ae2:small_quartz_bud", "ae2:medium_quartz_bud", "ae2:large_quartz_bud", "ae2:quartz_cluster"];
 /// The chance a budding block grows a bud a tick (about every 40 seconds a side), and what a growth
 /// accelerator next to it multiplies it by while powered.
-const BUD_CHANCE: f64 = 1.0 / 800.0;
-const ACCELERATED: f64 = 10.0;
+const BUD_CHANCE: f64 = 1.0 / 5.0;
 /// What a flawed budding block becomes when a growth wears it down, and how likely that is a growth.
 const DECAY: [(&str, &str); 3] = [
     ("ae2:flawed_budding_quartz", "ae2:chipped_budding_quartz"),
     ("ae2:chipped_budding_quartz", "ae2:damaged_budding_quartz"),
     ("ae2:damaged_budding_quartz", "ae2:quartz_block"),
 ];
-const DECAY_CHANCE: f64 = 0.08;
+const DECAY_CHANCE: f64 = 1.0 / 12.0;
 
 fn chance(game: &mut Game<'_>, p: f64) -> bool {
     use horizon_core::random::RandomSource;
@@ -9564,13 +9875,21 @@ fn accelerated_block(block: &str) -> bool {
 
 /// A budding quartz block's tick: now and then a bud grows on a free side, or a bud there grows a stage.
 fn budding_tick(game: &mut Game<'_>, pos: Pos, block: &str) {
-    let accelerated = SIDES.iter().any(|d| {
-        let q = add(pos, *d);
-        block_id(game, q) == "ae2:growth_accelerator" && game.native_block_property(q, "powered").as_deref() == Some("true")
-    });
-    // (ACCELERATED is at AE2's default of a tick every 10: AEConfig's `growthAccelerator` scales it.)
-    let p = if accelerated { BUD_CHANCE * ACCELERATED * 10.0 / f64::from(config().growth_accelerator_speed) } else { BUD_CHANCE };
-    if !chance(game, p) {
+    // GrowthAcceleratorBlockEntity.isPowered: the grid's power, or what a crank left it.
+    let accelerators = SIDES
+        .iter()
+        .filter(|d| {
+            let q = add(pos, **d);
+            block_id(game, q) == "ae2:growth_accelerator"
+                && (game.native_block_property(q, "powered").as_deref() == Some("true")
+                    || game.native_with_mod_block_entity(q, |e| nbt_i64(&e.nbt, "stored") > 0).unwrap_or(false))
+        })
+        .count();
+    // A random tick (random_tick_speed in 4096 a tick), then one in five. An accelerator gives a tick each 10 of its own,
+    // at AE2's default: AEConfig's `growthAccelerator` scales it.
+    let random_ticks = f64::from(game.ui.rules.int("random_tick_speed")) / 4096.0;
+    let accelerated = accelerators as f64 / f64::from(config().growth_accelerator_speed);
+    if !chance(game, (random_ticks + accelerated) * BUD_CHANCE) {
         return;
     }
     let side = {
@@ -9581,16 +9900,27 @@ fn budding_tick(game: &mut Game<'_>, pos: Pos, block: &str) {
     let target = add(pos, SIDES[side]);
     let facing = ["down", "up", "north", "south", "west", "east"][side];
     let here = block_id(game, target);
-    let next = if here == "minecraft:air" || here == "minecraft:water" {
+    let dim = game.dim.id().to_owned();
+    let water_source = here == "minecraft:water" && game.native_block_property(target, "level").as_deref() == Some("0");
+    let next = if matches!(here.as_str(), "minecraft:air" | "minecraft:cave_air" | "minecraft:void_air") || water_source {
         Some(BUDS[0])
     } else {
-        BUDS.iter().position(|b| *b == here).filter(|i| *i + 1 < BUDS.len()).map(|i| BUDS[i + 1])
+        // A bud grows only facing away from this block.
+        BUDS.iter()
+            .position(|b| *b == here)
+            .filter(|i| *i + 1 < BUDS.len())
+            .filter(|_| game.native_block_property(target, "facing").as_deref() == Some(facing))
+            .map(|i| BUDS[i + 1])
     };
     let Some(next) = next else { return };
-    let dim = game.dim.id().to_owned();
+    // WATERLOGGED from the target's fluid.
+    let waterlogged = water_source || game.native_block_property(target, "waterlogged").as_deref() == Some("true");
     if let Some(state) = game.pack.assets.registry.default_state(next) {
         game.native_set_block(&dim, target, state, 3);
         game.native_set_block_property_with(target, "facing", facing, 3);
+        if waterlogged {
+            game.native_set_block_property_with(target, "waterlogged", "true", 3);
+        }
     }
     // A flawed budding block may wear down a stage as it grows (flawless ones never do).
     if let Some((_, worn)) = DECAY.iter().find(|(from, _)| *from == block)
@@ -10133,7 +10463,9 @@ fn rate_allowed(table: &'static std::thread::LocalKey<RefCell<HashMap<u128, std:
 /// A click changed what a terminal lists: at once, or at the next stream if they've just had one.
 fn terminal_refresh(game: &mut Game<'_>, uuid: u128) {
     SERVER.with_borrow_mut(|s| {
-        s.sent.remove(&uuid);
+        if let Some(v) = s.sent.get_mut(&uuid) {
+            v.generation = u64::MAX;
+        }
     });
     if rate_allowed(&REFRESH_RATES, uuid, 100) {
         stream_terminals(game);
@@ -10263,7 +10595,11 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
                 let most = i64::from(max_stack(game, key.id()));
                 let have = with_viewer_storage(game, player, |st| st.extract(&key, most, Actionable::Simulate)).unwrap_or(0);
                 let want = if *right == "1" { (have + 1) / 2 } else { have };
+                let want = viewer_grid(player).map_or(want, |g| power_allows(g, &key, want));
                 let got = with_viewer_storage(game, player, |st| st.extract(&key, want, Actionable::Modulate)).unwrap_or(0);
+                if let Some(g) = viewer_grid(player) {
+                    pay_moved(g, &key, got);
+                }
                 stat_moved(player, 0, got);
                 if got > 0 && let Some(left) = game.native_give_stack(player, stack_of(&key, got as u32)) {
                     net_or_drop(game, player, left);
@@ -11215,6 +11551,22 @@ fn tool_use(game: &mut Game<'_>, tool: &str, pos: Pos, block: &str) -> bool {
 /// A key as the terminal's list names it: fluids marked with `~`.
 fn wire_id(key: &AeKey) -> String {
     if key.key_type() == super::port_ae2_core::KeyType::Fluids { format!("~{}", key.id()) } else { key.id().to_owned() }
+}
+
+/// The most of a key's data a terminal's list sends for one entry.
+const ENTRY_DATA_BYTES: usize = 8 * 1024;
+
+/// Whether a key's stack carries anything beyond its id.
+fn key_has_data(key: &AeKey) -> bool {
+    key.key_type() == super::port_ae2_core::KeyType::Items && stack_of(key, 1).extra.is_some()
+}
+
+/// canFitInsideCell: a storage cell or portable cell with something in it.
+fn is_filled_cell(key: &AeKey) -> bool {
+    if key.key_type() != super::port_ae2_core::KeyType::Items || (cell_type(key.id()).is_none() && portable_type(key.id()).is_none()) {
+        return false;
+    }
+    !read_cell(&stack_of(key, 1)).keys.is_empty()
 }
 
 /// What a list entry is drawn as: a fluid as its bucket.
@@ -14853,7 +15205,7 @@ pub fn item_screen_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) 
             let [gx, gy] = [mouse[0] - ox - TERM_GRID[0], mouse[1] - oy - TERM_GRID[1]];
             if gx >= 0.0 && gy >= 0.0 && gx < TERM_COLS as f32 * 18.0 && gy < 3.0 * 18.0 {
                 let cell = CLIENT.with_borrow(|c| c.scroll * TERM_COLS) + (gy / 18.0) as usize * TERM_COLS + (gx / 18.0) as usize;
-                hovered = CLIENT.with_borrow(|c| visible(c).get(cell).and_then(|&i| c.items.get(i)).map(|(id, n)| (ItemStack::new(&icon_of(id), 1), Some(*n))));
+                hovered = CLIENT.with_borrow(|c| visible(c).get(cell).and_then(|&i| c.items.get(i).map(|(id, n)| (c.item_stacks.get(&i).cloned().unwrap_or_else(|| ItemStack::new(&icon_of(id), 1)), Some(*n)))));
             }
             if let Some(st) = draw_inventory(game, batch, ox, oy + 86.0, mouse) {
                 hovered = Some((st, None));
@@ -15937,9 +16289,14 @@ fn net_or_drop(game: &mut Game<'_>, player: u128, left: ItemStack) {
 
 /// What the player gets back of a click, or the world beside them when they've no room for it.
 fn give_or_drop(game: &mut Game<'_>, uuid: u128, stack: ItemStack) {
-    if let Some(left) = game.native_give_stack(uuid, stack)
-        && let Some(at) = game.native_server_players().into_iter().find(|p| p.uuid == uuid).map(|p| p.position)
-    {
+    let Some(left) = game.native_give_stack(uuid, stack) else { return };
+    // While a player is being handled the hub is out of the game, and its list of players with it.
+    let at = game
+        .native_acting_player()
+        .filter(|p| p.uuid == uuid)
+        .map(|p| p.position)
+        .or_else(|| game.native_server_players().into_iter().find(|p| p.uuid == uuid).map(|p| p.position));
+    if let Some(at) = at {
         game.spawn_item(left, at, [0.0; 3], 10);
     }
 }
@@ -17191,7 +17548,9 @@ fn run_buses(game: &mut Game<'_>) {
                 } else {
                     key
                 };
-                let got = if craft_only { 0 } else { with_storage(game, grid, None, |st| st.extract(&key, per - moved, Actionable::Modulate)) };
+                let want = power_allows(grid, &key, per - moved);
+                let got = if craft_only { 0 } else { with_storage(game, grid, None, |st| st.extract(&key, want, Actionable::Modulate)) };
+                pay_moved(grid, &key, got);
                 if got <= 0 {
                     // The crafting card: what isn't there is crafted (once at a time, as AE2's bus waits for it).
                     if crafting {
@@ -17359,9 +17718,35 @@ fn part_back(game: &Game<'_>, p: Pos) -> Pos {
 }
 
 /// Whether two neighbouring network blocks connect: cable colours, and parts only through their backs.
+/// getGridConnectableSides: the side `d` of a block at `p` a network may not come in by. The condenser and cell workbench
+/// have no grid node at all.
+fn side_closed(game: &Game<'_>, p: Pos, block: &str, d: Pos) -> bool {
+    let name = ae2_name(block).unwrap_or("");
+    if matches!(name, "condenser" | "cell_workbench") {
+        return true;
+    }
+    if !matches!(name, "drive" | "charger" | "inscriber" | "growth_accelerator" | "wireless_access_point") {
+        return false;
+    }
+    let Some(facing) = game.native_block_property(p, "facing") else { return false };
+    let front = facing_dir(Some(facing.as_str()));
+    let back = [-front[0], -front[1], -front[2]];
+    match name {
+        "growth_accelerator" => d != front && d != back,
+        "wireless_access_point" => d != back,
+        _ => d == front,
+    }
+}
+
 fn links(game: &Game<'_>, p: Pos, a: &str, q: Pos, b: &str) -> bool {
     if !joins(a, b) {
         return false;
+    }
+    {
+        let d = [q[0] - p[0], q[1] - p[1], q[2] - p[2]];
+        if side_closed(game, p, a, d) || side_closed(game, q, b, [-d[0], -d[1], -d[2]]) {
+            return false;
+        }
     }
     if is_twin(a) || is_twin(b) {
         return false;
@@ -17749,6 +18134,7 @@ fn charged_cell(pos: Pos, block: &str) -> ItemStack {
         let e = s.energy.entry(root).or_insert(0.0);
         let share = *e * capacity / total;
         *e -= share;
+        s.stores_gone.insert(pos);
         Some(share)
     });
     if let Some(power) = power.filter(|p| *p > 0.0) {
@@ -19039,7 +19425,9 @@ fn interface_fluids(game: &mut Game<'_>, grid: usize, entity: &mut ModBlockEntit
             continue;
         }
         let key = AeKey::fluid(&fluid, "");
-        let got = with_storage(game, grid, None, |s| s.extract(&key, n - now, Actionable::Modulate));
+        let want = power_allows(grid, &key, n - now);
+        let got = with_storage(game, grid, None, |s| s.extract(&key, want, Actionable::Modulate));
+        pay_moved(grid, &key, got);
         if got > 0 {
             tanks[i] = (Some(fluid), (now + got) as i32);
             changed = true;
@@ -21975,6 +22363,12 @@ fn job_output_rest(net: &mut CpuNet<'_, '_>, what: &AeKey, amount: i64, from: Po
         let at = [f64::from(from[0]) + 0.5, f64::from(from[1]) + 1.0, f64::from(from[2]) + 0.5];
         drop_key(net.game, what, amount - stored, at);
     }
+}
+
+/// `native_piston_move`: nothing of the network is crushed or pushed. AE2's cable bus is a block entity with a normal push
+/// reaction, so the piston stays where it is. The templates here would pop.
+pub fn network_stays(name: &str) -> bool {
+    is_twin(name) || cable(name).is_some() || is_part(name)
 }
 
 /// The cable with facades as older builds kept it: the cable's own twin on the beacon's template, its arms and

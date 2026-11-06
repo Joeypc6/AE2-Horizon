@@ -142,5 +142,8 @@
         ]
       ]
     }
+  },
+  "components": {
+    "minecraft:max_stack_size": 64
   }
 }

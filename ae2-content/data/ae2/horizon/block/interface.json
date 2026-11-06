@@ -4,5 +4,8 @@
     "hardness": 2.2,
     "sounds": "minecraft:iron_block",
     "explosion_resistance": 11.0
+  },
+  "components": {
+    "!minecraft:cooking_fuel": {}
   }
 }

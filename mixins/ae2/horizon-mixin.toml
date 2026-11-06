@@ -884,6 +884,20 @@ bindings = [
   { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
 ]
 
+# Pistons leave a network alone (CableBusBlock's push reaction).
+[[injection]]
+id = "me-piston-move"
+kind = "HEAD"
+hook = "piston_move"
+hook_version = 1
+helper = "me_piston_move.rs"
+bindings = [
+  { name = "level", ty = "&GameLevel<'_>", value = "&*self" },
+  { name = "push", ty = "&[BlockPos]", value = "push" },
+  { name = "destroy", ty = "&[BlockPos]", value = "destroy" },
+  { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
 [[injection]]
 id = "me-destroy-block"
 kind = "HEAD"

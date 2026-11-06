@@ -788,3 +788,36 @@ Not explained: in two of the five full runs (`87319f01c37b`, and the first on th
 nothing for that game's whole session, while other parts placed. The next test of it passed each time: alone in the same game
 once, and in a whole new run on this build, which was the same source. Those were both a build's first session, but `9f9ecb5e98a2`'s
 first passed. No cause was found in the placement code. A player would see a terminal that doesn't place until they restart, if it isn't the tests.
+
+## Round 25 (2026-11-06): another port's notes
+
+The author of a second AE2 port compared the two and sent 75 defects read from the code. Checked against this source, 68 held, 5 were
+partly fixed and 2 fixed. The worst of them are fixed here, on `native-6475f62-6b04867df72c`. What's left of the notes stays open.
+
+- **`give_or_drop`** (Round 24) lost what didn't fit while a player was being handled, because the hub and its player list are out of the game
+  then. It asks for the acting player first.
+- **Stored power** is now each store's own: a rebuild shares a grid's power out over its cells and controllers by capacity and saves it on
+  each block as `internalCurrentPower`. A reload, a lost cable, a split and an unloaded chunk all keep it. A grid with no store holds it per node,
+  unsaved. A creative grid's isn't real, and leaves its stores as they were. The energy cell's look is AE2's floor.
+- **Latch:** a grid that lost power comes back after 30 ticks with power. It's judged once a second, so 40 in practice, and it goes down at the next look, not at once. Power is enough
+  for a tick's draw, not a second's.
+- **Moving items costs 1 AE an item** (a bucket), through a terminal, an interface's stock, an export bus and a wireless take. An import bus pays nothing. **Not done:** the IO port and
+  the crafting terminal's refills. **Idle draw** adds each cell's drain, and the block table follows AE2.
+- **Channels:** access points, anchors and crafting blocks need one, a CPU or a spatial structure's touching blocks share one, level emitters need none, ME tunnels and
+  quantum bridges carry 32. **Closed sides:** a drive, charger or inscriber's front, all but an accelerator's front and back and an access point's back, and the condenser and workbench join nothing.
+  **Controller cross** is a conflict. **Not done:** unformed crafting, bridge and pylon blocks still join; a real rig can run out of channels that it didn't before.
+- **Storage order** is AE2's on both ways. **A filled cell** isn't taken into a cell. What a terminal refuses goes back to the player from its hidden slot.
+- **Terminal:** a click sends what changed, not the list, so the scroll and search stay and an index keeps meaning its item. Entries with data draw with it and name their enchantments.
+  **Not done:** the rest of a stack's tooltip (damage, a custom name).
+- **Content:** all four presses from a cube, parts and other shulker-template blocks stack to 64, nothing burns (items on `minecraft:paper`), a pickaxe works on cables, parts and cells, and a matrix frame can't be mined.
+- **Pistons** leave a network alone (`piston_move`), which also answers what happened to a cable cell's cable and facades: nothing now.
+- **Machines:** the inscriber's 200 steps; a charger takes one item it can charge and keeps it until it's done; budding quartz on the random tick's rates, with facing and fluid rules; the crank's turn, its hits and its drop.
+
+Tested with `mechanics.py` and `restart.py` on a dedicated server: charge kept over a real restart with the network running on it and no source, four presses, stacks, fuel, pistons, priority, filled cells, two swords apart,
+crank and charger rules. Every attack suite passes on this server. **Read, not run:** budding rates (their time scale), idle draw numbers, the power cost's last fraction, and how an enchanted entry looks.
+The full suite passes apart from three checks that come and go on this same build: `it lists the network`, `sneaking on a taken side` and `the fluix sword loots` (the last depends on chance and passed on repeat).
+
+Tests changed to AE2's rules, each a rig that relied on what's now closed: a drive whose front faced its cable, a provider joined through an access point's side, more channels than one cable carries.
+
+The terminal placement failure of Round 24 is no longer thought to be the terminal: an import bus failed the same way later. The failing runs had tick spikes of 44-77 ms against a click held 100 ms, so the tests now hold it 180 ms.
+Unproven, but it's not specific to any part. Frame rates vary with what else runs: the owner had a game open for some of these runs.

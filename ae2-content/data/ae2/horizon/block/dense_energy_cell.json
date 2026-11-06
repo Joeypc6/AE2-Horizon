@@ -19,5 +19,8 @@
   },
   "default_state": {
     "stage": "0"
+  },
+  "components": {
+    "!minecraft:cooking_fuel": {}
   }
 }

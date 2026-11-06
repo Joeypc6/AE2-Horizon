@@ -21,5 +21,8 @@
   },
   "default_state": {
     "push_direction": "all"
+  },
+  "components": {
+    "!minecraft:cooking_fuel": {}
   }
 }

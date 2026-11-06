@@ -42,6 +42,13 @@ doesn't show you.
 - **`craftingCalculationTimePerTick`.** Only applies to jobs that don't come from the confirm screen, whose plan runs on its
   own thread.
 - **Two storage buses on one inventory.** Only the first reaches it. AE2's buses read it live; here each would count the same items.
+- **Moving items** costs power through a terminal, an interface, an export bus and a wireless terminal. An IO port and the crafting
+  terminal's refills pay nothing yet.
+- **Power** is judged once a second, so a network with too little goes down at the next look and comes back after about 40 ticks, where AE2's
+  is at once and 32.
+- **Unformed crafting, quantum and spatial blocks** join a network before they're formed.
+- **Other gaps** an outside review found are still open: crafting patterns in `crafting.rs` keep inputs as one template, blocking mode looks at all six sides,
+  budding quartz and machines differ in smaller ways, fluix tools are diamond tools, and guide scenes have no annotations. `PLAN.md` Round 25 says what was fixed.
 - **World height.** Parts on cables assume a world from -64 to 319.
 - **JEI and Jade addons.** The integrations work only with those mods' Horizon ports, not with Java addons for them.
 
@@ -53,7 +60,7 @@ most likely to break on a Horizon update.
 A real pipe from another mod into a part on a cable (no such mod exists yet; the engine lookup it would use is tested),
 more than one guest at a time, and speed against the Java mod.
 
-`PLAN.md` has the full history; Round 22 is the current list.
+`PLAN.md` has the full history; Round 25 is the current list.
 
 ## Multiplayer
 
@@ -64,7 +71,7 @@ and `PLAN.md` Round 24 has the list. Report anything found to the issues page.
 ## Build
 
 This is a [Horizon](https://github.com/horizon-rust/horizon) native mod bundle: Rust mixins compiled into the game.
-It was built and tested on Horizon commit `6475f62` (Minecraft 26.3, native hooks API 359), as `native-6475f62-9132faf6f134`.
+It was built and tested on Horizon commit `6475f62` (Minecraft 26.3, native hooks API 359), as `native-6475f62-6b04867df72c`.
 Native mods are unsandboxed code that runs with your rights, so read what you build.
 
 Put each bundle's `mixins/<id>` folder in one folder, then:

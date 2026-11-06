@@ -40,5 +40,8 @@
     "side_down": "false",
     "structure": "false",
     "powered": "false"
+  },
+  "components": {
+    "!minecraft:cooking_fuel": {}
   }
 }

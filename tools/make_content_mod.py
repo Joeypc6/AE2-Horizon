@@ -725,7 +725,8 @@ def item_decl(name):
         if name.endswith(suffix) and not name.endswith("_cell"):
             metal = "diamond" if name.startswith("fluix") else "iron"
             return {"template": f"minecraft:{metal}_{tool}"}
-    decl = {"template": "minecraft:stick"}
+    # (A stick would burn in a furnace, and in the vibration chamber. No AE2 item is a fuel.)
+    decl = {"template": "minecraft:paper"}
     if SINGLE_STACK.search(name) and "component" not in name and "housing" not in name:
         decl["max_stack_size"] = 1
     return decl
@@ -1460,6 +1461,54 @@ def add_registries(write, blocks, items):
     )
 
 
+def final_fixes(out):
+    """What the templates would otherwise bring along, and what Horizon's loot doesn't read."""
+    out = Path(out)
+    for f in sorted((out / f"data/{ID}/horizon/block").glob("*.json")):
+        decl = json.loads(f.read_text())
+        template = decl.get("template")
+        components = dict(decl.get("components", {}))
+        # A shulker box's item stacks to 1, and a barrel's burns.
+        if template == "minecraft:shulker_box" and decl.get("item", True):
+            components["minecraft:max_stack_size"] = 64
+        if template == "minecraft:barrel" and decl.get("item", True):
+            components["!minecraft:cooking_fuel"] = {}
+        if f.stem == "matrix_frame":
+            # MatrixFrameBlock.strength(-1, 6000000): a plot's walls can't be mined out of.
+            decl["properties"] = {**decl.get("properties", {}), "hardness": -1.0, "explosion_resistance": 6000000.0}
+        if components:
+            decl["components"] = components
+        f.write_text(json.dumps(decl, indent=2))
+    # A cube's presses: Horizon's block loot has no `minecraft:tag` entry, so a pool for each.
+    silk = {"type": "minecraft:match_tool", "predicate": {"predicates": {"minecraft:enchantments": [{"enchantments": "minecraft:silk_touch", "levels": {"min": 1}}]}}}
+    presses = ["calculation_processor_press", "engineering_processor_press", "logic_processor_press", "silicon_press"]
+    for cube in ("mysterious_cube", "not_so_mysterious_cube"):
+        f = out / f"data/{ID}/loot_table/blocks/{cube}.json"
+        if not f.exists():
+            continue
+        table = {"type": "minecraft:block", "pools": [{"rolls": 1, "bonus_rolls": 0, "entries": [{"type": "minecraft:item", "name": f"{ID}:{cube}"}], "conditions": [silk]}]}
+        for press in presses:
+            table["pools"].append({
+                "rolls": 1,
+                "bonus_rolls": 0,
+                "entries": [{"type": "minecraft:item", "name": f"{ID}:{press}"}],
+                "conditions": [{"type": "minecraft:inverted", "term": silk}, {"type": "minecraft:survives_explosion"}],
+            })
+        f.write_text(json.dumps(table, indent=2))
+    # A pickaxe works on cables, parts and the cells that hold them, as on AE2's cable bus.
+    tag = out / "data/minecraft/tags/block/mineable/pickaxe.json"
+    if tag.exists():
+        data = json.loads(tag.read_text())
+        values = set(data.get("values", []))
+        for f in sorted((out / f"data/{ID}/horizon/block").glob("*.json")):
+            name = f.stem
+            template = json.loads(f.read_text()).get("template")
+            if template in ("minecraft:shulker_box", "minecraft:chorus_plant", "minecraft:skeleton_skull"):
+                values.add(f"{ID}:{name}")
+        data["values"] = sorted(values)
+        tag.write_text(json.dumps(data, indent=2))
+
+
 def fix_occlusion(out):
     """A block whose model isn't a whole cube must not hide its neighbours' faces (a barrel or stone template
     would: the block below shows a hole). Barrel-based devices move to the beacon template (no occlusion, still a
@@ -2065,3 +2114,4 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         sys.exit(__doc__)
     main(sys.argv[1], sys.argv[2])
+    final_fixes(sys.argv[2])

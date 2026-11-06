@@ -33,5 +33,8 @@
     "powered": "false",
     "state": "offline",
     "type": "block"
+  },
+  "components": {
+    "!minecraft:cooking_fuel": {}
   }
 }

@@ -18,7 +18,7 @@ pub fn channel_factor() -> u32 {
 }
 
 /// ChannelMode.getAdHocNetworkChannels.
-fn ad_hoc_channels() -> usize {
+pub fn ad_hoc_channels() -> usize {
     match channel_factor() {
         0 => usize::MAX,
         f => 8 * f as usize,
@@ -112,6 +112,8 @@ pub struct Network {
     /// one (REQUIRE_CHANNEL, COMPRESSED_CHANNEL) on the network feeding it, and the outer one (CANNOT_CARRY_COMPRESSED)
     /// on the network it carries. Here one node stands for both, so what's carried is told by the route through these.
     tunnels: BTreeMap<NodeId, BTreeSet<NodeId>>,
+    /// Nodes of one multiblock (a CPU, a spatial structure), by a number for it.
+    multiblocks: HashMap<NodeId, u64>,
 }
 
 impl Network {
@@ -226,6 +228,22 @@ impl Network {
         if reached.len() != set.len() {
             return ControllerState::ControllerConflict;
         }
+        // ControllerValidator.hasControllerCross: a controller with neighbours both ways on more than one axis.
+        let at: HashSet<[i32; 3]> = controllers.iter().map(|c| self.positions[c]).collect();
+        for c in &controllers {
+            let p = self.positions[c];
+            let full = (0..3)
+                .filter(|&axis| {
+                    let (mut lo, mut hi) = (p, p);
+                    lo[axis] -= 1;
+                    hi[axis] += 1;
+                    at.contains(&lo) && at.contains(&hi)
+                })
+                .count();
+            if full > 1 {
+                return ControllerState::ControllerConflict;
+            }
+        }
         for axis in 0..3 {
             let values = controllers.iter().map(|c| self.positions[c][axis]);
             let (min, max) = values.clone().fold((i32::MAX, i32::MIN), |(lo, hi), v| (lo.min(v), hi.max(v)));
@@ -312,8 +330,8 @@ impl Network {
                 grid.nested_p2p = self.nested_tunnels(&grid.nodes);
                 // AdHocChannelUpdater: up to 8 devices work without a controller, more and none do.
                 let wanting: Vec<NodeId> = grid.nodes.iter().copied().filter(|n| self.kinds[n].requires_channel).collect();
-                if !grid.nested_p2p && wanting.len() <= ad_hoc_channels() {
-                    grid.channels_in_use = wanting.len() as u32;
+                if !grid.nested_p2p && self.channels_wanted(&grid.nodes) <= ad_hoc_channels() {
+                    grid.channels_in_use = self.channels_wanted(&grid.nodes) as u32;
                     for n in &grid.nodes {
                         grid.used_channels.insert(*n, grid.channels_in_use);
                     }
@@ -367,8 +385,29 @@ impl Network {
         }
     }
 
+    /// PathingCalculation.multiblocksWithChannel: a multiblock's nodes share one channel.
+    pub fn set_multiblock(&mut self, node: NodeId, group: u64) {
+        self.multiblocks.insert(node, group);
+    }
+
+    /// The channels these nodes need: a multiblock counts once.
+    pub fn channels_wanted<'a>(&self, nodes: impl IntoIterator<Item = &'a NodeId>) -> usize {
+        let mut groups = HashSet::new();
+        nodes
+            .into_iter()
+            .filter(|n| self.kinds.get(*n).is_some_and(|k| k.requires_channel))
+            .filter(|n| self.multiblocks.get(*n).is_none_or(|g| groups.insert(*g)))
+            .count()
+    }
+
     fn try_use_channel(&self, start: NodeId, route: &HashMap<NodeId, Option<NodeId>>, grid: &mut Grid) {
         if !self.kinds[&start].requires_channel {
+            return;
+        }
+        if let Some(group) = self.multiblocks.get(&start)
+            && grid.with_channel.iter().any(|n| self.multiblocks.get(n) == Some(group))
+        {
+            grid.with_channel.insert(start);
             return;
         }
         // PathingCalculation.tryUseChannel: COMPRESSED_CHANNEL through a CANNOT_CARRY_COMPRESSED node (a tunnel's outer
@@ -650,47 +689,51 @@ impl<S: MeStorage> NetworkStorage<S> {
         done
     }
 
+    /// NetworkStorage.insert: priorities highest first; inside one, the storages that prefer it (holding it, or
+    /// partitioned to it), then the rest.
     fn insert_stored(&mut self, what: &AeKey, amount: i64, mode: Actionable) -> i64 {
         self.ensure_index();
         let mut remaining = amount;
-        let mut tried = Vec::new();
-        for id in self.holders(what) {
-            if remaining <= 0 {
-                break;
-            }
-            let Some(s) = self.get_mut(id) else { continue };
-            if !s.is_preferred_for(what) {
-                continue;
-            }
-            let n = s.insert(what, remaining, mode);
-            remaining -= n;
-            tried.push(id);
-            if mode == Actionable::Modulate {
-                self.count(id, what, n);
-            }
-        }
-        if remaining > 0 {
-            let order: Vec<u64> = self.mounts.values().flatten().map(|(id, _)| *id).filter(|id| !tried.contains(id)).collect();
-            for id in order {
-                if remaining <= 0 {
-                    break;
-                }
-                let Some(s) = self.get_mut(id) else { continue };
-                let n = s.insert(what, remaining, mode);
-                remaining -= n;
-                if mode == Actionable::Modulate {
-                    self.count(id, what, n);
+        let groups: Vec<Vec<u64>> = self.mounts.values().map(|list| list.iter().map(|(id, _)| *id).collect()).collect();
+        for group in groups {
+            for preferred in [true, false] {
+                for &id in &group {
+                    if remaining <= 0 {
+                        return amount;
+                    }
+                    let Some(s) = self.get_mut(id) else { continue };
+                    if s.is_preferred_for(what) != preferred {
+                        continue;
+                    }
+                    let n = s.insert(what, remaining, mode);
+                    remaining -= n;
+                    if mode == Actionable::Modulate {
+                        self.count(id, what, n);
+                    }
                 }
             }
         }
         amount - remaining
     }
 
-    /// `extract`: lowest priority first, from the storages that hold it.
+    /// NetworkStorage.extract: priorities lowest first; inside one, in the order they were mounted.
     pub fn extract(&mut self, what: &AeKey, amount: i64, mode: Actionable) -> i64 {
         self.ensure_index();
         let mut extracted = 0;
-        for id in self.holders(what).into_iter().rev() {
+        let holders = self.holders(what);
+        let mut order: Vec<u64> = Vec::with_capacity(holders.len());
+        let mut at = holders.len();
+        // `holders` is highest priority first: its runs of one priority, last to first, each kept in order.
+        while at > 0 {
+            let place = self.places.get(&holders[at - 1]).map(|p| p.0);
+            let mut start = at - 1;
+            while start > 0 && self.places.get(&holders[start - 1]).map(|p| p.0) == place {
+                start -= 1;
+            }
+            order.extend_from_slice(&holders[start..at]);
+            at = start;
+        }
+        for id in order {
             if extracted >= amount {
                 break;
             }
