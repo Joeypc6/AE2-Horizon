@@ -266,6 +266,8 @@ fn read_cell(stack: &ItemStack) -> CellContents {
 
 fn write_cell(stack: &mut ItemStack, contents: &CellContents) {
     write_cell_data(stack, contents);
+    // What a drive keeps of this cell (`s.cells`, by id and version) isn't its contents any more.
+    cell_changed(stack);
     stack_lights(stack);
 }
 
@@ -459,6 +461,8 @@ struct Sent {
 #[derive(Default)]
 struct Server {
     tick: u64,
+    /// When each wireless terminal's user last had the linked terminal on them.
+    wireless_seen: HashMap<u128, u64>,
     /// Stacks a terminal took out for a player's inventory (a menu button has no player to give to): given in
     /// that player's inventory tick, what doesn't fit going back to the network.
     pending_gives: Vec<(u128, usize, ItemStack)>,
@@ -551,8 +555,7 @@ struct Server {
     /// The toolbelt each viewer's client has, what its clicks have yet to write on the tool, and the tick each was
     /// last looked at.
     toolbelt_sent: HashMap<u128, String>,
-    toolbelt_writes: HashMap<u128, String>,
-    toolbelt_flush: HashSet<u128>,
+    toolbelt_clicks: Vec<(u128, usize, bool, Option<ItemStack>)>,
     toolbelt_seen: HashMap<u128, u64>,
     /// The "+" on a crafting terminal: a player, the terminal, the grid cell and what may fill it from their inventory.
     terminal_fills: Vec<(u128, Pos, usize, Vec<String>)>,
@@ -734,6 +737,21 @@ pub fn slot_icons(game: &Game<'_>, block: &str, batch: &mut HudBatch, origin: [f
     }
     let Some(be) = game.container.and_then(|k| game.world.block_entities.get(&k)) else { return };
     let slots = be.slots();
+    if block == "ae2:crafting_terminal" {
+        let cells: Vec<Option<ItemStack>> = CT_GRID.map(|i| slots.get(i).cloned().flatten()).collect();
+        let result = game.res.recipes().craft(&cells, 3);
+        let [x, y] = craft_result_at();
+        let (x, y) = (origin[0] + x, origin[1] + y);
+        if let Some(result) = &result {
+            game.native_item(batch, &result.item, [x, y], 16.0);
+            if result.count > 1 {
+                let l = result.count.to_string();
+                let w = game.native_text_width(&l);
+                game.native_text(batch, &l, [x + 17.0 - w, y + 9.0], 0xFFFFFF, true);
+            }
+        }
+        CLIENT.with_borrow_mut(|c| c.craft_result = result.map(|r| r.item.to_string()));
+    }
     let mut spec = None;
     screen(game, block, &mut spec);
     let Some(spec) = spec else { return };
@@ -1019,7 +1037,7 @@ pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEnt
                     entity.items[0] = Some(back);
                 }
             }
-            crafting_terminal_tick(game, grid.filter(|_| active), entity);
+            crafting_terminal_tick(entity);
         }
         "pattern_access_terminal" => {
             entity.data.resize(4, 0);
@@ -1856,6 +1874,9 @@ fn level_tick(game: &mut Game<'_>) {
     if tick % 20 == 0 {
         anchors_gone(game);
     }
+    if tick % 10 == 3 {
+        viewers_tick(game);
+    }
     run_buses(game);
 }
 
@@ -2607,6 +2628,8 @@ fn storage_open(game: &mut Game<'_>, grid: usize, own: &mut Option<(Pos, &mut Mo
     let mut fluid_externals = Vec::new();
     let mut subnets = Vec::new();
     let mut linked = Vec::new();
+    let mut bus_slots_seen: HashSet<(Pos, usize)> = HashSet::new();
+    let mut bus_tanks_seen: HashSet<Pos> = HashSet::new();
     for (bus, target) in &buses {
         let target = &facing_target(game, *bus, *target);
         let target_block = block_id(game, *target);
@@ -2640,8 +2663,13 @@ fn storage_open(game: &mut Game<'_>, grid: usize, own: &mut Option<(Pos, &mut Mo
                 continue;
             }
         }
-        let view = sided(game, *target, face);
-        let items = view.is_some();
+        let view = sided(game, *target, face).filter(|view| {
+            let slots: Vec<(Pos, usize)> = (0..view.insert.len()).filter_map(|i| view.locate(i)).collect();
+            let free = slots.iter().all(|s| !bus_slots_seen.contains(s));
+            bus_slots_seen.extend(slots);
+            free
+        });
+        let items = view.is_some() || sided(game, *target, face).is_some();
         if let Some(view) = view {
             let keyed: Vec<Option<(AeKey, i64, i64)>> = sided_slots(game, &view)
                 .iter()
@@ -2662,7 +2690,9 @@ fn storage_open(game: &mut Game<'_>, grid: usize, own: &mut Option<(Pos, &mut Mo
         if items && !interface {
             continue;
         }
-        if let Some(tanks) = game.native_fluid_tanks(&dim, *target, face) {
+        if bus_tanks_seen.insert(*target)
+            && let Some(tanks) = game.native_fluid_tanks(&dim, *target, face)
+        {
             // Tanks (and cauldrons): fluids through the bus too.
             let tanks: Vec<(Option<String>, i64, i64, bool, bool)> =
                 tanks.into_iter().map(|t| (t.fluid, i64::from(t.amount), i64::from(t.capacity), t.can_fill, t.can_drain)).collect();
@@ -2748,11 +2778,18 @@ fn storage_close(game: &mut Game<'_>, open: OpenStorage, own: &mut Option<(Pos, 
         mounted.storage.unmount(id);
     }
     let mut changed = false;
+    let mut planes_placed: HashSet<Pos> = HashSet::new();
     for (id, target) in formations {
         let Some(mut plane) = mounted.storage.unmount(id) else { continue };
         let Some(plane) = plane.as_any().downcast_mut::<Formation>() else { continue };
         if let Some(key) = plane.placed.take() {
             let fluid = key.key_type() == super::port_ae2_core::KeyType::Fluids;
+            // Two planes on one block: it holds one.
+            if !planes_placed.insert(target) {
+                let at = [f64::from(target[0]) + 0.5, f64::from(target[1]) + 0.5, f64::from(target[2]) + 0.5];
+                drop_key(game, &key, 1, at);
+                continue;
+            }
             if fluid && key.id() == "minecraft:water" && dim == "minecraft:the_nether" {
                 // It evaporates, as a bucket poured there does: the hiss (FluidPlacement's fizz).
                 let at = [f64::from(target[0]) + 0.5, f64::from(target[1]) + 0.5, f64::from(target[2]) + 0.5];
@@ -3012,6 +3049,8 @@ fn right_click_at(game: &mut Game<'_>, pos: Pos, face: Pos, canceled: &mut bool)
     if let Some(player) = game.native_acting_player() {
         SERVER.with_borrow_mut(|s| {
             s.viewers.insert(player.uuid, pos);
+            s.wireless.remove(&player.uuid);
+            s.chest_terms.remove(&player.uuid);
             s.sent.remove(&player.uuid);
             s.provider_lists.remove(&player.uuid);
         });
@@ -3063,7 +3102,8 @@ fn anchor_lines(game: &Game<'_>, pos: Pos, grid: Option<usize>, active: bool) ->
 
 /// Each viewer's terminal's items, when they changed: `seq`, then one `id amount` line per item.
 fn stream_terminals(game: &mut Game<'_>) {
-    let viewers: Vec<(u128, Pos)> = SERVER.with_borrow(|s| s.viewers.iter().map(|(u, p)| (*u, *p)).collect());
+    let viewers: Vec<u128> = SERVER.with_borrow(|s| s.viewers.keys().copied().collect());
+    let viewers: Vec<(u128, Pos)> = viewers.into_iter().filter_map(|u| viewer_checked(game, u).map(|p| (u, p))).collect();
     let tick = SERVER.with_borrow(|s| s.tick);
     for (uuid, pos) in viewers {
         let grid = SERVER.with_borrow(|s| s.grid_of.get(&pos).copied());
@@ -3536,11 +3576,11 @@ pub fn use_item(game: &mut Game<'_>, stack: &ItemStack, claimed: &mut bool) {
             set_custom(&mut cell, "internalCurrentPower", Tag::Double(power.to_bits()));
         }
         for part in [ItemStack::new("ae2:chest", 1), ItemStack::new(&format!("ae2:cell_component_{size}"), 1), cell, ItemStack::new(housing, 1)] {
-            let _ = game.native_give_stack(player.uuid, part);
+            give_or_drop(game, player.uuid, part);
         }
         // AbstractPortableCell.disassembleDrive: its upgrades too.
         for card in cell_cards(stack) {
-            let _ = game.native_give_stack(player.uuid, ItemStack::new(&card, 1));
+            give_or_drop(game, player.uuid, ItemStack::new(&card, 1));
         }
         return;
     }
@@ -3587,10 +3627,10 @@ pub fn use_item(game: &mut Game<'_>, stack: &ItemStack, claimed: &mut bool) {
         if let Some(held) = game.native_carried_stack(game.selected as i32) {
             held.count -= 1;
         }
-        let _ = game.native_give_stack(player.uuid, ItemStack::new(housing, 1));
-        let _ = game.native_give_stack(player.uuid, ItemStack::new(&format!("ae2:cell_component_{size}"), 1));
+        give_or_drop(game, player.uuid, ItemStack::new(housing, 1));
+        give_or_drop(game, player.uuid, ItemStack::new(&format!("ae2:cell_component_{size}"), 1));
         for card in cell_cards(stack) {
-            let _ = game.native_give_stack(player.uuid, ItemStack::new(&card, 1));
+            give_or_drop(game, player.uuid, ItemStack::new(&card, 1));
         }
         return;
     }
@@ -3760,6 +3800,7 @@ fn open_wireless(game: &mut Game<'_>, stack: &ItemStack, slot: i32) {
     let crafting = &*stack.item == "ae2:wireless_crafting_terminal";
     SERVER.with_borrow_mut(|s| {
         s.viewers.insert(player.uuid, wap);
+        s.wireless_seen.insert(player.uuid, s.tick);
         s.sent.remove(&player.uuid);
         s.wireless.insert(player.uuid);
         s.wcraft_slot.insert(player.uuid, slot);
@@ -3783,9 +3824,15 @@ pub fn inventory_tick(game: &mut Game<'_>, slot: i32) {
 /// tick (a menu button reaches no player to give to); what doesn't fit goes back to the network.
 fn deliver_gives(game: &mut Game<'_>) {
     for (uuid, grid, stack) in SERVER.with_borrow_mut(|s| std::mem::take(&mut s.pending_gives)) {
-        if let Some(left) = game.native_give_stack(uuid, stack) {
-            let key = key_of(game, &left);
-            with_storage(game, grid, None, |st| st.insert(&key, i64::from(left.count), Actionable::Modulate));
+        if let Some(mut left) = game.native_give_stack(uuid, stack) {
+            if SERVER.with_borrow(|s| s.grids.get(grid).is_some()) {
+                let key = key_of(game, &left);
+                let stored = with_storage(game, grid, None, |st| st.insert(&key, i64::from(left.count), Actionable::Modulate));
+                left.count = left.count.saturating_sub(stored as u32);
+            }
+            if left.count > 0 {
+                give_or_drop(game, uuid, left);
+            }
         }
     }
 }
@@ -4428,8 +4475,13 @@ const CREATIVE_DUPLICATE: i32 = 7;
 const ANCHOR_OVERLAY: i32 = 1;
 
 pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, id: i32, carried: &mut Option<ItemStack>) {
+    if let Some((uuid, _)) = CLICKER.get()
+        && !client_message_allowed(uuid, 0)
+    {
+        return;
+    }
     if (TOOLBELT..TOOLBELT + 18).contains(&id) {
-        toolbelt_click(game, pos, ((id - TOOLBELT) >> 1) as usize, id & 1 != 0, carried);
+        toolbelt_click(pos, ((id - TOOLBELT) >> 1) as usize, id & 1 != 0, carried);
         return;
     }
     if entity.id == "ae2:spatial_anchor" {
@@ -4439,6 +4491,10 @@ pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, i
             entity.nbt.insert(java("at"), Tag::IntArray(pos.to_vec()));
             game.native_block_entity_sync(pos);
         }
+        return;
+    }
+    if entity.id == "ae2:crafting_terminal" && (id == CT_TAKE || id == CT_TAKE_ALL) {
+        crafting_terminal_take(game, pos, entity, carried, id == CT_TAKE_ALL);
         return;
     }
     // CraftingTermMenu.clearCraftingGrid / clearToPlayerInventory: the grid (slots 1 to 9) to the network, or to
@@ -4524,8 +4580,12 @@ pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, i
         }
         if id >= GHOST {
             // The interface's config takes the stack's amount (processing style).
+            let cell = ((id - GHOST) >> 3) as usize;
+            if cell >= 9 {
+                return;
+            }
             set_nbt_i64(&mut entity.nbt, "mode", 1);
-            ghost_click(entity, ((id - GHOST) >> 3) as usize, id & RIGHT != 0, carried.as_ref());
+            ghost_click(entity, cell, id & RIGHT != 0, carried.as_ref());
         }
         return;
     }
@@ -4691,17 +4751,11 @@ pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, i
     if action >= MOVE_REGION || action == 3 {
         log::info!("ae2: terminal action {action} on item {index}");
         terminal_action(game, grid, uuid, index, action, carried);
-        SERVER.with_borrow_mut(|s| {
-            s.sent.remove(&uuid);
-        });
-        stream_terminals(game);
+        terminal_refresh(game, uuid);
         return;
     }
     if terminal_bucket(game, grid, uuid, index, carried) {
-        SERVER.with_borrow_mut(|s| {
-            s.sent.remove(&uuid);
-        });
-        stream_terminals(game);
+        terminal_refresh(game, uuid);
         return;
     }
     if let Some(stack) = carried.as_mut() {
@@ -4927,6 +4981,8 @@ struct Client {
     /// is on screen, and its presses waiting to go to the server as menu buttons.
     toolbelt: Vec<(String, i64)>,
     toolbelt_at: Option<[f32; 2]>,
+    /// The item the crafting terminal's grid makes now.
+    craft_result: Option<String>,
     toolbelt_presses: Vec<i32>,
     /// What the server left on the cursor, after a stack went into a portable cell.
     cursor_back: Option<(u32, String)>,
@@ -5249,7 +5305,7 @@ pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks
             let extra = 18.0 * (rows - 3) as f32;
             let mut slots: Vec<Option<[f32; 2]>> = vec![Some(HIDDEN_SLOT)];
             slots.extend((0..9).map(|i| Some([CRAFT_GRID[0] + (i % 3) as f32 * 18.0, CRAFT_GRID[1] + extra + (i / 3) as f32 * 18.0])));
-            slots.push(Some([CRAFT_RESULT[0], CRAFT_RESULT[1] + extra]));
+            slots.push(None);
             slots.extend(upgrade_panel(195.0, VIEW_CELLS));
             Some(NativeScreen { width: 176.0, height: 241.0 + extra, slots, inventory_y: 159.0 + extra, inventory_x: 8.0, own_labels: true, own_background: false })
         }
@@ -6472,6 +6528,11 @@ fn screen_click_inner(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, b
         *button = Some(b);
         return;
     }
+    if block == "ae2:crafting_terminal" && on_craft_result(at) {
+        let shift = game.keys.contains(&winit::keyboard::KeyCode::ShiftLeft) || game.keys.contains(&winit::keyboard::KeyCode::ShiftRight);
+        *button = Some(if shift { CT_TAKE_ALL } else { CT_TAKE });
+        return;
+    }
     let shift_held = game.keys.contains(&winit::keyboard::KeyCode::ShiftLeft) || game.keys.contains(&winit::keyboard::KeyCode::ShiftRight);
     let on = |r: [f32; 4]| at[0] >= r[0] && at[0] < r[0] + r[2] && at[1] >= r[1] && at[1] < r[1] + r[3];
     if shows_power_unit(block) && on_power_unit(at) {
@@ -7045,6 +7106,14 @@ pub fn screen_tooltip(block: &str, at: [f32; 2], lines: &mut Vec<String>) {
         return;
     }
     if !matches!(block, "ae2:terminal" | "ae2:crafting_terminal" | "ae2:pattern_encoding_terminal") {
+        return;
+    }
+    if block == "ae2:crafting_terminal"
+        && on_craft_result(at)
+        && let Some(id) = CLIENT.with_borrow(|c| c.craft_result.clone())
+    {
+        super::port_ae2_guide::hovered(&id);
+        lines.push(item_words(&id));
         return;
     }
     let [x, y] = [at[0] - TERM_GRID[0], at[1] - TERM_GRID[1]];
@@ -7906,39 +7975,67 @@ fn overlay_shown() -> bool {
     CLIENT.with_borrow(|c| c.show_jobs || c.settings_open || c.dialog.is_some())
 }
 
-/// The crafting terminal: its result is the grid's recipe; taking it uses one of each ingredient, and the grid
-/// refills from the network when it can (AE2's crafting terminal does).
-fn crafting_terminal_tick(game: &mut Game<'_>, grid: Option<usize>, entity: &mut ModBlockEntity) {
-    if entity.items.len() < 11 {
+/// The crafting terminal's result is no slot: it's the grid's recipe, drawn by the screen (`slot_icons`). A world saved
+/// when it was one has a stack there to forget.
+fn crafting_terminal_tick(entity: &mut ModBlockEntity) {
+    if let Some(slot) = entity.items.get_mut(CT_RESULT) {
+        *slot = None;
+    }
+}
+
+/// CraftingTermSlot: the result worked out from the grid and one of each ingredient used in one step (the network first,
+/// so the grid refills, then the grid), once for the cursor or, with shift, as long as the same result can be made.
+fn crafting_terminal_take(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, carried: &mut Option<ItemStack>, all: bool) {
+    if entity.items.len() <= CT_RESULT {
         return;
     }
-    let shown = nbt_i64(&entity.nbt, "shown") != 0;
-    if shown && entity.items[CT_RESULT].is_none() {
-        // The player took the result: use the ingredients.
-        for slot in CT_GRID {
+    let (Some(uuid), Some(grid)) = (menu_player(pos), SERVER.with_borrow(|s| s.grid_of.get(&pos).copied())) else { return };
+    let mut made: Option<AeKey> = None;
+    for _ in 0..if all { 64 } else { 1 } {
+        let cells: Vec<Option<ItemStack>> = entity.items[CT_GRID].to_vec();
+        let Some((name, result)) = game.res.recipes().find(&cells, 3).map(|(n, r)| (n.to_owned(), r)) else { break };
+        let key = key_of(game, &result);
+        if made.as_ref().is_some_and(|k| *k != key) {
+            break;
+        }
+        if !all
+            && let Some(c) = carried.as_ref()
+            && (key_of(game, c) != key || c.count + result.count > max_stack(game, &c.item))
+        {
+            break;
+        }
+        made = Some(key);
+        let remainders = game.res.recipes().remainders(&name, &cells, 3);
+        for (i, slot) in CT_GRID.enumerate() {
             let Some(stack) = entity.items[slot].as_mut() else { continue };
-            let refill = grid.map(|g| {
-                let key = key_of(game, stack);
-                with_storage(game, g, None, |st| st.extract(&key, 1, Actionable::Modulate))
-            });
-            if refill != Some(1) {
+            let key = key_of(game, &ItemStack { count: 1, ..stack.clone() });
+            if with_storage(game, grid, None, |st| st.extract(&key, 1, Actionable::Modulate)) != 1 {
                 stack.count -= 1;
                 if stack.count == 0 {
                     entity.items[slot] = None;
                 }
             }
+            if let Some(Some(rem)) = remainders.get(i) {
+                if entity.items[slot].is_none() {
+                    entity.items[slot] = Some(rem.clone());
+                } else {
+                    SERVER.with_borrow_mut(|s| s.pending_gives.push((uuid, grid, rem.clone())));
+                }
+            }
+        }
+        if all {
+            SERVER.with_borrow_mut(|s| s.pending_gives.push((uuid, grid, result)));
+        } else {
+            match carried.as_mut() {
+                Some(c) => c.count += result.count,
+                None => *carried = Some(result),
+            }
         }
     }
-    let grid_items: Vec<Option<ItemStack>> = entity.items[CT_GRID].to_vec();
-    let result = game.res.recipes().craft(&grid_items, 3);
-    if entity.items[CT_RESULT].as_ref().map(|s| (&s.item, s.count)) != result.as_ref().map(|s| (&s.item, s.count)) {
-        entity.items[CT_RESULT] = result.clone();
-    }
-    let shown = i64::from(entity.items[CT_RESULT].is_some());
-    set_nbt_i64(&mut entity.nbt, "shown", shown);
 }
 
-/// The crafting terminal's grid and result slots (slot 0 is its insert slot).
+/// The crafting terminal's grid, and where its result would be in its items (slot 0 is its insert slot; the view cells
+/// come after).
 const CT_GRID: std::ops::Range<usize> = 1..10;
 const CT_RESULT: usize = 10;
 
@@ -7954,7 +8051,9 @@ fn read_entries(tag: Option<&Tag>) -> Vec<(AeKey, i64)> {
             Tag::String(js) => {
                 let s = js.to_string().ok()?;
                 let (n, key) = s.split_once('*')?;
-                Some((key_from_string(key)?, n.parse().ok()?))
+                let n: i64 = n.parse().ok()?;
+                (n > 0).then_some(())?;
+                Some((key_from_string(key)?, n))
             }
             _ => None,
         })
@@ -8534,16 +8633,26 @@ impl CpuNetwork for CpuNet<'_, '_> {
         }
         let mut pushed_to = None;
         for machine in machines {
-            let spot = (machine[0], machine[1], machine[2]);
-            let before = self.game.world.block_entities.get(&spot).cloned();
             let face = face_toward(machine, at);
+            // A double chest is two block entities, and a push can go in either.
+            let spots: Vec<(i32, i32, i32)> = match sided(self.game, machine, face) {
+                Some(view) => view.parts.iter().map(|(p, _)| (p[0], p[1], p[2])).collect(),
+                None => vec![(machine[0], machine[1], machine[2])],
+            };
+            let before: Vec<((i32, i32, i32), horizon_client::containers::BlockEntity)> =
+                spots.iter().filter_map(|s| Some((*s, self.game.world.block_entities.get(s)?.clone()))).collect();
             // adapterAcceptsAll: each input on its own, some of it taken.
             let mut accepts = true;
             'items: for list in inputs {
                 for (key, amount) in list.iter() {
                     let left = send_into(self.game, machine, face, key, amount);
-                    if let Some(be) = &before {
-                        self.game.world.block_entities.insert(spot, be.clone());
+                    for (spot, be) in &before {
+                        self.game.world.block_entities.insert(*spot, be.clone());
+                    }
+                    // A cauldron is a block: what it took comes out again.
+                    if before.is_empty() && key.key_type() == super::port_ae2_core::KeyType::Fluids && left < amount {
+                        let dim = self.game.dim.id().to_owned();
+                        self.game.native_fluid_extract(&dim, machine, face, (amount - left).min(i64::from(i32::MAX)) as i32);
                     }
                     if left >= amount {
                         accepts = false;
@@ -8794,7 +8903,7 @@ fn run_cpus_now(game: &mut Game<'_>, tick: u64) {
                 provider_returned(net.game, from, &what, amount);
                 let taken = cpu.insert(&what, amount, Actionable::Modulate, &mut net);
                 if taken < amount {
-                    net.insert(&what, amount - taken, Actionable::Modulate);
+                    job_output_rest(&mut net, &what, amount - taken, from);
                 }
             }
         }
@@ -8844,7 +8953,7 @@ fn run_cpus_now(game: &mut Game<'_>, tick: u64) {
                 }
                 let taken = cpu.insert(&key, take, Actionable::Modulate, &mut net);
                 if taken < take {
-                    net.insert(&key, take - taken, Actionable::Modulate);
+                    job_output_rest(&mut net, &key, take - taken, target);
                 }
             }
             // What it owes in fluids: out of its tanks, to the millibucket.
@@ -8926,6 +9035,9 @@ fn craftable_keys(game: &Game<'_>, grid: usize) -> Vec<AeKey> {
 /// alternative, asked of the grid's CPUs. (AE2 shows one plan for them all; this port's plans are of one key, so each
 /// key is its own job, and one with no free CPU says so on the action bar.)
 fn craft_missing(game: &mut Game<'_>, player: u128, grid: usize, slots: Vec<Vec<String>>) {
+    if !plan_allowed(player) {
+        return;
+    }
     let craftable: HashSet<AeKey> = craftable_keys(game, grid).into_iter().collect();
     let mut wanted: Vec<(AeKey, i64)> = Vec::new();
     for ids in slots {
@@ -8935,12 +9047,20 @@ fn craft_missing(game: &mut Game<'_>, player: u128, grid: usize, slots: Vec<Vec<
             None => wanted.push((key, 1)),
         }
     }
+    // A grid has nine cells, whatever a client sends.
+    wanted.truncate(9);
     for (key, amount) in wanted {
-        request_craft(game, grid, player, &key, amount);
+        if let Err(e) = submit_craft(game, grid, player, &key, amount.min(9), None) {
+            game.native_action_bar(player, horizon_client::text::Text::legacy(&format!("§c{e}")));
+        }
     }
 }
 
 fn request_craft(game: &mut Game<'_>, grid: usize, uuid: u128, key: &AeKey, amount: i64) {
+    // A player's request is worked out on this thread: a few a second. A machine's (uuid 0) is the server's own.
+    if uuid != 0 && !plan_allowed(uuid) {
+        return;
+    }
     if let Err(e) = submit_craft(game, grid, uuid, key, amount, None) {
         game.native_action_bar(uuid, horizon_client::text::Text::legacy(&format!("§c{e}")));
     }
@@ -9015,8 +9135,10 @@ fn submit_craft(game: &mut Game<'_>, grid: usize, uuid: u128, key: &AeKey, amoun
     });
     let plan = match shown {
         Some(plan) => plan,
+        // On this thread: a plan that big belongs to the confirm screen's own thread.
         None => {
             let storage = with_storage(game, grid, None, |st| crafting_contents(st));
+            super::port_ae2_crafting::limit_calculation(super::port_ae2_crafting::SERVER_THREAD_STEPS, None);
             calculate(&book, &storage, key, amount, CalculationStrategy::ReportMissingItems).map_err(|e| format!("Can't plan that: {e}"))?
         }
     };
@@ -9941,10 +10063,161 @@ fn pattern_tooltip(stack: &ItemStack, lines: &mut Vec<(horizon_client::text::Tex
     }
 }
 
+/// A button sent as a UI message: the sender is its clicker, as for the engine's own.
+fn ui_button(game: &mut Game<'_>, player: u128, pos: Pos, entity: &mut ModBlockEntity, id: i32, carried: &mut Option<ItemStack>) {
+    let mode = game.native_server_players().into_iter().find(|p| p.uuid == player).map_or(0, |p| p.game_mode);
+    button_clicker(player, mode);
+    menu_button(game, pos, entity, id, carried);
+    button_done();
+}
+
+/// The most a client may send: a recipe's transfer is the largest honest message, a screen's clicks the fastest.
+const CLIENT_MESSAGE_BYTES: usize = 16 * 1024;
+const CLIENT_MESSAGES_PER_SECOND: u32 = 120;
+/// What a client's items may queue up for its inventory tick, and how long one line of it may be.
+const CLIENT_QUEUE: usize = 64;
+const CLIENT_QUEUE_LINE: usize = 256;
+/// The most one crafting request may ask for: past this a job's arithmetic stops being honest.
+const CRAFT_MOST: i64 = 1 << 31;
+/// The crafting plans working out at once, over all players.
+const PLANS_AT_ONCE: usize = 8;
+
+thread_local! {
+    static CLIENT_RATES: RefCell<HashMap<u128, (std::time::Instant, u32)>> = RefCell::new(HashMap::new());
+    static PLAN_RATES: RefCell<HashMap<u128, std::time::Instant>> = RefCell::new(HashMap::new());
+    static REFRESH_RATES: RefCell<HashMap<u128, std::time::Instant>> = RefCell::new(HashMap::new());
+    static PRIORITY_RATES: RefCell<HashMap<u128, std::time::Instant>> = RefCell::new(HashMap::new());
+}
+
+/// A client can send anything at any rate: too much of it is dropped before it is read.
+fn client_message_allowed(player: u128, bytes: usize) -> bool {
+    if bytes > CLIENT_MESSAGE_BYTES {
+        return false;
+    }
+    CLIENT_RATES.with_borrow_mut(|rates| {
+        if rates.len() > 4096 {
+            rates.clear();
+        }
+        let now = std::time::Instant::now();
+        let (since, count) = rates.entry(player).or_insert((now, 0));
+        if now.duration_since(*since).as_secs() >= 1 {
+            *since = now;
+            *count = 0;
+        }
+        *count += 1;
+        *count <= CLIENT_MESSAGES_PER_SECOND
+    })
+}
+
+/// Plans and crafting requests copy the network's storage on this thread: a few a second, per player.
+fn plan_allowed(player: u128) -> bool {
+    rate_allowed(&PLAN_RATES, player, 200)
+}
+
+fn rate_allowed(table: &'static std::thread::LocalKey<RefCell<HashMap<u128, std::time::Instant>>>, player: u128, millis: u128) -> bool {
+    table.with_borrow_mut(|rates| {
+        if rates.len() > 4096 {
+            rates.clear();
+        }
+        let now = std::time::Instant::now();
+        match rates.get(&player) {
+            Some(last) if now.duration_since(*last).as_millis() < millis => false,
+            _ => {
+                rates.insert(player, now);
+                true
+            }
+        }
+    })
+}
+
+/// A click changed what a terminal lists: at once, or at the next stream if they've just had one.
+fn terminal_refresh(game: &mut Game<'_>, uuid: u128) {
+    SERVER.with_borrow_mut(|s| {
+        s.sent.remove(&uuid);
+    });
+    if rate_allowed(&REFRESH_RATES, uuid, 100) {
+        stream_terminals(game);
+    }
+}
+
+/// The block a player's messages act on, if they still may. AE2's menus check `stillValid`; this record is the server's
+/// own, so it is checked here: the player is on, in this level, in reach or on a working wireless link, and it's there.
+/// An out-of-date record is dropped. While the hub is out of `Game` (a menu button) no player can be looked up: those are
+/// the engine's own clicks on a menu it validated.
+fn viewer_checked(game: &Game<'_>, uuid: u128) -> Option<Pos> {
+    let (pos, wireless) = SERVER.with_borrow(|s| {
+        (s.viewers.get(&uuid).copied(), s.wireless.contains(&uuid) && !s.chest_terms.contains(&uuid))
+    });
+    let pos = pos?;
+    if game.lan.is_none() {
+        return Some(pos);
+    }
+    let block = if is_virtual(pos) { host_of(pos) } else { pos };
+    let there = game.native_server_players().into_iter().find(|p| p.uuid == uuid).is_some_and(|p| {
+        let near = (0..3).map(|i| (p.position[i] - f64::from(block[i]) - 0.5).powi(2)).sum::<f64>() <= 100.0;
+        p.game_mode != 3 && p.dimension == game.dim.id() && (wireless || near)
+    }) && if is_virtual(pos) { part_view(game, pos).is_some() } else { game.world.block_entities.contains_key(&(pos[0], pos[1], pos[2])) };
+    if there {
+        return Some(pos);
+    }
+    viewer_closed(uuid);
+    None
+}
+
+fn viewer_closed(uuid: u128) {
+    SERVER.with_borrow_mut(|s| {
+        if let Some(stack) = s.wcursor.remove(&uuid) {
+            let grid = s.viewers.get(&uuid).and_then(|p| s.grid_of.get(p)).copied().unwrap_or(usize::MAX);
+            s.pending_gives.push((uuid, grid, stack));
+        }
+        s.viewers.remove(&uuid);
+        s.sent.remove(&uuid);
+        s.provider_lists.remove(&uuid);
+        s.wireless.remove(&uuid);
+        s.chest_terms.remove(&uuid);
+        s.wireless_seen.remove(&uuid);
+        s.wcraft_slot.remove(&uuid);
+        s.wcraft_ops.retain(|(u, _)| *u != uuid);
+        s.wireless_inserts.retain(|(u, _)| *u != uuid);
+        s.terminal_fills.retain(|f| f.0 != uuid);
+    });
+}
+
+/// Who may no longer use what they opened: gone, walked off, or a wireless terminal that isn't on them any more.
+fn viewers_tick(game: &mut Game<'_>) {
+    if game.lan.is_none() {
+        return;
+    }
+    let tick = SERVER.with_borrow(|s| s.tick);
+    let viewers: Vec<u128> = SERVER.with_borrow(|s| s.viewers.keys().copied().collect());
+    for uuid in viewers {
+        let was_wireless = SERVER.with_borrow(|s| s.wireless.contains(&uuid));
+        let stale = SERVER.with_borrow(|s| {
+            s.wireless.contains(&uuid)
+                && !s.chest_terms.contains(&uuid)
+                && s.wireless_seen.get(&uuid).is_none_or(|seen| tick.saturating_sub(*seen) > 60)
+        });
+        if stale {
+            viewer_closed(uuid);
+        }
+        if (stale || viewer_checked(game, uuid).is_none()) && was_wireless {
+            let _ = game.native_net_send_to_player(uuid, NET_WIRELESS, b"close");
+        }
+    }
+    SERVER.with_borrow_mut(|s| {
+        let viewers = std::mem::take(&mut s.viewers);
+        s.wireless_seen.retain(|u, _| viewers.contains_key(u));
+        s.viewers = viewers;
+    });
+}
+
 /// `native_net_from_client`: a recipe JEI's "+" sent for the terminal the player has open. The pattern encoding
 /// terminal takes it as ghosts (its mode follows the recipe); the crafting terminal's grid goes back to the
 /// network and fills with the recipe's items from it, as AE2's transfer does.
 pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]) {
+    if !client_message_allowed(player, data.len()) {
+        return;
+    }
     if channel == NET_UI {
         ui_from_client(game, player, &String::from_utf8_lossy(data));
         return;
@@ -9952,17 +10225,27 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
     if channel == NET_WIRELESS {
         let text = String::from_utf8_lossy(data).into_owned();
         let w: Vec<&str> = text.split(' ').collect();
-        let using = SERVER.with_borrow(|s| s.wireless.contains(&player));
+        let using = SERVER.with_borrow(|s| s.wireless.contains(&player)) && viewer_checked(game, player).is_some();
         match w.as_slice() {
-            ["close"] => SERVER.with_borrow_mut(|s| {
+            ["close"] if using => SERVER.with_borrow_mut(|s| {
                 s.wireless.remove(&player);
                 s.viewers.remove(&player);
                 s.chest_terms.remove(&player);
                 s.wcraft_ops.push((player, "close".to_owned()));
             }),
-            ["grid", ..] if using => SERVER.with_borrow_mut(|s| s.wcraft_ops.push((player, w[1..].join(" ")))),
+            // Only a terminal with a grid drains these (`wcraft_slot`); a client's own queue stays small.
+            ["grid", ..]
+                if using
+                    && text.len() <= CLIENT_QUEUE_LINE
+                    && SERVER.with_borrow(|s| s.wcraft_slot.contains_key(&player) && s.wcraft_ops.iter().filter(|(u, _)| *u == player).count() < CLIENT_QUEUE) =>
+            {
+                SERVER.with_borrow_mut(|s| s.wcraft_ops.push((player, w[1..].join(" "))));
+            }
             ["insert", slot] if using => {
-                if let Ok(slot) = slot.parse::<i32>() {
+                if let Ok(slot) = slot.parse::<i32>()
+                    && (0..=40).contains(&slot)
+                    && SERVER.with_borrow(|s| s.wireless_inserts.iter().filter(|(u, _)| *u == player).count() < CLIENT_QUEUE)
+                {
                     SERVER.with_borrow_mut(|s| s.wireless_inserts.push((player, slot)));
                 }
             }
@@ -9973,14 +10256,17 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
                     request_craft(game, grid, player, &key, if *shift == "1" { 64 } else if *right == "1" { 16 } else { 1 });
                     return;
                 }
+                // Only items come out as items: a fluid goes by its bucket.
+                if key.key_type() != super::port_ae2_core::KeyType::Items {
+                    return;
+                }
                 let most = i64::from(max_stack(game, key.id()));
                 let have = with_viewer_storage(game, player, |st| st.extract(&key, most, Actionable::Simulate)).unwrap_or(0);
                 let want = if *right == "1" { (have + 1) / 2 } else { have };
                 let got = with_viewer_storage(game, player, |st| st.extract(&key, want, Actionable::Modulate)).unwrap_or(0);
                 stat_moved(player, 0, got);
                 if got > 0 && let Some(left) = game.native_give_stack(player, stack_of(&key, got as u32)) {
-                    let back = key_of(game, &left);
-                    with_viewer_storage(game, player, |st| st.insert(&back, i64::from(left.count), Actionable::Modulate));
+                    net_or_drop(game, player, left);
                 }
             }
             _ => {}
@@ -9988,7 +10274,7 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
         return;
     }
     if channel == NET_LEVEL {
-        let Some(pos) = SERVER.with_borrow(|s| s.viewers.get(&player).copied()) else { return };
+        let Some(pos) = viewer_checked(game, player) else { return };
         let level = String::from_utf8_lossy(data).trim().parse::<i64>().unwrap_or(0);
         if matches!(block_id(game, pos).as_str(), "ae2:level_emitter" | "ae2:energy_level_emitter") {
             game.native_with_mod_block_entity(pos, |e| set_nbt_i64(&mut e.nbt, "level", level));
@@ -10012,7 +10298,7 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
     if channel != NET_TRANSFER {
         return;
     }
-    let Some(pos) = SERVER.with_borrow(|s| s.viewers.get(&player).copied()) else { return };
+    let Some(pos) = viewer_checked(game, player) else { return };
     let text = String::from_utf8_lossy(data);
     let mut crafting = true;
     let mut width = 3usize;
@@ -10027,10 +10313,13 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
             ["size", w, _] => width = w.parse::<usize>().unwrap_or(3).clamp(1, 3),
             ["s", i, ids, n] => {
                 if let (Ok(i), Ok(n)) = (i.parse::<usize>(), n.parse::<i64>()) {
-                    slots.push((i, ids.split(',').map(str::to_owned).collect(), n.max(1)));
+                    let ids: Vec<String> = ids.split(',').take(64).filter(|id| game.res.items().get(id).is_some()).map(str::to_owned).collect();
+                    if slots.len() < 81 && !ids.is_empty() && !slots.iter().any(|s| s.0 == i) {
+                        slots.push((i, ids, n.clamp(1, CRAFT_MOST)));
+                    }
                 }
             }
-            ["r", id, n] => results.push(((*id).to_owned(), n.parse().unwrap_or(1))),
+            ["r", id, n] if results.len() < 81 => results.push(((*id).to_owned(), n.parse::<i64>().unwrap_or(1).clamp(1, CRAFT_MOST))),
             _ => {}
         }
     }
@@ -10046,7 +10335,12 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
     if SERVER.with_borrow(|s| s.wireless.contains(&player)) {
         if crafting {
             let cells: Vec<String> = slots.iter().map(|(i, ids, _)| format!("{}={}", cell(*i), ids.join(","))).collect();
-            SERVER.with_borrow_mut(|s| s.wcraft_ops.push((player, format!("fill {}", cells.join(" ")))));
+            SERVER.with_borrow_mut(|s| {
+                // Only a terminal with a grid drains these (`wcraft_slot`); a client's own queue stays small.
+                if s.wcraft_slot.contains_key(&player) && s.wcraft_ops.iter().filter(|(u, _)| *u == player).count() < CLIENT_QUEUE {
+                    s.wcraft_ops.push((player, format!("fill {}", cells.join(" "))));
+                }
+            });
         }
         return;
     }
@@ -10080,28 +10374,25 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
                 if stored < i64::from(stack.count) {
                     let mut left = stack.clone();
                     left.count -= stored as u32;
-                    let _ = game.native_give_stack(player, left);
+                    give_or_drop(game, player, left);
                 }
             }
             // One of each ingredient from the network, the first alternative it has.
             SERVER.with_borrow_mut(|s| s.terminal_fills.retain(|f| f.0 != player));
             let mut fill: Vec<(usize, ItemStack)> = Vec::new();
+            let mut done = [false; 9];
             for (i, ids, _) in &slots {
                 let c = cell(*i);
-                if c >= 9 {
+                if c >= 9 || std::mem::replace(&mut done[c], true) {
                     continue;
                 }
-                let mut found = false;
-                for id in ids {
-                    let key = key_of(game, &ItemStack::new(id, 1));
-                    if with_storage(game, grid, None, |st| st.extract(&key, 1, Actionable::Modulate)) > 0 {
-                        fill.push((c, stack_of(&key, 1)));
-                        found = true;
-                        break;
-                    }
+                let keys: Vec<AeKey> = ids.iter().map(|id| key_of(game, &ItemStack::new(id, 1))).collect();
+                let found = with_storage(game, grid, None, |st| keys.into_iter().find(|key| st.extract(key, 1, Actionable::Modulate) > 0));
+                if let Some(key) = &found {
+                    fill.push((c, stack_of(key, 1)));
                 }
                 // What the network hasn't comes out of the player's inventory, once their state is to hand.
-                if !found {
+                if found.is_none() {
                     SERVER.with_borrow_mut(|s| s.terminal_fills.push((player, pos, c, ids.clone())));
                 }
             }
@@ -10284,7 +10575,7 @@ fn debug_command(game: &mut Game<'_>, uuid: u128, position: [f64; 3], command: &
             p.insert(java("in"), pattern_entries(&[(log, 1)]));
             p.insert(java("out"), pattern_entries(&[(planks, 4)]));
             set_custom(&mut pattern, PATTERN_KEY, Tag::Compound(p));
-            let _ = game.native_give_stack(uuid, pattern);
+            give_or_drop(game, uuid, pattern);
         }
         // `clearpatterns x y z`: a provider's patterns gone.
         Some("clearpatterns") => {
@@ -10839,7 +11130,7 @@ fn tool_use(game: &mut Game<'_>, tool: &str, pos: Pos, block: &str) -> bool {
                         game.native_set_block(&dim, at, state, 3);
                     }
                     for d in drops {
-                        let _ = game.native_give_stack(player.uuid, ItemStack::new(&d, 1));
+                        give_or_drop(game, player.uuid, ItemStack::new(&d, 1));
                     }
                     return true;
                 }
@@ -10850,7 +11141,7 @@ fn tool_use(game: &mut Game<'_>, tool: &str, pos: Pos, block: &str) -> bool {
                     game.native_set_block(&dim, pos, state, 3);
                 }
                 for d in drops {
-                    let _ = game.native_give_stack(player.uuid, ItemStack::new(&d, 1));
+                    give_or_drop(game, player.uuid, ItemStack::new(&d, 1));
                 }
                 return true;
             }
@@ -10961,7 +11252,7 @@ fn terminal_bucket(game: &mut Game<'_>, grid: usize, uuid: u128, index: usize, c
             if let Some(c) = carried.as_mut() {
                 c.count -= 1;
             }
-            let _ = game.native_give_stack(uuid, ItemStack::new(to, 1));
+            give_or_drop(game, uuid, ItemStack::new(to, 1));
         } else {
             *carried = Some(ItemStack::new(to, 1));
         }
@@ -12679,7 +12970,7 @@ pub fn tool_use_air(game: &mut Game<'_>, stack: &ItemStack) -> bool {
                     game.native_set_block(&dim, at, state, 3);
                 }
                 for d in drops {
-                    let _ = game.native_give_stack(player.uuid, ItemStack::new(&d, 1));
+                    give_or_drop(game, player.uuid, ItemStack::new(&d, 1));
                 }
                 spend_held_power(game, 1600.0);
                 return true;
@@ -14838,7 +15129,7 @@ fn ui_from_client(game: &mut Game<'_>, player: u128, text: &str) {
 
 fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
     let w: Vec<&str> = text.split(' ').collect();
-    let viewing = SERVER.with_borrow(|s| s.viewers.get(&player).copied());
+    let viewing = viewer_checked(game, player);
     match w.as_slice() {
         // InventoryAction.CREATIVE_DUPLICATE: a full stack of the terminal's item, from nothing (creative only).
         ["clone", index] => {
@@ -14850,12 +15141,6 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
                 let most = max_stack(game, &stack.item);
                 let _ = game.native_give_stack(player, stack_of(&key, most));
             }
-        }
-        // The screen with the toolbelt closed: what its clicks did goes on the tool.
-        ["toolbeltdone"] => {
-            SERVER.with_borrow_mut(|s| {
-                s.toolbelt_flush.insert(player);
-            });
         }
         // Notify about finished crafting jobs.
         ["notify", on] => SERVER.with_borrow_mut(|s| {
@@ -14878,7 +15163,7 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
                     if stored < i64::from(stack.count) {
                         let mut left = stack.clone();
                         left.count -= stored as u32;
-                        let _ = game.native_give_stack(player, left);
+                        give_or_drop(game, player, left);
                     }
                 }
             }
@@ -14908,8 +15193,9 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
             SERVER.with_borrow_mut(|s| s.cpus.insert(key, cpu));
         }
         // CompassRequestPacket: the direction from the player's chunk (CompassService, 174 chunks out).
-        ["compass", cx, cz] => {
-            let (Ok(cx), Ok(cz)) = (cx.parse::<i32>(), cz.parse::<i32>()) else { return };
+        ["compass", _, _] => {
+            let Some(at) = game.native_server_players().into_iter().find(|p| p.uuid == player).map(|p| p.position) else { return };
+            let (cx, cz) = ((at[0].floor() as i32) >> 4, (at[2].floor() as i32) >> 4);
             let dim = game.dim.id().to_owned();
             let reply = match super::port_ae2_meteor::nearest(game, &dim, [cx, cz], 174) {
                 Some(c) if c == [cx, cz] => "compass spin".to_owned(),
@@ -14923,14 +15209,20 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
         }
         ["plan", index, amount] => {
             let (Ok(index), Ok(amount)) = (index.parse::<usize>(), amount.parse::<i64>()) else { return };
-            plan_reply(game, player, index, amount.max(1));
+            plan_reply(game, player, index, amount.clamp(1, CRAFT_MOST));
         }
-        ["craft", index, amount, cpu] => {
-            let (Ok(index), Ok(amount)) = (index.parse::<usize>(), amount.parse::<i64>()) else { return };
+        ["craft", _, amount, cpu] => {
+            let Ok(amount) = amount.parse::<i64>() else { return };
+            let amount = amount.clamp(1, CRAFT_MOST);
+            // CraftConfirmMenu.startJob: a job starts from the plan the screen worked out on its own thread. A client asking
+            // for one it never planned would have it worked out here, on the server's thread.
+            let Some(key) = PLANS_SHOWN.with_borrow(|s| s.get(&player).filter(|(_, n, _)| *n == amount).map(|(k, _, _)| k.clone())) else {
+                let _ = game.native_net_send_to_player(player, NET_UI, b"error That plan is out of date: ask again");
+                return;
+            };
             let Some(grid) = viewing.and_then(|p| SERVER.with_borrow(|s| s.grid_of.get(&p).copied())) else { return };
-            let Some((key, _)) = SERVER.with_borrow(|s| s.sent.get(&player).and_then(|v| v.keys.get(index).cloned())) else { return };
             // CraftConfirmMenu.startJob: the screen stays until the job has started, or says why it didn't.
-            let reply = match submit_craft(game, grid, player, &key, amount.max(1), cpu.parse::<usize>().ok()) {
+            let reply = match submit_craft(game, grid, player, &key, amount, cpu.parse::<usize>().ok()) {
                 Ok(()) => "started".to_owned(),
                 Err(e) => format!("error {e}"),
             };
@@ -14949,27 +15241,54 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
             if !(GHOST..GHOST + (1 << 20)).contains(&id) {
                 return;
             }
+            // The dropped item is made up here from what the client says, and only a config slot's ghost may hold it.
+            // Anywhere else it would be a real item: into a terminal's network, or a pattern into a provider.
+            let block = block_id(game, pos);
+            let has_ghosts = canon(&block) == "ae2:interface"
+                || matches!(
+                    block.as_str(),
+                    "ae2:level_emitter" | "ae2:cell_workbench" | "ae2:pattern_encoding_terminal" | "ae2:import_bus" | "ae2:export_bus" | "ae2:storage_bus" | "ae2:formation_plane"
+                );
+            if !has_ghosts || game.res.items().get(item).is_none() {
+                return;
+            }
             let components = components.join(" ");
             let (damage, extra) = horizon_client::item_data::command_components(&components)
                 .map_or((0, None), |tag| horizon_client::item_data::decode_components(Some(&tag)));
             let Some(mut entity) = game.native_with_mod_block_entity(pos, |e| e.clone()) else { return };
             let mut carried = Some(ItemStack { item: (*item).into(), count: 1, damage, extra });
-            menu_button(game, pos, &mut entity, id, &mut carried);
+            ui_button(game, player, pos, &mut entity, id, &mut carried);
             game.native_with_mod_block_entity(pos, |e| *e = entity);
         }
         ["button", id] => {
             let (Some(pos), Ok(id)) = (viewing, id.parse::<i32>()) else { return };
             let Some(mut entity) = game.native_with_mod_block_entity(pos, |e| e.clone()) else { return };
             let mut carried = None;
-            menu_button(game, pos, &mut entity, id, &mut carried);
+            ui_button(game, player, pos, &mut entity, id, &mut carried);
             game.native_with_mod_block_entity(pos, |e| *e = entity);
+            // There's no cursor to go to on this path: what the button took out goes to the inventory, not nowhere.
+            if let Some(stack) = carried {
+                let grid = SERVER.with_borrow(|s| s.grid_of.get(&pos).copied()).unwrap_or(usize::MAX);
+                SERVER.with_borrow_mut(|s| s.pending_gives.push((player, grid, stack)));
+            }
         }
         ["set", "priority", n] => {
             let (Some(pos), Ok(n)) = (viewing, n.parse::<i64>()) else { return };
             if has_priority(&block_id(game, pos)) || canon(&block_id(game, pos)) == "ae2:pattern_provider" {
-                game.native_with_mod_block_entity(pos, |e| set_nbt_i64(&mut e.nbt, "priority", n.clamp(i32::MIN as i64 / 2, i32::MAX as i64 / 2)));
+                // Each change mounts the network's cells again.
+                if !rate_allowed(&PRIORITY_RATES, player, 100) {
+                    return;
+                }
+                let n = n.clamp(i32::MIN as i64 / 2, i32::MAX as i64 / 2);
+                let changed = game.native_with_mod_block_entity(pos, |e| {
+                    let changed = nbt_i64(&e.nbt, "priority") != n;
+                    set_nbt_i64(&mut e.nbt, "priority", n);
+                    changed
+                });
                 // The network's storage is mounted again in the new order.
-                SERVER.with_borrow_mut(|s| s.mounted.clear());
+                if changed == Some(true) {
+                    SERVER.with_borrow_mut(|s| s.mounted.clear());
+                }
             }
         }
         ["set", what @ ("stock" | "amount"), cell, n] => {
@@ -14983,7 +15302,7 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
                 game.native_with_mod_block_entity(pos, |e| {
                     let mut cells = if e.id == "ae2:pattern_encoding_terminal" { enc_ghosts(e) } else { ghosts_of(e) };
                     if let Some(Some((_, amount))) = cells.get_mut(cell) {
-                        *amount = n.max(1);
+                        *amount = n.clamp(1, CRAFT_MOST);
                     }
                     set_ghosts(e, &cells);
                 });
@@ -15001,15 +15320,23 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
         ["wheel", dir] => {
             SERVER.with_borrow_mut(|s| s.wheels.insert(player, *dir == "down"));
         }
-        ["close"] => SERVER.with_borrow_mut(|s| {
-            s.item_screen_slot.remove(&player);
-            s.item_screens.remove(&player);
-            s.portable_sent.remove(&player);
-            s.item_ops.retain(|(u, _)| *u != player);
-        }),
+        ["close"] => {
+            let carry = SERVER.with_borrow_mut(|s| {
+                s.item_screen_slot.remove(&player);
+                s.item_screens.remove(&player);
+                s.portable_sent.remove(&player);
+                s.item_ops.retain(|(u, _)| *u != player);
+                s.item_carry.remove(&player).unwrap_or_default()
+            });
+            for st in carry {
+                give_or_drop(game, player, st);
+            }
+        }
         _ => {
             // The item screens' clicks wait for the player's inventory tick (the held item is changed there).
-            if SERVER.with_borrow(|s| s.item_screens.contains_key(&player)) {
+            if text.len() <= CLIENT_QUEUE_LINE
+                && SERVER.with_borrow(|s| s.item_screens.contains_key(&player) && s.item_ops.iter().filter(|(u, _)| *u == player).count() < CLIENT_QUEUE)
+            {
                 SERVER.with_borrow_mut(|s| s.item_ops.push((player, text.to_owned())));
             }
         }
@@ -15067,7 +15394,25 @@ fn plan_reply(game: &mut Game<'_>, uuid: u128, index: usize, amount: i64) {
     let send = |game: &mut Game<'_>, text: String| {
         let _ = game.native_net_send_to_player(uuid, NET_UI, text.as_bytes());
     };
-    let Some(grid) = SERVER.with_borrow(|s| s.viewers.get(&uuid).and_then(|p| s.grid_of.get(p)).copied()) else {
+    if !plan_allowed(uuid) {
+        send(game, "error Too many requests".to_owned());
+        return;
+    }
+    // A new request replaces what this player was waiting for, and that thread stops.
+    PLANS_RUNNING.with_borrow_mut(|p| {
+        p.retain(|r| {
+            let theirs = r.uuid == uuid;
+            if theirs {
+                r.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
+            !theirs
+        });
+    });
+    if PLANS_RUNNING.with_borrow(Vec::len) >= PLANS_AT_ONCE {
+        send(game, "error The server is busy working out other crafting plans".to_owned());
+        return;
+    }
+    let Some(grid) = viewer_checked(game, uuid).and_then(|p| SERVER.with_borrow(|s| s.grid_of.get(&p).copied())) else {
         send(game, "error The network is offline".to_owned());
         return;
     };
@@ -15084,15 +15429,20 @@ fn plan_reply(game: &mut Game<'_>, uuid: u128, index: usize, amount: i64) {
         book.add_emitable(key);
     }
     let storage = with_storage(game, grid, None, |st| crafting_contents(st));
-    // A new request replaces what this player was waiting for; that thread finishes unheard.
-    let job = std::thread::spawn({
+    let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let job = std::thread::Builder::new().name("ae2-crafting-plan".to_owned()).stack_size(16 << 20).spawn({
         let key = key.clone();
-        move || calculate(&book, &storage, &key, amount, CalculationStrategy::ReportMissingItems)
+        let cancel = cancel.clone();
+        move || {
+            super::port_ae2_crafting::limit_calculation(super::port_ae2_crafting::PLAN_THREAD_STEPS, Some(cancel));
+            calculate(&book, &storage, &key, amount, CalculationStrategy::ReportMissingItems)
+        }
     });
-    PLANS_RUNNING.with_borrow_mut(|p| {
-        p.retain(|r| r.uuid != uuid);
-        p.push(PlanRunning { uuid, grid, key, amount, job });
-    });
+    let Ok(job) = job else {
+        send(game, "error The server is busy working out other crafting plans".to_owned());
+        return;
+    };
+    PLANS_RUNNING.with_borrow_mut(|p| p.push(PlanRunning { uuid, grid, key, amount, cancel, job }));
 }
 
 /// A crafting plan being worked out on its own thread (AE2's CraftingCalculation, its `craftingCalculationTimePerTick`
@@ -15102,6 +15452,7 @@ struct PlanRunning {
     grid: usize,
     key: AeKey,
     amount: i64,
+    cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
     job: std::thread::JoinHandle<Result<super::port_ae2_crafting::CraftingPlan, super::port_ae2_crafting::CraftError>>,
 }
 
@@ -15340,7 +15691,7 @@ fn close_item_screen(game: &mut Game<'_>, uuid: u128) {
         s.item_carry.remove(&uuid).unwrap_or_default()
     });
     for st in carry {
-        let _ = game.native_give_stack(uuid, st);
+        give_or_drop(game, uuid, st);
     }
     let _ = game.native_net_send_to_player(uuid, NET_UI, b"close");
 }
@@ -15372,7 +15723,7 @@ fn portable_tick(game: &mut Game<'_>, uuid: u128, slot: i32, mut cell: ItemStack
         if stored < i64::from(st.count) {
             let mut left = st.clone();
             left.count -= stored as u32;
-            let _ = game.native_give_stack(uuid, left);
+            give_or_drop(game, uuid, left);
         }
     }
     for op in take_ops(uuid) {
@@ -15485,6 +15836,11 @@ fn toolbox_tick(game: &mut Game<'_>, uuid: u128, slot: i32, mut tool: ItemStack)
     let mut boxed = toolbox_of(&tool);
     let before = boxed.clone();
     for st in SERVER.with_borrow_mut(|s| s.item_carry.remove(&uuid)).unwrap_or_default() {
+        // It may have been meant for another screen: only a card, plain, is kept as its id and a count here.
+        if !ae2_name(&st.item).is_some_and(|c| c.ends_with("_card")) {
+            give_or_drop(game, uuid, st);
+            continue;
+        }
         let mut left = i64::from(st.count);
         for (id, n) in boxed.iter_mut() {
             if left > 0 && *id == *st.item && *n < 64 {
@@ -15502,7 +15858,7 @@ fn toolbox_tick(game: &mut Game<'_>, uuid: u128, slot: i32, mut tool: ItemStack)
             }
         }
         if left > 0 {
-            let _ = game.native_give_stack(uuid, ItemStack::new(&st.item, left as u32));
+            give_or_drop(game, uuid, ItemStack::new(&st.item, left as u32));
         }
     }
     for op in take_ops(uuid) {
@@ -15549,53 +15905,98 @@ fn toolbelt_parse(text: &str) -> Vec<(String, i64)> {
 }
 
 /// A slot of ToolboxMenu (RestrictedInputSlot of UPGRADES): the cursor's cards in or the slot's out, as any slot does.
-/// A menu's button has no player's inventory at hand, and the tool can't change under an open menu: it is written when
-/// the screen closes (`toolbelt_stream`).
-fn toolbelt_click(game: &mut Game<'_>, pos: Pos, cell: usize, right: bool, carried: &mut Option<ItemStack>) {
+/// A menu's button has no player's inventory at hand: the click waits for their inventory tick (`toolbelt_ops`), which
+/// changes the tool and hands out what comes back in one step. Cards going in wait with it, off the cursor.
+fn toolbelt_click(pos: Pos, cell: usize, right: bool, carried: &mut Option<ItemStack>) {
     let Some(uuid) = menu_player(pos) else { return };
-    let Some(text) = SERVER.with_borrow(|s| s.toolbelt_sent.get(&uuid).cloned()).filter(|t| t != "none") else { return };
-    let mut boxed = toolbelt_parse(&text);
-    let Some((id, n)) = boxed.get(cell).cloned() else { return };
-    match carried.take() {
-        Some(mut hand) if ae2_name(&hand.item).is_some_and(|c| c.ends_with("_card")) => {
-            if n > 0 && id != *hand.item {
-                if right {
-                    *carried = Some(hand);
-                    return;
-                }
-                // Another card: they change places.
-                boxed[cell] = (hand.item.to_string(), i64::from(hand.count));
-                *carried = Some(ItemStack::new(&id, n as u32));
-            } else {
-                let room = 64 - n;
-                let add = (if right { 1 } else { i64::from(hand.count) }).min(room);
-                boxed[cell] = (hand.item.to_string(), n + add);
-                hand.count -= add as u32;
-                *carried = (hand.count > 0).then_some(hand);
-            }
-        }
-        Some(hand) => {
-            *carried = Some(hand);
-            return;
-        }
-        None if n > 0 => {
-            let take = if right { (n + 1) / 2 } else { n };
-            *carried = Some(ItemStack::new(&id, take as u32));
-            boxed[cell] = if n > take { (id, n - take) } else { (String::new(), 0) };
-        }
-        None => return,
+    if carried.as_ref().is_some_and(|h| !ae2_name(&h.item).is_some_and(|c| c.ends_with("_card")))
+        || SERVER.with_borrow(|s| s.toolbelt_clicks.iter().filter(|c| c.0 == uuid).count() >= CLIENT_QUEUE)
+    {
+        return;
     }
-    let text = boxed.iter().map(|(id, n)| if *n > 0 { format!("{id} {n}") } else { String::new() }).collect::<Vec<_>>().join(";");
-    let _ = game.native_net_send_to_player(uuid, NET_UI, format!("toolbelt {text}").as_bytes());
-    SERVER.with_borrow_mut(|s| {
-        s.toolbelt_sent.insert(uuid, text.clone());
-        s.toolbelt_writes.insert(uuid, text);
-    });
+    let hand = match carried.take() {
+        Some(mut hand) if right && hand.count > 1 => {
+            hand.count -= 1;
+            let one = ItemStack { count: 1, ..hand.clone() };
+            *carried = Some(hand);
+            Some(one)
+        }
+        hand => hand,
+    };
+    SERVER.with_borrow_mut(|s| s.toolbelt_clicks.push((uuid, cell, right, hand)));
 }
 
-/// Each tick, for a viewer: the tool written with what the toolbelt's clicks did, and what their client should show
-/// of it, when that changed.
+/// What a full inventory couldn't take: to the network they're using, or beside them.
+fn net_or_drop(game: &mut Game<'_>, player: u128, left: ItemStack) {
+    let key = key_of(game, &left);
+    let stored = with_viewer_storage(game, player, |st| st.insert(&key, i64::from(left.count), Actionable::Modulate)).unwrap_or(0);
+    if i64::from(left.count) > stored {
+        give_or_drop(game, player, ItemStack { count: left.count - stored as u32, ..left });
+    }
+}
+
+/// What the player gets back of a click, or the world beside them when they've no room for it.
+fn give_or_drop(game: &mut Game<'_>, uuid: u128, stack: ItemStack) {
+    if let Some(left) = game.native_give_stack(uuid, stack)
+        && let Some(at) = game.native_server_players().into_iter().find(|p| p.uuid == uuid).map(|p| p.position)
+    {
+        game.spawn_item(left, at, [0.0; 3], 10);
+    }
+}
+
+/// The toolbelt's waiting clicks. With no tool on them any more, what they put in comes back.
+fn toolbelt_ops(game: &mut Game<'_>, uuid: u128) {
+    let clicks = SERVER.with_borrow_mut(|s| {
+        let (mine, rest) = std::mem::take(&mut s.toolbelt_clicks).into_iter().partition::<Vec<_>, _>(|c| c.0 == uuid);
+        s.toolbelt_clicks = rest;
+        mine
+    });
+    for (_, cell, right, hand) in clicks {
+        let slot = network_tool_slot(game);
+        let tool = slot.and_then(|slot| game.native_carried_stack(slot).map(|t| toolbox_of(t)));
+        let (Some(slot), Some(mut boxed)) = (slot, tool.filter(|_| cell < 9)) else {
+            if let Some(hand) = hand {
+                give_or_drop(game, uuid, hand);
+            }
+            continue;
+        };
+        let (id, n) = boxed[cell].clone();
+        let back = match hand {
+            // Another card: they change places.
+            Some(hand) if n > 0 && id != *hand.item => {
+                if right {
+                    Some(hand)
+                } else {
+                    boxed[cell] = (hand.item.to_string(), i64::from(hand.count));
+                    Some(ItemStack::new(&id, n as u32))
+                }
+            }
+            Some(mut hand) => {
+                let add = i64::from(hand.count).min(64 - n).max(0);
+                boxed[cell] = (hand.item.to_string(), n + add);
+                hand.count -= add as u32;
+                (hand.count > 0).then_some(hand)
+            }
+            None if n > 0 => {
+                let take = if right { (n + 1) / 2 } else { n };
+                boxed[cell] = if n > take { (id.clone(), n - take) } else { (String::new(), 0) };
+                Some(ItemStack::new(&id, take as u32))
+            }
+            None => continue,
+        };
+        let text = boxed.iter().map(|(id, n)| if *n > 0 { format!("{id} {n}") } else { String::new() }).collect::<Vec<_>>().join(";");
+        if let Some(tool) = game.native_carried_stack(slot) {
+            set_custom(tool, "ae2:toolbox", Tag::String(java(&text)));
+        }
+        if let Some(back) = back {
+            give_or_drop(game, uuid, back);
+        }
+    }
+}
+
+/// Each tick, for a viewer: the toolbelt's clicks, and what their client should show of it, when that changed.
 fn toolbelt_stream(game: &mut Game<'_>, uuid: u128) {
+    toolbelt_ops(game, uuid);
     let tick = SERVER.with_borrow_mut(|s| {
         let tick = s.tick;
         if !s.viewers.contains_key(&uuid) || s.toolbelt_seen.insert(uuid, tick) == Some(tick) {
@@ -15606,17 +16007,7 @@ fn toolbelt_stream(game: &mut Game<'_>, uuid: u128) {
     if tick.is_none() {
         return;
     }
-    // While the screen's clicks wait to be written, the client's list is the truth.
-    if SERVER.with_borrow(|s| s.toolbelt_writes.contains_key(&uuid)) && !SERVER.with_borrow_mut(|s| s.toolbelt_flush.remove(&uuid)) {
-        return;
-    }
     let slot = network_tool_slot(game);
-    if let Some(write) = SERVER.with_borrow_mut(|s| s.toolbelt_writes.remove(&uuid))
-        && let Some(slot) = slot
-        && let Some(tool) = game.native_carried_stack(slot)
-    {
-        set_custom(tool, "ae2:toolbox", Tag::String(java(&write)));
-    }
     let text = match slot.and_then(|slot| game.native_carried_stack(slot).map(|s| s.clone())) {
         Some(tool) => toolbox_of(&tool).iter().map(|(id, n)| if *n > 0 { format!("{id} {n}") } else { String::new() }).collect::<Vec<_>>().join(";"),
         None => "none".to_owned(),
@@ -15632,7 +16023,7 @@ fn toolbelt_stream(game: &mut Game<'_>, uuid: u128) {
 /// the knife wears a little each cut.
 fn knife_tick(game: &mut Game<'_>, uuid: u128, slot: i32, mut knife: ItemStack) {
     for op in take_ops(uuid) {
-        let Some(name) = op.strip_prefix("knife ").map(str::trim).filter(|n| !n.is_empty()) else { continue };
+        let Some(name) = op.strip_prefix("knife ").map(str::trim).filter(|n| !n.is_empty() && n.chars().count() <= 64) else { continue };
         let ingots: Vec<String> = game.res.items().item_tags.get("ae2:metal_ingots").map_or_else(|| vec!["minecraft:iron_ingot".to_owned()], |t| t.iter().map(|i| i.to_string()).collect());
         if !ingots.iter().any(|i| game.native_take_items(i, 1) == 1) {
             continue;
@@ -15640,7 +16031,7 @@ fn knife_tick(game: &mut Game<'_>, uuid: u128, slot: i32, mut knife: ItemStack) 
         let mut press = ItemStack::new("ae2:name_press", 1);
         set_custom(&mut press, "ae2:name", Tag::String(java(name)));
         press.extra.get_or_insert_with(Default::default).custom_name = Some(Tag::String(java(name)));
-        let _ = game.native_give_stack(uuid, press);
+        give_or_drop(game, uuid, press);
         let max = game.res.items().get(&knife.item).map_or(0, |i| i.max_damage);
         knife.damage += 1;
         if max > 0 && knife.damage >= max {
@@ -15823,6 +16214,33 @@ fn wb_cards(entity: &ModBlockEntity) -> Vec<String> {
     (1..=WB_UPGRADES).map(|i| entity.items.get(i).cloned().flatten().map_or(String::new(), |s| s.item.to_string())).collect()
 }
 
+/// The cards in the workbench's slots that are on its cell: as many as it has room for, in order.
+fn wb_on(entity: &ModBlockEntity, room: usize) -> Vec<String> {
+    wb_cards(entity).into_iter().filter(|c| !c.is_empty()).take(room).filter(|c| is_cell_card(c)).collect()
+}
+
+/// Empties the slots that only showed what's on the cell; a card past its room is an item of its own.
+fn wb_clear_on(entity: &mut ModBlockEntity) {
+    let mut left = nbt_i64(&entity.nbt, "room");
+    for i in 1..=WB_UPGRADES {
+        if left <= 0 {
+            break;
+        }
+        if entity.items[i].as_ref().is_some_and(|s| is_cell_card(&s.item)) {
+            entity.items[i] = None;
+            left -= 1;
+        }
+    }
+}
+
+/// Clicks are handled before the block entities tick, and a tick can hold several: the workbench is brought up to date
+/// before each (`native_quick_move`, which every click on a menu passes first).
+pub fn before_menu_click(game: &mut Game<'_>, pos: Pos) {
+    if block_id(game, pos) == "ae2:cell_workbench" {
+        game.native_with_mod_block_entity(pos, workbench_tick);
+    }
+}
+
 /// CellWorkbenchBlockEntity.onChangeInventory and the menu's upgrade slots: a cell put in brings its partition
 /// (or takes the pane's, when it has none) and its cards; one taken out takes its cards and, in "clear on
 /// remove" copy mode, clears the pane; cards put in or taken out while it's there go onto the cell.
@@ -15859,9 +16277,10 @@ fn workbench_tick(entity: &mut ModBlockEntity) {
                 }
             }
             let room = cell_upgrade_slots(&cell);
-            let on: Vec<Tag> = wb_cards(entity).iter().take(room).filter(|c| is_cell_card(c)).map(|c| Tag::String(java(c))).collect();
-            if on.len() != cell_cards(&cell).len() {
-                set_custom(&mut cell, "ae2:upgrades", Tag::List(on));
+            set_nbt_i64(&mut entity.nbt, "room", room as i64);
+            let on = wb_on(entity, room);
+            if on != cell_cards(&cell) {
+                set_custom(&mut cell, "ae2:upgrades", Tag::List(on.iter().map(|c| Tag::String(java(c))).collect()));
                 cell_changed(&mut cell);
             }
             entity.items[0] = Some(cell);
@@ -15872,9 +16291,7 @@ fn workbench_tick(entity: &mut ModBlockEntity) {
         (true, None) => {
             // The cards went with the cell, unless they changed since they were last put on it.
             if now == saved {
-                for i in 1..=WB_UPGRADES {
-                    entity.items[i] = None;
-                }
+                wb_clear_on(entity);
             }
             if nbt_i64(&entity.nbt, "copy") == 0 {
                 set_wb_config(entity, &vec![String::new(); 63]);
@@ -15884,11 +16301,20 @@ fn workbench_tick(entity: &mut ModBlockEntity) {
         }
         (true, Some(mut cell)) if now != saved => {
             let room = cell_upgrade_slots(&cell);
-            let cards: Vec<Tag> = wb_cards(entity).iter().take(room).filter(|c| is_cell_card(c)).map(|c| Tag::String(java(c))).collect();
+            set_nbt_i64(&mut entity.nbt, "room", room as i64);
+            let cards: Vec<Tag> = wb_on(entity, room).iter().map(|c| Tag::String(java(c))).collect();
             set_custom(&mut cell, "ae2:upgrades", Tag::List(cards));
             cell_changed(&mut cell);
             entity.items[0] = Some(cell);
             entity.nbt.insert(java("cards"), Tag::String(java(&now)));
+        }
+        // Another cell in its place (the cursor's, swapped): the old one took its cards, and this one brings its own.
+        (true, Some(cell)) if cell_cards(&cell) != wb_on(entity, cell_upgrade_slots(&cell)) => {
+            entity.items[0] = None;
+            workbench_tick(entity);
+            entity.items[0] = Some(cell);
+            workbench_tick(entity);
+            return;
         }
         _ => {}
     }
@@ -16180,7 +16606,7 @@ pub fn explosion(game: &mut Game<'_>, dimension: &str, center: [f64; 3]) {
         for _ in 0..pairs {
             let mut pair = ItemStack::new("ae2:quantum_entangled_singularity", 2);
             set_custom(&mut pair, "ae2:freq", Tag::Long(new_frequency()));
-            let _ = game.native_give_stack(uuid, pair);
+            give_or_drop(game, uuid, pair);
         }
     }
 }
@@ -16782,7 +17208,10 @@ fn run_buses(game: &mut Game<'_>) {
                 moved += got;
                 if let Some(left) = game.native_insert_item(target, face, stack_of(&key, got as u32)) {
                     let back = key_of(game, &left);
-                    with_storage(game, grid, None, |st| st.insert(&back, i64::from(left.count), Actionable::Modulate));
+                    let stored = with_storage(game, grid, None, |st| st.insert(&back, i64::from(left.count), Actionable::Modulate));
+                    if i64::from(left.count) > stored {
+                        drop_key(game, &back, i64::from(left.count) - stored, [f64::from(target[0]) + 0.5, f64::from(target[1]) + 0.5, f64::from(target[2]) + 0.5]);
+                    }
                 }
             }
             worked |= moved > 0;
@@ -17260,7 +17689,7 @@ fn placed_inner(game: &mut Game<'_>, pos: Pos) {
             if let Some(air) = game.pack.assets.registry.default_state("minecraft:air") {
                 game.native_set_block(&dim, pos, air, 3);
             }
-            let _ = game.native_give_stack(player.uuid, ItemStack::new(&block, 1));
+            give_or_drop(game, player.uuid, ItemStack::new(&block, 1));
             game.native_action_bar(player.uuid, horizon_client::text::Text::legacy("§cPlace it on a cable"));
             return;
         } else if name.ends_with("_bus") || name.ends_with("_p2p_tunnel") || name.ends_with("_plane") {
@@ -17343,9 +17772,9 @@ fn wrench_dismantle(game: &mut Game<'_>, pos: Pos, block: &str) {
     if !settings.is_empty() {
         set_custom(&mut stack, "ae2:settings", Tag::Compound(settings));
     }
-    let _ = game.native_give_stack(player.uuid, stack);
+    give_or_drop(game, player.uuid, stack);
     for item in items.into_iter().flatten() {
-        let _ = game.native_give_stack(player.uuid, item);
+        give_or_drop(game, player.uuid, item);
     }
 }
 
@@ -17360,9 +17789,9 @@ fn twin_dismantle(game: &mut Game<'_>, pos: Pos) {
     if !game.native_set_block(&dim, pos, air, 3) {
         return;
     }
-    let _ = game.native_give_stack(player.uuid, ItemStack::new(&format!("ae2:{cable}"), 1));
+    give_or_drop(game, player.uuid, ItemStack::new(&format!("ae2:{cable}"), 1));
     for (_, block) in facades {
-        let _ = game.native_give_stack(player.uuid, facade_stack(&block));
+        give_or_drop(game, player.uuid, facade_stack(&block));
     }
 }
 
@@ -17979,7 +18408,7 @@ pub fn monitor_punch(game: &mut Game<'_>, pos: Pos) -> bool {
     {
         let back = with_storage(game, grid, None, |st| st.insert(&key, i64::from(left.count), Actionable::Modulate));
         if back < i64::from(left.count) {
-            let _ = game.native_give_stack(player.uuid, ItemStack { count: left.count - back as u32, ..left });
+            give_or_drop(game, player.uuid, ItemStack { count: left.count - back as u32, ..left });
         }
     }
     monitor_report(game, pos, player.uuid);
@@ -18263,7 +18692,6 @@ fn with_chest_cell<R>(
         && let Some(contents) = inv.persist()
     {
         write_cell(&mut stack, &contents);
-        cell_changed(&mut stack);
         game.native_with_mod_block_entity(pos, |e| {
             if let Some(slot) = e.items.first_mut() {
                 *slot = Some(stack);
@@ -18977,6 +19405,9 @@ fn wireless_drain(game: &mut Game<'_>, player: u128, creative: bool, at: [f64; 3
     if !is_wireless_terminal(&stack.item) || link_of(stack) != Some(wap) {
         return;
     }
+    SERVER.with_borrow_mut(|s| {
+        s.wireless_seen.insert(player, s.tick);
+    });
     let range = game.native_with_mod_block_entity(wap, |e| wap_range(e)).unwrap_or_else(|| config().wireless_base_range);
     let distance =((at[0] - wap[0] as f64 - 0.5).powi(2) + (at[1] - wap[1] as f64 - 0.5).powi(2) + (at[2] - wap[2] as f64 - 0.5).powi(2)).sqrt();
     let Some(stack) = game.native_carried_stack(slot) else { return };
@@ -18985,10 +19416,7 @@ fn wireless_drain(game: &mut Game<'_>, player: u128, creative: bool, at: [f64; 3
     if powered && distance <= range {
         return;
     }
-    SERVER.with_borrow_mut(|s| {
-        s.wireless.remove(&player);
-        s.viewers.remove(&player);
-    });
+    viewer_closed(player);
     let _ = game.native_net_send_to_player(player, NET_WIRELESS, b"close");
     let text = if powered { "Wireless Out Of Range." } else { "Device is low on power." };
     game.native_action_bar(player, horizon_client::text::Text::legacy(text));
@@ -19751,7 +20179,13 @@ pub fn chunk_logged(dimension: &str, chunk: [i32; 2], load: bool) {
 pub fn ae2_command(game: &mut Game<'_>, args: &[&str]) -> bool {
     let line = format!("ae2 {}", args.join(" "));
     if game.native_net_send_to_server(NET_DEBUG, line.as_bytes()).is_err() {
-        let level = game.native_server_players().into_iter().map(|p| p.permission).max().unwrap_or(4);
+        let own = game.level.player_uuid.map(horizon_client::lan::playerdata::ints_uuid);
+        let players = game.native_server_players();
+        let level = match players.iter().find(|p| own == Some(p.uuid)) {
+            Some(me) => me.permission,
+            None if players.is_empty() => 4,
+            None => 0,
+        };
         let at = game.eye_position().unwrap_or([0.0; 3]);
         ae2_run(game, None, level, at, args);
     }
@@ -20432,6 +20866,19 @@ pub fn destroyed(game: &mut Game<'_>, pos: Pos, canceled: &mut bool) {
     if here == "ae2:spatial_anchor" {
         anchor_release(game, pos);
     }
+    // The slots beside a cell show its cards: only the cell drops those.
+    if here == "ae2:cell_workbench" {
+        game.native_with_mod_block_entity(pos, |e| {
+            workbench_tick(e);
+            if e.items.first().is_some_and(Option::is_some) {
+                wb_clear_on(e);
+            }
+        });
+    }
+    // CraftingCPUCluster.destroy: its job ends, and what it held goes back, or drops here.
+    if is_crafting(&here) {
+        cpu_broken(game, pos);
+    }
     // PatternProviderLogic.addDrops: what was still to go out.
     if canon(&here) == "ae2:pattern_provider" {
         let waiting = game.native_with_mod_block_entity(pos, |e| read_entries(e.nbt.get(&java(SEND_LIST)))).unwrap_or_default();
@@ -20887,8 +21334,7 @@ fn wcraft_ops(game: &mut Game<'_>, player: u128) {
                 if *shift == "1" {
                     let got = with_viewer_storage(game, player, |st| st.extract(&key, most, Actionable::Modulate)).unwrap_or(0);
                     if got > 0 && let Some(left) = game.native_give_stack(player, stack_of(&key, got as u32)) {
-                        let back = key_of(game, &left);
-                        with_viewer_storage(game, player, |st| st.insert(&back, i64::from(left.count), Actionable::Modulate));
+                        net_or_drop(game, player, left);
                     }
                 } else if cursor.is_none() {
                     let have = with_viewer_storage(game, player, |st| st.extract(&key, most, Actionable::Simulate)).unwrap_or(0);
@@ -20908,22 +21354,25 @@ fn wcraft_ops(game: &mut Game<'_>, player: u128) {
                     let stored = with_viewer_storage(game, player, |n| n.insert(&key, i64::from(st.count), Actionable::Modulate)).unwrap_or(0);
                     let left = st.count.saturating_sub(stored as u32);
                     if left > 0 {
-                        let _ = game.native_give_stack(player, ItemStack { count: left, ..st });
+                        give_or_drop(game, player, ItemStack { count: left, ..st });
                     }
                 }
                 let mut left: Vec<Vec<String>> = Vec::new();
                 for spec in cells {
                     let Some((c, ids)) = spec.split_once('=') else { continue };
                     let Some(c) = c.parse::<usize>().ok().filter(|c| *c < 9) else { continue };
+                    // One item for a cell: a second line for it would lose the first.
+                    if grid[c].is_some() {
+                        continue;
+                    }
                     let mut got = false;
-                    for id in ids.split(',') {
-                        let key = key_of(game, &ItemStack::new(id, 1));
-                        if with_viewer_storage(game, player, |n| n.extract(&key, 1, Actionable::Modulate)).unwrap_or(0) > 0 {
-                            grid[c] = Some(stack_of(&key, 1));
-                            got = true;
-                            break;
-                        }
-                        // Then the player's inventory, as the terminal's own grid does.
+                    let keys: Vec<AeKey> = ids.split(',').take(64).map(|id| key_of(game, &ItemStack::new(id, 1))).collect();
+                    if let Some(key) = with_viewer_storage(game, player, |n| keys.into_iter().find(|key| n.extract(key, 1, Actionable::Modulate) > 0)).flatten() {
+                        grid[c] = Some(stack_of(&key, 1));
+                        got = true;
+                    }
+                    // Then the player's inventory, as the terminal's own grid does.
+                    for id in ids.split(',').take(64).filter(|_| !got) {
                         if game.native_take_items(id, 1) == 1 {
                             grid[c] = Some(ItemStack::new(id, 1));
                             got = true;
@@ -21022,15 +21471,13 @@ fn wcraft_ops(game: &mut Game<'_>, player: u128) {
                             if cell.is_none() {
                                 *cell = Some(rem.clone());
                             } else if let Some(left) = game.native_give_stack(player, rem.clone()) {
-                                let k = key_of(game, &left);
-                                with_viewer_storage(game, player, |n| n.insert(&k, i64::from(left.count), Actionable::Modulate));
+                                net_or_drop(game, player, left);
                             }
                         }
                     }
                     if *shift == "1" {
                         if let Some(left) = game.native_give_stack(player, result) {
-                            let k = key_of(game, &left);
-                            with_viewer_storage(game, player, |n| n.insert(&k, i64::from(left.count), Actionable::Modulate));
+                            net_or_drop(game, player, left);
                             break;
                         }
                     } else {
@@ -21069,13 +21516,11 @@ fn wcraft_ops(game: &mut Game<'_>, player: u128) {
                 }
             }
             ["close"] => {
-                if let Some(c) = cursor.take()
-                    && let Some(left) = game.native_give_stack(player, c)
-                {
-                    let k = key_of(game, &left);
-                    with_viewer_storage(game, player, |n| n.insert(&k, i64::from(left.count), Actionable::Modulate));
+                if let Some(c) = cursor.take() {
+                    give_or_drop(game, player, c);
                 }
                 SERVER.with_borrow_mut(|s| s.wcraft_slot.remove(&player));
+                break;
             }
             _ => {}
         }
@@ -21092,7 +21537,12 @@ fn wcraft_ops(game: &mut Game<'_>, player: u128) {
     };
     let _ = game.native_net_send_to_player(player, NET_WIRELESS, msg.as_bytes());
     if let Some(c) = cursor {
-        SERVER.with_borrow_mut(|s| s.wcursor.insert(player, c));
+        // A screen gone by now has no cursor to keep it.
+        if SERVER.with_borrow(|s| s.wireless.contains(&player)) {
+            SERVER.with_borrow_mut(|s| s.wcursor.insert(player, c));
+        } else {
+            give_or_drop(game, player, c);
+        }
     }
 }
 
@@ -21102,6 +21552,19 @@ const STASH_X: [f32; 2] = [92.0, 102.0];
 const STASH_Y: f32 = 14.0;
 const CT_STASH: i32 = (1 << 27) | 1;
 const CT_STASH_PLAYER: i32 = (1 << 27) | 2;
+const CT_TAKE: i32 = (1 << 27) | 3;
+const CT_TAKE_ALL: i32 = (1 << 27) | 4;
+
+/// The crafting terminal's result, from the panel's top left, below its rows.
+fn craft_result_at() -> [f32; 2] {
+    let rows = CLIENT.with_borrow(|c| c.rows).max(3);
+    [CRAFT_RESULT[0], CRAFT_RESULT[1] + 18.0 * (rows - 3) as f32]
+}
+
+fn on_craft_result(at: [f32; 2]) -> bool {
+    let [x, y] = craft_result_at();
+    (x..x + 16.0).contains(&at[0]) && (y..y + 16.0).contains(&at[1])
+}
 
 /// The stash button under `at` (from the panel's top left) with `rows` network rows above.
 fn stash_button(at: [f32; 2], rows: usize) -> Option<i32> {
@@ -21276,11 +21739,7 @@ fn terminal_frame(game: &mut Game<'_>) {
         });
     }
     if game.native_screen_height().is_none() {
-        CLIENT.with_borrow_mut(|c| {
-            if c.toolbelt_at.take().is_some() {
-                c.ui_out.push("toolbeltdone".to_owned());
-            }
-        });
+        CLIENT.with_borrow_mut(|c| c.toolbelt_at = None);
     }
     super::native_hooks::port_ae2_screen::set_hidden(game, overlay_shown());
     // The toolbelt lies beyond the window, where a press isn't the screen's: it goes as the slot's button by hand.
@@ -21454,10 +21913,13 @@ pub fn button_done() {
     CLICKER.set(None);
 }
 
-/// The player a menu button on the block at `pos` is from: its clicker when they have it open, else a viewer.
+/// The player a menu button on the block at `pos` is from: its clicker, if they have it open; with no clicker, a viewer.
 fn menu_player(pos: Pos) -> Option<u128> {
     SERVER.with_borrow(|s| {
-        CLICKER.get().map(|(u, _)| u).filter(|u| s.viewers.get(u) == Some(&pos)).or_else(|| s.viewers.iter().find(|(_, p)| **p == pos).map(|(u, _)| *u))
+        match CLICKER.get() {
+            Some((u, _)) => Some(u).filter(|u| s.viewers.get(u) == Some(&pos)),
+            None => s.viewers.iter().find(|(_, p)| **p == pos).map(|(u, _)| *u),
+        }
     })
 }
 
@@ -21469,6 +21931,50 @@ fn creative_player(game: &Game<'_>, uuid: u128) -> bool {
     let listed = game.native_server_players().into_iter().find(|p| p.uuid == uuid).map(|p| p.game_mode);
     let owner = game.serving.as_ref().is_some_and(|s| s.owner == uuid);
     acting.or(clicker).or(listed).map_or(owner && game.creative, |m| m == 1)
+}
+
+/// A CPU's block is broken: its key block ends the job, since a CPU's state lives with that block.
+fn cpu_broken(game: &mut Game<'_>, pos: Pos) {
+    let found = SERVER.with_borrow(|s| {
+        let grid = *s.grid_of.get(&pos)?;
+        Some((grid, s.grids.get(grid)?.patterns.clone()))
+    });
+    let Some(mut cpu) = SERVER.with_borrow_mut(|s| s.cpus.remove(&pos)) else { return };
+    let tick = SERVER.with_borrow(|s| s.tick);
+    if let Some((grid, patterns)) = found {
+        let mut net = CpuNet { game: &mut *game, grid, cpu: pos, patterns, tick };
+        cpu.cancel(&mut net);
+        cpu.store_items(&mut net);
+    }
+    let mut held = super::port_ae2_core::KeyCounter::new();
+    cpu.all_items(&mut held);
+    let at = [f64::from(pos[0]) + 0.5, f64::from(pos[1]) + 0.5, f64::from(pos[2]) + 0.5];
+    for (key, amount) in held.iter() {
+        drop_key(game, key, amount, at);
+    }
+}
+
+/// Items on the ground, in stacks. (A fluid has nowhere to go.)
+fn drop_key(game: &mut Game<'_>, key: &AeKey, amount: i64, at: [f64; 3]) {
+    if key.key_type() != super::port_ae2_core::KeyType::Items {
+        return;
+    }
+    let most = i64::from(max_stack(game, key.id()));
+    let mut left = amount.min(most * 1024);
+    while left > 0 {
+        let n = left.min(most);
+        game.spawn_item(stack_of(key, n as u32), at, [0.0, 0.1, 0.0], 10);
+        left -= n;
+    }
+}
+
+/// What a job's machine gave that the CPU didn't take: to storage, or on the ground beside it when that's full.
+fn job_output_rest(net: &mut CpuNet<'_, '_>, what: &AeKey, amount: i64, from: Pos) {
+    let stored = net.insert(what, amount, Actionable::Modulate);
+    if amount > stored {
+        let at = [f64::from(from[0]) + 0.5, f64::from(from[1]) + 1.0, f64::from(from[2]) + 0.5];
+        drop_key(net.game, what, amount - stored, at);
+    }
 }
 
 /// The cable with facades as older builds kept it: the cable's own twin on the beacon's template, its arms and
@@ -22732,7 +23238,7 @@ fn pick_in_cell(game: &mut Game<'_>, pos: Pos) -> bool {
         },
     };
     if player.game_mode == 1 {
-        let _ = game.native_give_stack(player.uuid, stack);
+        give_or_drop(game, player.uuid, stack);
     }
     true
 }

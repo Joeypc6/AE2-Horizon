@@ -295,10 +295,8 @@ impl CraftingCpu {
             self.inventory.add(what, extracted);
             if extracted < to_extract {
                 self.inventory.remove_zeros();
-                for (key, amount) in self.inventory.iter() {
-                    net.insert(key, amount, Actionable::Modulate);
-                }
-                self.inventory.clear();
+                // What storage won't take back now stays here, and `store_items` keeps trying.
+                self.store_items(net);
                 return Err(SubmitError::MissingIngredient(GenericStack { what: what.clone(), amount: to_extract - extracted }));
             }
         }

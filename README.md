@@ -41,6 +41,7 @@ doesn't show you.
 - **Nested P2P error.** Worked out from the stretches between tunnels, so it is an approximation.
 - **`craftingCalculationTimePerTick`.** Only applies to jobs that don't come from the confirm screen, whose plan runs on its
   own thread.
+- **Two storage buses on one inventory.** Only the first reaches it. AE2's buses read it live; here each would count the same items.
 - **World height.** Parts on cables assume a world from -64 to 319.
 - **JEI and Jade addons.** The integrations work only with those mods' Horizon ports, not with Java addons for them.
 
@@ -54,10 +55,16 @@ more than one guest at a time, and speed against the Java mod.
 
 `PLAN.md` has the full history; Round 22 is the current list.
 
+## Multiplayer
+
+A connected player's messages are treated as untrusted: AE2's debug commands need operator level, and terminals act only for a player
+in reach of one they really opened. This was tested on a dedicated server by a non-operator with a client that sends any message,
+and `PLAN.md` Round 24 has the list. Report anything found to the issues page.
+
 ## Build
 
 This is a [Horizon](https://github.com/horizon-rust/horizon) native mod bundle: Rust mixins compiled into the game.
-It was built and tested on Horizon commit `6475f62` (Minecraft 26.3, native hooks API 359), as `native-6475f62-a7ce977ec518`.
+It was built and tested on Horizon commit `6475f62` (Minecraft 26.3, native hooks API 359), as `native-6475f62-9132faf6f134`.
 Native mods are unsandboxed code that runs with your rights, so read what you build.
 
 Put each bundle's `mixins/<id>` folder in one folder, then:

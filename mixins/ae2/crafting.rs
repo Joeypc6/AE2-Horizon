@@ -411,6 +411,36 @@ fn extract_templates(inv: &mut SimulationStack, key: &AeKey, amount: i64, multip
 }
 
 /// What a request carries down the tree.
+/// How far one calculation may go before it is refused. A client names the amount, and each step can be one craft: on the
+/// server thread a big one would stop the game. AE2 keeps this off the server thread and lets a screen cancel it.
+pub const SERVER_THREAD_STEPS: u64 = 20_000;
+pub const PLAN_THREAD_STEPS: u64 = 20_000_000;
+
+thread_local! {
+    static STEPS: std::cell::Cell<u64> = const { std::cell::Cell::new(SERVER_THREAD_STEPS) };
+    static STEPS_LEFT: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+    static CANCEL: std::cell::RefCell<Option<std::sync::Arc<std::sync::atomic::AtomicBool>>> = const { std::cell::RefCell::new(None) };
+}
+
+/// The next calculations on this thread: how many steps each may take, and what stops them early.
+pub fn limit_calculation(steps: u64, cancel: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>) {
+    STEPS.set(steps);
+    CANCEL.set(cancel);
+}
+
+fn calculation_step() -> Result<(), CraftError> {
+    let left = STEPS_LEFT.get();
+    let stopped = left % 4096 == 0 && CANCEL.with_borrow(|c| c.as_ref().is_some_and(|c| c.load(std::sync::atomic::Ordering::Relaxed)));
+    if left == 0 || stopped {
+        return Err(CraftError::Bug("That is too much to work out at once: ask for fewer.".to_owned()));
+    }
+    STEPS_LEFT.set(left - 1);
+    Ok(())
+}
+
+/// Recipes inside recipes, at most. A stack overflow ends the process, whatever a client asked for.
+const MAX_DEPTH: usize = 128;
+
 struct Context<'a> {
     service: &'a dyn CraftingService,
     simulate: bool,
@@ -498,6 +528,7 @@ impl Node {
         mut requested: i64,
         mut container_items: Option<&mut KeyCounter>,
     ) -> Result<(), CraftError> {
+        calculation_step()?;
         inv.add_stack_bytes(&self.what, self.amount, requested);
         for (key, amount) in self.valid_templates(inv) {
             let extracted = extract_templates(inv, &key, amount, requested)?;
@@ -518,6 +549,9 @@ impl Node {
         self.build_child_patterns(ctx);
         let mut total = requested * self.amount;
         let processes = self.processes.as_mut().expect("built above");
+        if ctx.ancestors.len() >= MAX_DEPTH {
+            return Err(CraftError::Bug("That recipe chain is too long to work out.".to_owned()));
+        }
         ctx.ancestors.push(what.clone());
         let result = Self::craft(&what, processes, inv, ctx, &mut total, requested, self.amount);
         ctx.ancestors.pop();
@@ -705,6 +739,7 @@ pub fn calculate(
     amount: i64,
     strategy: CalculationStrategy,
 ) -> Result<CraftingPlan, CraftError> {
+    STEPS_LEFT.set(STEPS.get());
     let mut calc = Calculation {
         service,
         network: SimulationStack::new(storage),

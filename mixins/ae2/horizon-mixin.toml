@@ -1860,6 +1860,18 @@ bindings = [
   { name = "profession", ty = "u8", value = "profession" },
 ]
 
+# Before each click on a menu: several can come in one tick, and the cell workbench's slots and cell must agree for each.
+[[injection]]
+id = "workbench-before-click"
+kind = "HEAD"
+target = "horizon_client::game::native_quick_move::Game<'_>::lan_mod_quick_move"
+helper = "me_before_click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&LanHost", value = "&*host" },
+  { name = "conn", ty = "u32", value = "conn" },
+]
+
 [[injection]]
 id = "researcher-offers-world-tables"
 kind = "HEAD"

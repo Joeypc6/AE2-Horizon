@@ -748,3 +748,43 @@ another game running, the old and merged builds measured alike (271 and 297-365 
 
 A cargo cache note: switching mod sets can leave a crate's old build in place, since the stage restores a file's mtime. Clearing
 that crate's `.fingerprint` folder fixes it. `hz_jei_keys` being always in AE2 keeps players' builds clear of it.
+
+## Round 24 (2026-11-05): multiplayer security
+
+The registry's maintainers reported that any connected player could send `ae2:debug` and get items, or delete and write patterns. It
+was true, and four independent reviews of everything a client can send, and of how items move, then found more. All fixed:
+
+- **Commands and messages.** `debug_command` checks the sender's own permission level. A client's messages have a size and rate
+  limit, its queues have caps, and they act only on a terminal the server still counts as open, in reach and in the same dimension
+  (`viewer_checked`). A ghost item goes only to config slots, never into storage or a pattern slot.
+- **The crafting terminal's result** is no longer a slot. Taking it (`CT_TAKE`, `CT_TAKE_ALL`) works out the recipe and uses the
+  ingredients in one step. A real slot could be taken from partly, or emptied along with the grid, for free. Recipe remainders are kept.
+- **Crafting.** A player's job starts only from the plan they were shown. Calculations have a step budget, a depth limit of 128, and
+  their own thread with a 16 MiB stack.
+- **Duplication.** A cell whose contents change outside a drive loses its cached inventory's id (`write_cell`, found through an IO port).
+  The toolbelt's clicks apply in the inventory tick, with the tool. The workbench's slots and cell agree before each click, since a tick can
+  hold several, and only the cell's cards leave with it, whether swapped or broken. Only the first storage bus on an inventory reaches it.
+  A provider's trial push puts back everything it touched, a double chest's other half and a cauldron included.
+- **Item loss.** What a player or storage can't take now goes to the network or the ground: job output with storage full, an export
+  bus's refused items, a wireless cursor when the screen closes. Breaking a CPU's key block cancels its job and returns what it held.
+- **Other players' modes.** A button is its clicker's, so nobody else's creative mode can be used. Spectators use no terminal.
+- **Jade.** Command block text needs permission 2, a client can only narrow what it's shown, reach counts for everyone but the world's
+  owner, and requests have a rate limit.
+
+Tested on a dedicated server by a non-operator, with a test-only client that sends any bytes on any channel (it stays out of the repo).
+Each attack has a control proving the message arrives and works when it should. The cell and workbench duplications were also run
+on a server with those two fixes taken out, which gave 128 items from 64 and a second card on the first burst, so the tests can see them.
+
+Not run with such a control: two buses on a chest, the double chest push and breaking a CPU each pass, but the old code wasn't run
+against them. Job output with storage full and the cauldron trial were read through, not run.
+
+A test note: rebuilding the real mods right after the test-only client can leave its code in the build (`987c24b3c171` did), because
+the stage restores mtimes. Search a test build's client for `ae2raw.txt`. A false pass or fail also comes from a second such client
+running, since both take the file.
+
+Final build: `native-6475f62-9132faf6f134`. Its full suite passed with 0 panics, and AE2 alone, with Jade and with JEI compile.
+
+Not explained: in two of the five full runs (`87319f01c37b`, and the first on this build), placing `ae2:terminal` into a cable cell did
+nothing for that game's whole session, while other parts placed. The next test of it passed each time: alone in the same game
+once, and in a whole new run on this build, which was the same source. Those were both a build's first session, but `9f9ecb5e98a2`'s
+first passed. No cause was found in the placement code. A player would see a terminal that doesn't place until they restart, if it isn't the tests.
