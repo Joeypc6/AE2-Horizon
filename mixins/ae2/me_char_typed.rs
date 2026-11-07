@@ -2,8 +2,7 @@ fn ae2_char_typed(game: &crate::game::Game<'_>, screen: &crate::game::native_hoo
     if game.player.is_none() {
         return;
     }
-    if crate::game::port_ae2_guide::is_open() {
-        *canceled = true;
+    if *canceled {
         return;
     }
     if crate::game::port_ae2_me::jei_char(c) {

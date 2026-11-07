@@ -1,9 +1,9 @@
 {
   "game": "26.3",
-  "hooks": 359,
-  "horizon": "66f3981f522b24c250b21523a70080965b940424",
+  "hooks": 411,
+  "horizon": "6560641ba51a452f6bc2407baa4eb1b3be517ca8",
   "id": "ae2",
   "mixins": "5a64af938ec86b00d53d16a408aabc0038fb3e57",
   "schema": 1,
-  "version": "15.4.14"
+  "version": "15.4.16"
 }

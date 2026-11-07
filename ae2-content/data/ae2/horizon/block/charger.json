@@ -26,12 +26,22 @@
     },
     "right": {
       "type": "boolean"
+    },
+    "spin": {
+      "type": "enum",
+      "values": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
     }
   },
   "default_state": {
     "facing": "north",
     "update": "false",
     "left": "false",
-    "right": "false"
+    "right": "false",
+    "spin": "0"
   }
 }

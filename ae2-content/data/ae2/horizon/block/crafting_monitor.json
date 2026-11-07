@@ -29,6 +29,15 @@
     },
     "powered": {
       "type": "boolean"
+    },
+    "spin": {
+      "type": "enum",
+      "values": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
     }
   },
   "default_state": {
@@ -39,7 +48,8 @@
     "side_up": "false",
     "side_down": "false",
     "structure": "false",
-    "powered": "false"
+    "powered": "false",
+    "spin": "0"
   },
   "components": {
     "!minecraft:cooking_fuel": {}

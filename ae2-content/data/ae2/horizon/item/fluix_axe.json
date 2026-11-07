@@ -1,3 +1,38 @@
 {
-  "template": "minecraft:diamond_axe"
+  "template": "minecraft:iron_axe",
+  "components": {
+    "minecraft:max_damage": 750,
+    "minecraft:repairable": {
+      "items": "ae2:fluix_crystal"
+    },
+    "minecraft:attribute_modifiers": [
+      {
+        "type": "minecraft:attack_damage",
+        "id": "minecraft:base_attack_damage",
+        "amount": 8.4,
+        "operation": "add_value",
+        "slot": "mainhand"
+      },
+      {
+        "type": "minecraft:attack_speed",
+        "id": "minecraft:base_attack_speed",
+        "amount": -3.1,
+        "operation": "add_value",
+        "slot": "mainhand"
+      }
+    ],
+    "minecraft:tool": {
+      "rules": [
+        {
+          "blocks": "#minecraft:incorrect_for_iron_tool",
+          "correct_for_drops": false
+        },
+        {
+          "blocks": "#minecraft:mineable/axe",
+          "correct_for_drops": true,
+          "speed": 7.2
+        }
+      ]
+    }
+  }
 }

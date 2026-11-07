@@ -1464,6 +1464,19 @@ def add_registries(write, blocks, items):
 def final_fixes(out):
     """What the templates would otherwise bring along, and what Horizon's loot doesn't read."""
     out = Path(out)
+    # Budding quartz ticks randomly as budding amethyst does, needs a pickaxe for its drops, and has no menu or facing.
+    for name in BUDDING:
+        f = out / f"data/{ID}/horizon/block/{name}.json"
+        decl = json.loads(f.read_text())
+        decl["template"] = "minecraft:budding_amethyst"
+        decl["properties"] = {**decl.get("properties", {}), "requires_tool": True}
+        decl.pop("components", None)
+        f.write_text(json.dumps(decl, indent=2))
+        bs = out / f"assets/{ID}/blockstates/{name}.json"
+        variants = json.loads(bs.read_text())["variants"]
+        first = next(iter(variants.values()))
+        first = first[0] if isinstance(first, list) else first
+        bs.write_text(json.dumps({"variants": {"": {"model": first["model"]}}}, indent=2))
     for f in sorted((out / f"data/{ID}/horizon/block").glob("*.json")):
         decl = json.loads(f.read_text())
         template = decl.get("template")

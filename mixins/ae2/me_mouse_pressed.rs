@@ -2,7 +2,6 @@ fn ae2_mouse_pressed(game: &crate::game::Game<'_>, screen: &crate::game::native_
     if game.player.is_none() {
         return;
     }
-    crate::game::port_ae2_guide::click(game, screen.mouse, canceled);
     if !*canceled {
         crate::game::port_ae2_me::dialog_click(game, screen.mouse, button, canceled);
         if *canceled {

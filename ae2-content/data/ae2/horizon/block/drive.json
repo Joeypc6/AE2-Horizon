@@ -20,10 +20,20 @@
     },
     "update": {
       "type": "boolean"
+    },
+    "spin": {
+      "type": "enum",
+      "values": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
     }
   },
   "default_state": {
     "facing": "north",
-    "update": "false"
+    "update": "false",
+    "spin": "0"
   }
 }

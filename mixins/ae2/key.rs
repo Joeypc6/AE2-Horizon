@@ -52,9 +52,7 @@ fn ae2_key(game: &mut crate::game::Game<'_>, key: &str, pressed: bool) {
     if pressed && key == game.native_mod_key(m::ID, "category", "key.keyboard.unknown") {
         // TODO: what `key.ae2.category` did when pressed.
     }
-    if pressed && key == game.native_mod_key(m::ID, "guide", "key.keyboard.g") {
-        // TODO: what `key.ae2.guide` did when pressed.
-    }
+    // (The `guide` key is read by the kit's guide, where a screen is open: `hotkey`.)
     for name in ["wireless_terminal", "portable_item_cell", "portable_fluid_cell"] {
         if pressed && key == game.native_mod_key(m::ID, name, "key.keyboard.unknown") && key != "key.keyboard.unknown" {
             crate::game::port_ae2_me::hotkey(game, name);

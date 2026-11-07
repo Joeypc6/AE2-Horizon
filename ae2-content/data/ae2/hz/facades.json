@@ -3223,6 +3223,14 @@
     "minecraft:block/pale_moss_block",
     "minecraft:block/pale_moss_block"
   ],
+  "ae2:chipped_budding_quartz": [
+    "ae2:block/chipped_budding_quartz",
+    "ae2:block/chipped_budding_quartz",
+    "ae2:block/chipped_budding_quartz",
+    "ae2:block/chipped_budding_quartz",
+    "ae2:block/chipped_budding_quartz",
+    "ae2:block/chipped_budding_quartz"
+  ],
   "ae2:chiseled_quartz_block": [
     "ae2:block/chiseled_quartz_block_top",
     "ae2:block/chiseled_quartz_block_top",
@@ -3238,6 +3246,30 @@
     "ae2:block/cut_quartz_block",
     "ae2:block/cut_quartz_block",
     "ae2:block/cut_quartz_block"
+  ],
+  "ae2:damaged_budding_quartz": [
+    "ae2:block/damaged_budding_quartz",
+    "ae2:block/damaged_budding_quartz",
+    "ae2:block/damaged_budding_quartz",
+    "ae2:block/damaged_budding_quartz",
+    "ae2:block/damaged_budding_quartz",
+    "ae2:block/damaged_budding_quartz"
+  ],
+  "ae2:flawed_budding_quartz": [
+    "ae2:block/flawed_budding_quartz",
+    "ae2:block/flawed_budding_quartz",
+    "ae2:block/flawed_budding_quartz",
+    "ae2:block/flawed_budding_quartz",
+    "ae2:block/flawed_budding_quartz",
+    "ae2:block/flawed_budding_quartz"
+  ],
+  "ae2:flawless_budding_quartz": [
+    "ae2:block/flawless_budding_quartz",
+    "ae2:block/flawless_budding_quartz",
+    "ae2:block/flawless_budding_quartz",
+    "ae2:block/flawless_budding_quartz",
+    "ae2:block/flawless_budding_quartz",
+    "ae2:block/flawless_budding_quartz"
   ],
   "ae2:fluix_block": [
     "ae2:block/fluix_block",

@@ -7,5 +7,19 @@
   },
   "components": {
     "!minecraft:cooking_fuel": {}
+  },
+  "state_properties": {
+    "spin": {
+      "type": "enum",
+      "values": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    }
+  },
+  "default_state": {
+    "spin": "0"
   }
 }

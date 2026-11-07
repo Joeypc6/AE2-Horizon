@@ -1,88 +1,444 @@
 {
   "variants": {
-    "facing=north,left=false,right=false": {
+    "facing=north,left=false,right=false,spin=0": {
       "model": "ae2:block/hz/charger_body"
     },
-    "facing=north,left=false,right=true": {
+    "facing=north,left=false,right=false,spin=1": {
+      "model": "ae2:block/hz/charger_body",
+      "z": 90
+    },
+    "facing=north,left=false,right=false,spin=2": {
+      "model": "ae2:block/hz/charger_body",
+      "z": 180
+    },
+    "facing=north,left=false,right=false,spin=3": {
+      "model": "ae2:block/hz/charger_body",
+      "z": 270
+    },
+    "facing=north,left=false,right=true,spin=0": {
       "model": "ae2:block/hz/charger_body_right"
     },
-    "facing=north,left=true,right=false": {
+    "facing=north,left=false,right=true,spin=1": {
+      "model": "ae2:block/hz/charger_body_right",
+      "z": 90
+    },
+    "facing=north,left=false,right=true,spin=2": {
+      "model": "ae2:block/hz/charger_body_right",
+      "z": 180
+    },
+    "facing=north,left=false,right=true,spin=3": {
+      "model": "ae2:block/hz/charger_body_right",
+      "z": 270
+    },
+    "facing=north,left=true,right=false,spin=0": {
       "model": "ae2:block/hz/charger_body_left"
     },
-    "facing=north,left=true,right=true": {
+    "facing=north,left=true,right=false,spin=1": {
+      "model": "ae2:block/hz/charger_body_left",
+      "z": 90
+    },
+    "facing=north,left=true,right=false,spin=2": {
+      "model": "ae2:block/hz/charger_body_left",
+      "z": 180
+    },
+    "facing=north,left=true,right=false,spin=3": {
+      "model": "ae2:block/hz/charger_body_left",
+      "z": 270
+    },
+    "facing=north,left=true,right=true,spin=0": {
       "model": "ae2:block/hz/charger_body_left_right"
     },
-    "facing=south,left=false,right=false": {
+    "facing=north,left=true,right=true,spin=1": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "z": 90
+    },
+    "facing=north,left=true,right=true,spin=2": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "z": 180
+    },
+    "facing=north,left=true,right=true,spin=3": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "z": 270
+    },
+    "facing=south,left=false,right=false,spin=0": {
       "model": "ae2:block/hz/charger_body",
       "y": 180
     },
-    "facing=south,left=false,right=true": {
+    "facing=south,left=false,right=false,spin=1": {
+      "model": "ae2:block/hz/charger_body",
+      "y": 180,
+      "z": 90
+    },
+    "facing=south,left=false,right=false,spin=2": {
+      "model": "ae2:block/hz/charger_body",
+      "y": 180,
+      "z": 180
+    },
+    "facing=south,left=false,right=false,spin=3": {
+      "model": "ae2:block/hz/charger_body",
+      "y": 180,
+      "z": 270
+    },
+    "facing=south,left=false,right=true,spin=0": {
       "model": "ae2:block/hz/charger_body_right",
       "y": 180
     },
-    "facing=south,left=true,right=false": {
+    "facing=south,left=false,right=true,spin=1": {
+      "model": "ae2:block/hz/charger_body_right",
+      "y": 180,
+      "z": 90
+    },
+    "facing=south,left=false,right=true,spin=2": {
+      "model": "ae2:block/hz/charger_body_right",
+      "y": 180,
+      "z": 180
+    },
+    "facing=south,left=false,right=true,spin=3": {
+      "model": "ae2:block/hz/charger_body_right",
+      "y": 180,
+      "z": 270
+    },
+    "facing=south,left=true,right=false,spin=0": {
       "model": "ae2:block/hz/charger_body_left",
       "y": 180
     },
-    "facing=south,left=true,right=true": {
+    "facing=south,left=true,right=false,spin=1": {
+      "model": "ae2:block/hz/charger_body_left",
+      "y": 180,
+      "z": 90
+    },
+    "facing=south,left=true,right=false,spin=2": {
+      "model": "ae2:block/hz/charger_body_left",
+      "y": 180,
+      "z": 180
+    },
+    "facing=south,left=true,right=false,spin=3": {
+      "model": "ae2:block/hz/charger_body_left",
+      "y": 180,
+      "z": 270
+    },
+    "facing=south,left=true,right=true,spin=0": {
       "model": "ae2:block/hz/charger_body_left_right",
       "y": 180
     },
-    "facing=west,left=false,right=false": {
+    "facing=south,left=true,right=true,spin=1": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "y": 180,
+      "z": 90
+    },
+    "facing=south,left=true,right=true,spin=2": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "y": 180,
+      "z": 180
+    },
+    "facing=south,left=true,right=true,spin=3": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "y": 180,
+      "z": 270
+    },
+    "facing=west,left=false,right=false,spin=0": {
       "model": "ae2:block/hz/charger_body",
       "y": 270
     },
-    "facing=west,left=false,right=true": {
+    "facing=west,left=false,right=false,spin=1": {
+      "model": "ae2:block/hz/charger_body",
+      "y": 270,
+      "z": 90
+    },
+    "facing=west,left=false,right=false,spin=2": {
+      "model": "ae2:block/hz/charger_body",
+      "y": 270,
+      "z": 180
+    },
+    "facing=west,left=false,right=false,spin=3": {
+      "model": "ae2:block/hz/charger_body",
+      "y": 270,
+      "z": 270
+    },
+    "facing=west,left=false,right=true,spin=0": {
       "model": "ae2:block/hz/charger_body_right",
       "y": 270
     },
-    "facing=west,left=true,right=false": {
+    "facing=west,left=false,right=true,spin=1": {
+      "model": "ae2:block/hz/charger_body_right",
+      "y": 270,
+      "z": 90
+    },
+    "facing=west,left=false,right=true,spin=2": {
+      "model": "ae2:block/hz/charger_body_right",
+      "y": 270,
+      "z": 180
+    },
+    "facing=west,left=false,right=true,spin=3": {
+      "model": "ae2:block/hz/charger_body_right",
+      "y": 270,
+      "z": 270
+    },
+    "facing=west,left=true,right=false,spin=0": {
       "model": "ae2:block/hz/charger_body_left",
       "y": 270
     },
-    "facing=west,left=true,right=true": {
+    "facing=west,left=true,right=false,spin=1": {
+      "model": "ae2:block/hz/charger_body_left",
+      "y": 270,
+      "z": 90
+    },
+    "facing=west,left=true,right=false,spin=2": {
+      "model": "ae2:block/hz/charger_body_left",
+      "y": 270,
+      "z": 180
+    },
+    "facing=west,left=true,right=false,spin=3": {
+      "model": "ae2:block/hz/charger_body_left",
+      "y": 270,
+      "z": 270
+    },
+    "facing=west,left=true,right=true,spin=0": {
       "model": "ae2:block/hz/charger_body_left_right",
       "y": 270
     },
-    "facing=east,left=false,right=false": {
+    "facing=west,left=true,right=true,spin=1": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "y": 270,
+      "z": 90
+    },
+    "facing=west,left=true,right=true,spin=2": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "y": 270,
+      "z": 180
+    },
+    "facing=west,left=true,right=true,spin=3": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "y": 270,
+      "z": 270
+    },
+    "facing=east,left=false,right=false,spin=0": {
       "model": "ae2:block/hz/charger_body",
       "y": 90
     },
-    "facing=east,left=false,right=true": {
+    "facing=east,left=false,right=false,spin=1": {
+      "model": "ae2:block/hz/charger_body",
+      "y": 90,
+      "z": 90
+    },
+    "facing=east,left=false,right=false,spin=2": {
+      "model": "ae2:block/hz/charger_body",
+      "y": 90,
+      "z": 180
+    },
+    "facing=east,left=false,right=false,spin=3": {
+      "model": "ae2:block/hz/charger_body",
+      "y": 90,
+      "z": 270
+    },
+    "facing=east,left=false,right=true,spin=0": {
       "model": "ae2:block/hz/charger_body_right",
       "y": 90
     },
-    "facing=east,left=true,right=false": {
+    "facing=east,left=false,right=true,spin=1": {
+      "model": "ae2:block/hz/charger_body_right",
+      "y": 90,
+      "z": 90
+    },
+    "facing=east,left=false,right=true,spin=2": {
+      "model": "ae2:block/hz/charger_body_right",
+      "y": 90,
+      "z": 180
+    },
+    "facing=east,left=false,right=true,spin=3": {
+      "model": "ae2:block/hz/charger_body_right",
+      "y": 90,
+      "z": 270
+    },
+    "facing=east,left=true,right=false,spin=0": {
       "model": "ae2:block/hz/charger_body_left",
       "y": 90
     },
-    "facing=east,left=true,right=true": {
+    "facing=east,left=true,right=false,spin=1": {
+      "model": "ae2:block/hz/charger_body_left",
+      "y": 90,
+      "z": 90
+    },
+    "facing=east,left=true,right=false,spin=2": {
+      "model": "ae2:block/hz/charger_body_left",
+      "y": 90,
+      "z": 180
+    },
+    "facing=east,left=true,right=false,spin=3": {
+      "model": "ae2:block/hz/charger_body_left",
+      "y": 90,
+      "z": 270
+    },
+    "facing=east,left=true,right=true,spin=0": {
       "model": "ae2:block/hz/charger_body_left_right",
       "y": 90
     },
-    "facing=up,left=false,right=false": {
-      "model": "ae2:block/hz/charger_body"
+    "facing=east,left=true,right=true,spin=1": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "y": 90,
+      "z": 90
     },
-    "facing=up,left=false,right=true": {
-      "model": "ae2:block/hz/charger_body_right"
+    "facing=east,left=true,right=true,spin=2": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "y": 90,
+      "z": 180
     },
-    "facing=up,left=true,right=false": {
-      "model": "ae2:block/hz/charger_body_left"
+    "facing=east,left=true,right=true,spin=3": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "y": 90,
+      "z": 270
     },
-    "facing=up,left=true,right=true": {
-      "model": "ae2:block/hz/charger_body_left_right"
+    "facing=up,left=false,right=false,spin=0": {
+      "model": "ae2:block/hz/charger_body",
+      "x": 270
     },
-    "facing=down,left=false,right=false": {
-      "model": "ae2:block/hz/charger_body"
+    "facing=up,left=false,right=false,spin=1": {
+      "model": "ae2:block/hz/charger_body",
+      "x": 270,
+      "z": 90
     },
-    "facing=down,left=false,right=true": {
-      "model": "ae2:block/hz/charger_body_right"
+    "facing=up,left=false,right=false,spin=2": {
+      "model": "ae2:block/hz/charger_body",
+      "x": 270,
+      "z": 180
     },
-    "facing=down,left=true,right=false": {
-      "model": "ae2:block/hz/charger_body_left"
+    "facing=up,left=false,right=false,spin=3": {
+      "model": "ae2:block/hz/charger_body",
+      "x": 270,
+      "z": 270
     },
-    "facing=down,left=true,right=true": {
-      "model": "ae2:block/hz/charger_body_left_right"
+    "facing=up,left=false,right=true,spin=0": {
+      "model": "ae2:block/hz/charger_body_right",
+      "x": 270
+    },
+    "facing=up,left=false,right=true,spin=1": {
+      "model": "ae2:block/hz/charger_body_right",
+      "x": 270,
+      "z": 90
+    },
+    "facing=up,left=false,right=true,spin=2": {
+      "model": "ae2:block/hz/charger_body_right",
+      "x": 270,
+      "z": 180
+    },
+    "facing=up,left=false,right=true,spin=3": {
+      "model": "ae2:block/hz/charger_body_right",
+      "x": 270,
+      "z": 270
+    },
+    "facing=up,left=true,right=false,spin=0": {
+      "model": "ae2:block/hz/charger_body_left",
+      "x": 270
+    },
+    "facing=up,left=true,right=false,spin=1": {
+      "model": "ae2:block/hz/charger_body_left",
+      "x": 270,
+      "z": 90
+    },
+    "facing=up,left=true,right=false,spin=2": {
+      "model": "ae2:block/hz/charger_body_left",
+      "x": 270,
+      "z": 180
+    },
+    "facing=up,left=true,right=false,spin=3": {
+      "model": "ae2:block/hz/charger_body_left",
+      "x": 270,
+      "z": 270
+    },
+    "facing=up,left=true,right=true,spin=0": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "x": 270
+    },
+    "facing=up,left=true,right=true,spin=1": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "x": 270,
+      "z": 90
+    },
+    "facing=up,left=true,right=true,spin=2": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "x": 270,
+      "z": 180
+    },
+    "facing=up,left=true,right=true,spin=3": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "x": 270,
+      "z": 270
+    },
+    "facing=down,left=false,right=false,spin=0": {
+      "model": "ae2:block/hz/charger_body",
+      "x": 90
+    },
+    "facing=down,left=false,right=false,spin=1": {
+      "model": "ae2:block/hz/charger_body",
+      "x": 90,
+      "z": 90
+    },
+    "facing=down,left=false,right=false,spin=2": {
+      "model": "ae2:block/hz/charger_body",
+      "x": 90,
+      "z": 180
+    },
+    "facing=down,left=false,right=false,spin=3": {
+      "model": "ae2:block/hz/charger_body",
+      "x": 90,
+      "z": 270
+    },
+    "facing=down,left=false,right=true,spin=0": {
+      "model": "ae2:block/hz/charger_body_right",
+      "x": 90
+    },
+    "facing=down,left=false,right=true,spin=1": {
+      "model": "ae2:block/hz/charger_body_right",
+      "x": 90,
+      "z": 90
+    },
+    "facing=down,left=false,right=true,spin=2": {
+      "model": "ae2:block/hz/charger_body_right",
+      "x": 90,
+      "z": 180
+    },
+    "facing=down,left=false,right=true,spin=3": {
+      "model": "ae2:block/hz/charger_body_right",
+      "x": 90,
+      "z": 270
+    },
+    "facing=down,left=true,right=false,spin=0": {
+      "model": "ae2:block/hz/charger_body_left",
+      "x": 90
+    },
+    "facing=down,left=true,right=false,spin=1": {
+      "model": "ae2:block/hz/charger_body_left",
+      "x": 90,
+      "z": 90
+    },
+    "facing=down,left=true,right=false,spin=2": {
+      "model": "ae2:block/hz/charger_body_left",
+      "x": 90,
+      "z": 180
+    },
+    "facing=down,left=true,right=false,spin=3": {
+      "model": "ae2:block/hz/charger_body_left",
+      "x": 90,
+      "z": 270
+    },
+    "facing=down,left=true,right=true,spin=0": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "x": 90
+    },
+    "facing=down,left=true,right=true,spin=1": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "x": 90,
+      "z": 90
+    },
+    "facing=down,left=true,right=true,spin=2": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "x": 90,
+      "z": 180
+    },
+    "facing=down,left=true,right=true,spin=3": {
+      "model": "ae2:block/hz/charger_body_left_right",
+      "x": 90,
+      "z": 270
     }
   }
 }

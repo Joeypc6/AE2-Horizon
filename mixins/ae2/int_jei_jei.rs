@@ -1,17 +1,19 @@
 ae2_optional::if_mod_items!("jei", {
-// AE2's JEI integration (ae2jeiintegration's JEIPlugin), as a layer over the original JEI mod, which it leaves as
-// it is. JEI shows vanilla's recipes; this layer hears the same panel events, asks a JEI viewer of its own (JEI's
-// public `Viewer`) for vanilla's recipe pages, adds AE2's tabs after them (inscriber, charger, transform, certus
-// growth, condenser) and shows the merged page on the next frame, after JEI has drawn its own. With an AE2
-// terminal open, every recipe gets the "+" that fills it (AE2's recipe transfer).
+// AE2's JEI integration (ae2jeiintegration's JEIPlugin), as a provider to the kit's page flow: its categories (inscriber,
+// charger, transform, certus growth, condenser...), the facades in the list, its recipe transfer on the terminals, and
+// its meteorites in the sources.
+ae2_optional::kit_use!(layer as kit_layer);
+ae2_optional::kit_use!(window as kit_window);
+ae2_optional::kit_use!(collection as kit_collection);
+ae2_optional::kit_use!(panel as kit_panel);
 use crate::game::Game;
-use crate::game::jei::{self, Context, Event, Ingredient, Item, Kind, Layout, Out, Recipe, Stack, Station, View, Viewer};
-use crate::game::native_hooks::{NativePanelEvent, NativeRecipeKind, NativeRecipes, NativeRecipeStack, NativeStack};
-use crate::game::port_jei_window::{Act, Card, Tab, Transfer};
-use horizon_client::hud::rgba;
+use crate::game::jei::{self, Layout, Stack, View};
+use crate::game::native_hooks::{NativeScreenView, NativeStack};
+use self::kit_layer::Provider;
+use self::kit_window::{Act, Card, Tab, Transfer};
+use horizon_client::hud::{HudBatch, rgba};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
 
 /// The Crafting tab's icon.
 const CRAFTING: &str = "minecraft:crafting_table";
@@ -38,37 +40,6 @@ struct Ae2Recipe {
     note: String,
 }
 
-/// A recipe page: an item's recipes or uses, on one tab.
-#[derive(Clone)]
-struct Page {
-    item: Stack,
-    uses: bool,
-    tab: usize,
-}
-
-/// What a page shows: its title and tabs. Vanilla's come first, in the order of the layer's JEI viewer.
-struct Shown {
-    title: String,
-    tabs: Vec<Tab>,
-    vanilla: usize,
-}
-
-struct Layer {
-    /// A JEI viewer of the layer's own, asked for vanilla's pages (its history is emptied after each question).
-    query: Viewer,
-    categories: Vec<Category>,
-    /// The panel's list as JEI's search leaves it (JEI's `Clicked` indexes it).
-    listed: Vec<Stack>,
-    names: std::collections::HashMap<String, String>,
-    history: Vec<Page>,
-    /// How many of the shown page's tabs are vanilla's.
-    vanilla_tabs: usize,
-    /// The world's recipes, for a catalyst's whole category.
-    catalog: Arc<NativeRecipes>,
-    /// The blocks a facade can be of (the content's facade table: FacadeItem.createFacadeForItem's answer).
-    facades: Vec<String>,
-}
-
 /// The open terminal's list as the server last sent it: amounts by id, and what the grid can craft.
 struct Stock {
     amounts: HashMap<String, i64>,
@@ -76,7 +47,8 @@ struct Stock {
 }
 
 thread_local! {
-    static LAYER: RefCell<Option<Layer>> = const { RefCell::new(None) };
+    static CATEGORIES: RefCell<Option<Vec<Category>>> = const { RefCell::new(None) };
+    static FACADES: RefCell<Option<Vec<String>>> = const { RefCell::new(None) };
     /// The list a moment ago: every "+" on the page asks each frame, and the list can be long.
     static STOCK: RefCell<Option<(std::time::Instant, Stock)>> = const { RefCell::new(None) };
     /// The panel's list this layer has last seen (`Shown.version`): one comparison a frame until it changes.
@@ -93,262 +65,186 @@ fn tr(key: &str, english: &str) -> String {
     horizon_client::lang::get_or(key, english)
 }
 
-/// `native_chat`: JEI's "No recipes for" and "No uses for" go, since the window has more than JEI's own recipes; true
-/// to let a line through.
-pub fn chat_allowed(text: &str) -> bool {
-    !["No recipes for", "No uses for", "Sin recetas para", "Sin usos para"].iter().any(|p| text.starts_with(p))
-}
-
-/// The recipe and uses keys, as JEI reads them.
-fn keys(game: &Game<'_>) -> (String, String) {
-    (game.native_mod_key(jei::ID, "recipe", "key.keyboard.r"), game.native_mod_key(jei::ID, "uses", "key.keyboard.u"))
-}
-
-/// The layer, made once the world's tables are there.
-fn ensure(game: &mut Game<'_>) -> bool {
-    if LAYER.with_borrow(|l| l.is_some()) {
-        return true;
-    }
-    let Some(catalog) = game.native_recipes() else { return false };
-    let items: Vec<Item> =
-        catalog.items.iter().map(|i| Item { id: i.id.clone(), name: i.name.clone(), tags: i.tags.clone() }).collect();
-    let ingredient =
-        |s: &crate::game::native_hooks::NativeRecipeStack| Ingredient { item: s.item, count: s.count, components: s.components.clone() };
-    let recipes: Vec<Recipe> = catalog
-        .recipes
-        .iter()
-        .filter(|r| !r.slots.is_empty())
-        .map(|r| Recipe {
-            kind: kind(r.kind),
-            width: r.width,
-            height: r.height,
-            slots: r.slots.iter().map(|s| s.iter().map(ingredient).collect()).collect(),
-            results: r.results.iter().map(ingredient).collect(),
-            cooking_time: r.cooking_time,
-            experience: r.experience,
-            book_id: r.book_id,
-        })
-        .collect();
-    let names = items.iter().map(|i| (i.id.clone(), i.name.clone())).collect();
-    let lang = jei::lang(game.native_setting(jei::ID, "language").as_deref());
-    let (query, out) = Viewer::new(items, recipes, lang);
-    let listed = match out {
-        Out::Items(stacks) => stacks,
-        _ => Vec::new(),
-    };
-    let categories = categories(game);
-    let facades: Vec<String> = game
-        .native_data("data/ae2/hz/facades.json")
-        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
-        .and_then(|table| table.as_object().map(|o| o.keys().cloned().collect()))
-        .unwrap_or_default();
-    LAYER.with_borrow_mut(|l| {
-        *l = Some(Layer { query, categories, listed, names, history: Vec::new(), vanilla_tabs: 0, catalog, facades });
-    });
-    true
-}
-
-fn kind(kind: NativeRecipeKind) -> Kind {
-    match kind {
-        NativeRecipeKind::CraftingShaped => Kind::CraftingShaped,
-        NativeRecipeKind::CraftingShapeless => Kind::CraftingShapeless,
-        NativeRecipeKind::Smelting => Kind::Smelting,
-        NativeRecipeKind::Blasting => Kind::Blasting,
-        NativeRecipeKind::Smoking => Kind::Smoking,
-        NativeRecipeKind::Campfire => Kind::Campfire,
-        NativeRecipeKind::Stonecutting => Kind::Stonecutting,
-        NativeRecipeKind::Smithing => Kind::Smithing,
-        NativeRecipeKind::Brewing => Kind::Brewing,
-    }
-}
-
-/// `native_panel_event` on JEI's panel: follow the player through recipe pages as JEI does, with AE2's tabs.
-pub fn event(game: &mut Game<'_>, mod_id: &str, event: &NativePanelEvent) {
-    if mod_id != jei::ID || !game.native_on(jei::ID) || !ensure(game) {
-        return;
-    }
-    let (recipe_key, uses_key) = keys(game);
-    let known = game.native_known_recipes();
-    let ctx = Context { recipe_key: &recipe_key, uses_key: &uses_key, give: false, creative: false, known: &known };
-    let terminal = ae2_terminal_open(game);
-    match event {
-        NativePanelEvent::Search(text) => LAYER.with_borrow_mut(|l| {
-            let Some(l) = l.as_mut() else { return };
-            if let Some(Out::Items(stacks)) = l.query.handle(Event::Search(text.clone()), &ctx).into_iter().next() {
-                l.listed = stacks;
-            }
-        }),
-        NativePanelEvent::Key { key, stack } => {
-            let stack = Stack { item: stack.item.clone(), count: 1, components: stack.components.clone() };
-            if *key == recipe_key || *key == uses_key {
-                open(game, stack, *key == uses_key, &ctx, terminal);
-            } else if key == "key.keyboard.w" {
-                // AE2's guide: W over an item, the panel's too.
-                crate::game::port_ae2_me::open_guide(game, &stack.item);
-            }
-        }
-        NativePanelEvent::Clicked { index, right } => {
-            let stack = LAYER.with_borrow(|l| l.as_ref().and_then(|l| l.listed.get(*index as usize).cloned()));
-            // In "click gives items" mode JEI gives it (or opens it in survival); otherwise its recipes. A facade is this
-            // layer's, so JEI has nothing to give: its recipe.
-            if jei::give(game.native_setting(jei::ID, "give").as_deref()) && !stack.as_ref().is_some_and(|s| is_block_facade(&s.item, &s.components)) {
-                return;
-            }
-            if let Some(stack) = stack {
-                open(game, stack, *right, &ctx, terminal);
-            }
-        }
-        _ => {}
-    }
-}
-
-/// Opens an item's recipes or uses, when vanilla or AE2 has any (JEI says when neither does).
-fn open(game: &Game<'_>, item: Stack, uses: bool, ctx: &Context<'_>, terminal: bool) {
-    let mut page = Page { item, uses, tab: 0 };
-    let shown = page_of(game, &page, ctx);
-    if shown.tabs.is_empty() {
-        return;
-    }
-    // A catalyst's uses open on the category it is the catalyst of.
-    if uses && is_catalyst(&page.item.item) {
-        page.tab = shown.tabs.iter().position(|t| t.catalysts.contains(&page.item.item)).unwrap_or(0);
-    }
-    LAYER.with_borrow_mut(|l| {
-        if let Some(l) = l.as_mut() {
-            l.history.push(page.clone());
-        }
-    });
-    show(game, &page, ctx, terminal);
-}
-
-/// A vanilla category's title and the blocks it is made on, from its tab's icon.
-fn vanilla_tab(icon: &str) -> (&'static str, &'static [&'static str]) {
-    match icon {
+/// The kit's page flow asks here.
+pub fn provider() -> Provider {
+    Provider {
+        is_catalyst: |item| CATALYSTS.contains(&item),
         // JEIPlugin.registerRecipeCatalysts: the crafting terminals craft too.
-        CRAFTING => ("Crafting", &[CRAFTING, "ae2:crafting_terminal", "ae2:wireless_crafting_terminal"]),
-        "minecraft:furnace" => ("Smelting", &["minecraft:furnace"]),
-        "minecraft:blast_furnace" => ("Blasting", &["minecraft:blast_furnace"]),
-        "minecraft:smoker" => ("Smoking", &["minecraft:smoker"]),
-        "minecraft:campfire" => ("Campfire Cooking", &["minecraft:campfire", "minecraft:soul_campfire"]),
-        "minecraft:stonecutter" => ("Stonecutting", &["minecraft:stonecutter"]),
-        "minecraft:smithing_table" => ("Smithing", &["minecraft:smithing_table"]),
-        "minecraft:brewing_stand" => ("Brewing", &["minecraft:brewing_stand"]),
-        _ => ("Recipes", &[]),
+        station_catalysts,
+        crafting_views: |item, uses| FACADES.with_borrow(|f| f.as_ref().map_or_else(Vec::new, |f| facade_views(f, item, uses))),
+        tabs,
+        sources: meteor_tabs,
+        note: |item| NOTES.iter().find(|(i, _)| *i == item).map(|(_, n)| *n),
+        takes_recipes: ae2_terminal_open,
+        transfer_state,
+        mark_recipes,
+        plus,
+        opens_on_click: |s| is_block_facade(&s.item, &s.components),
+        ..Provider::new("ae2")
     }
 }
 
-/// A catalyst, of AE2's categories or vanilla's.
-fn is_catalyst(item: &str) -> bool {
-    CATALYSTS.contains(&item) || Station::ALL.iter().any(|s| vanilla_tab(s.icon()).1.contains(&item))
+fn station_catalysts(icon: &str) -> &'static [&'static str] {
+    const TERMINALS: &[&str] = &["ae2:crafting_terminal", "ae2:wireless_crafting_terminal"];
+    if icon == CRAFTING { TERMINALS } else { &[] }
 }
 
-/// A crafting recipe as the 3x3 grid has it.
-fn full_grid(v: &mut View) {
-    let (w, h) = (v.width.clamp(1, 3) as usize, v.height.clamp(1, 3) as usize);
-    let mut full = vec![Vec::new(); 9];
-    for (i, s) in std::mem::take(&mut v.slots).into_iter().enumerate().take(w * h) {
-        full[(i / w) * 3 + i % w] = s;
-    }
-    v.slots = full;
-    (v.width, v.height) = (3, 3);
-}
-
-/// A vanilla category's tab.
-fn vanilla(icon: &str, mut views: Vec<View>) -> Tab {
-    let (title, catalysts) = vanilla_tab(icon);
-    if icon == CRAFTING {
-        views.iter_mut().for_each(full_grid);
-    }
-    Tab { icon: icon.to_owned(), title: title.to_owned(), catalysts: catalysts.iter().map(|c| (*c).to_owned()).collect(), cards: views.into_iter().map(Card::Recipe).collect() }
-}
-
-/// What tells two of a tab's recipes apart. (A result's components aren't in it: a facade's are written two ways.)
-fn view_key(v: &View) -> String {
-    let mut key = String::new();
-    for slot in &v.slots {
-        for s in slot {
-            key.push_str(&s.item);
-            key.push_str(&s.components);
-            key.push(',');
-        }
-        key.push(';');
-    }
-    for r in &v.results {
-        key.push_str(&r.item);
-        key.push(',');
-    }
-    key
-}
-
-/// Adds the recipes a vanilla category's tab hasn't yet, after those it has (JEI's viewer indexes them); the tab
-/// itself, after the others, when the page has none.
-fn add_to_tab(tabs: &mut Vec<Tab>, icon: &str, mut views: Vec<View>) {
-    if views.is_empty() {
+/// `native_frame`.
+pub fn frame(game: &mut Game<'_>) {
+    kit_layer::register(provider());
+    if game.native_player().is_none() {
+        CATEGORIES.with_borrow_mut(|c| *c = None);
+        FACADES.with_borrow_mut(|f| *f = None);
         return;
     }
-    if icon == CRAFTING {
-        views.iter_mut().for_each(full_grid);
+    if FACADES.with_borrow(Option::is_none) {
+        let facades: Vec<String> = game
+            .native_data("data/ae2/hz/facades.json")
+            .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+            .and_then(|table| table.as_object().map(|o| o.keys().cloned().collect()))
+            .unwrap_or_default();
+        FACADES.with_borrow_mut(|f| *f = Some(facades));
     }
-    if !tabs.iter().any(|t| t.icon == icon) {
-        tabs.push(vanilla(icon, Vec::new()));
+    list_facades(game);
+}
+
+/// AE2's tabs for a page.
+fn tabs(game: &Game<'_>, item: &Stack, uses: bool) -> Vec<Tab> {
+    if CATEGORIES.with_borrow(Option::is_none) {
+        let made = categories(game);
+        CATEGORIES.with_borrow_mut(|c| *c = Some(made));
     }
-    let Some(tab) = tabs.iter_mut().find(|t| t.icon == icon) else { return };
-    let mut have: HashSet<String> = tab
-        .cards
-        .iter()
-        .filter_map(|c| match c {
-            Card::Recipe(v) => Some(view_key(v)),
-            _ => None,
-        })
-        .collect();
-    for v in views {
-        if have.insert(view_key(&v)) {
-            tab.cards.push(Card::Recipe(v));
+    CATEGORIES.with_borrow(|c| {
+        let mut out = Vec::new();
+        for c in c.iter().flatten() {
+            let wanted = |s: &Stack| s.item == item.item;
+            // U on the category's catalyst: all of it.
+            let whole = uses && CATALYSTS.contains(&item.item.as_str()) && c.catalysts.contains(&item.item.as_str());
+            let cards: Vec<Card> = c
+                .recipes
+                .iter()
+                .filter(|r| whole || if uses { r.slots.iter().flatten().any(wanted) } else { r.results.iter().any(wanted) })
+                .map(|r| Card::Recipe(ae2_view(game, c, r)))
+                .collect();
+            if !cards.is_empty() {
+                out.push(Tab { icon: c.icon.to_owned(), title: c.title.clone(), catalysts: c.catalysts.iter().map(|s| (*s).to_owned()).collect(), cards });
+            }
+        }
+        out
+    })
+}
+
+/// On the pattern encoding terminal every recipe (not a source) gets the "+" that encodes it
+/// (EncodePatternTransferHandler is universal); on a crafting terminal only the Crafting tab's do
+/// (UseCraftingRecipeTransfer takes `RecipeTypes.CRAFTING` and no other: a machine's recipe has none).
+fn mark_recipes(game: &Game<'_>, tabs: &mut Vec<Tab>) {
+    if !ae2_terminal_open(game) {
+        return;
+    }
+    let encoding = encoding_open(game);
+    for t in tabs {
+        let crafting = t.icon == CRAFTING;
+        for c in &mut t.cards {
+            if let Card::Recipe(v) = c {
+                let takes = if encoding { !v.results.is_empty() } else { crafting && v.layout == Layout::Grid };
+                v.action = takes.then_some(true);
+            }
         }
     }
 }
 
-/// All of a station's recipes, as JEI's viewer lays them out: what U on its catalyst shows.
-fn station_views(catalog: &NativeRecipes, station: Station) -> Vec<View> {
-    let stack = |s: &NativeRecipeStack| Stack {
-        item: catalog.items.get(s.item as usize).map_or_else(|| "minecraft:air".to_owned(), |i| i.id.clone()),
-        count: s.count,
-        components: s.components.clone(),
-    };
-    catalog
-        .recipes
-        .iter()
-        .filter(|r| !r.slots.is_empty() && kind(r.kind).station() == station)
-        .map(|r| {
-            let n = r.slots.len() as u32;
-            let (layout, width, height, note) = match kind(r.kind) {
-                Kind::CraftingShaped => (Layout::Grid, r.width, r.height, String::new()),
-                Kind::CraftingShapeless => {
-                    let w = match n {
-                        0 | 1 => 1,
-                        2..=4 => 2,
-                        _ => 3,
-                    };
-                    (Layout::Grid, w, n.div_ceil(w).max(1), "Shapeless".to_owned())
-                }
-                Kind::Smelting | Kind::Blasting | Kind::Smoking | Kind::Campfire => {
-                    (Layout::Cooking, 1, 1, format!("{} s, {} XP", r.cooking_time as f32 / 20.0, (r.experience * 100.0).round() / 100.0))
-                }
-                Kind::Stonecutting => (Layout::Single, 1, 1, String::new()),
-                Kind::Smithing => (Layout::Smithing, 3, 1, String::new()),
-                Kind::Brewing => (Layout::Brewing, 2, 1, String::new()),
-            };
-            View {
-                layout,
-                width,
-                height,
-                slots: r.slots.iter().map(|s| s.iter().take(jei::STACKS_MAX).map(&stack).collect()).collect(),
-                results: r.results.iter().take(jei::STACKS_MAX).map(&stack).collect(),
-                note,
-                action: None,
-            }
-        })
-        .collect()
+/// The "+" on an AE2 terminal: the recipe fills it.
+fn plus(game: &mut Game<'_>, index: usize) {
+    let Some(view) = kit_window::recipe_view(index) else { return };
+    // What the last frame drew may have gone since.
+    if transfer_state(game, &view).is_some_and(|s| !s.enabled) {
+        return;
+    }
+    let crafting = kit_window::shown_icon().as_deref() == Some(CRAFTING) && view.layout == Layout::Grid;
+    // UseCraftingRecipeTransfer: craftMissing is Control held (the encoder has nothing to craft).
+    let craft_missing = crafting && !encoding_open(game) && game.has_control_down();
+    let wanted = if craft_missing { to_craft(game, &view) } else { Vec::new() };
+    transfer(game, &view, crafting, false);
+    if !wanted.is_empty() {
+        // JEI goes back to the screen, where the confirm dialog opens.
+        kit_window::close();
+        kit_layer::clear_history();
+        crate::game::port_ae2_me::jei_craft_missing(wanted);
+    }
+}
+
+fn meteor_tabs(game: &Game<'_>, item: &str) -> Vec<Tab> {
+    meteor_cards(game, item).map_or_else(Vec::new, |cards| vec![kit_collection::tab("ae2:mysterious_cube", "Meteorites", &["ae2:meteorite_compass"], cards)])
+}
+
+/// How AE2's world generation gives an item: the presses, the cube, and what meteorites are made of.
+fn meteor_cards(game: &Game<'_>, item: &str) -> Option<Vec<Card>> {
+    const FROM_METEORITE: [&str; 9] = [
+        "ae2:sky_stone_block",
+        "ae2:flawless_budding_quartz",
+        "ae2:flawed_budding_quartz",
+        "ae2:chipped_budding_quartz",
+        "ae2:damaged_budding_quartz",
+        "ae2:small_quartz_bud",
+        "ae2:medium_quartz_bud",
+        "ae2:large_quartz_bud",
+        "ae2:quartz_cluster",
+    ];
+    let press = item.starts_with("ae2:") && item.ends_with("_press");
+    if !press && item != "ae2:mysterious_cube" && !FROM_METEORITE.contains(&item) {
+        return None;
+    }
+    let mut cards = Vec::new();
+    if press {
+        cards.push(kit_collection::source(game, "ae2:mysterious_cube", item, 1, "Break a Mysterious Cube: it drops all four presses (Silk Touch keeps the cube instead)."));
+    }
+    if press || item == "ae2:mysterious_cube" {
+        cards.push(kit_collection::source(game, "ae2:sky_stone_block", "ae2:mysterious_cube", 1, "One sits at the center of every meteorite, under the sky stone."));
+        cards.push(kit_collection::source(game, "ae2:meteorite_compass", "ae2:mysterious_cube", 1, "A Meteorite Compass points to the nearest cube."));
+    } else {
+        cards.push(kit_collection::source(game, "ae2:sky_stone_block", item, 1, "Found in and around meteorites."));
+    }
+    cards.push(Card::World {
+        dimension: 0,
+        name: kit_collection::DIMENSIONS[0].to_owned(),
+        lines: kit_collection::wrap_text(game, "Meteorites: one try in each area of 32 x 32 chunks (512 x 512 blocks), at least 8 chunks apart, in any biome."),
+    });
+    Some(cards)
+}
+
+const NOTES: &[(&str, &str)] = &[
+    ("ae2:hz_crank_handle", "Part of the crank's model; not an item to collect."),
+    ("ae2:hz_sky_stone_chest_lid", "Part of the chest's model; not an item to collect."),
+    ("ae2:hz_smooth_sky_stone_chest_lid", "Part of the chest's model; not an item to collect."),
+    ("ae2:wrapped_generic_stack", "How AE2 shows a stack inside a pattern; not an item to collect."),
+    ("ae2:creative_item_cell", "Creative mode only."),
+    ("ae2:creative_fluid_cell", "Creative mode only."),
+    ("ae2:creative_energy_cell", "Creative mode only."),
+];
+
+/// JEIPlugin.getGuiClickableAreas: the Inscriber screen's arrow, from the window's top left.
+const INSCRIBER_AREA: [f32; 4] = [82.0, 39.0, 26.0, 16.0];
+
+fn on_inscriber_area(game: &Game<'_>, screen: &NativeScreenView<'_>) -> bool {
+    let [x, y, _, _] = screen.rect;
+    let [ax, ay, aw, ah] = INSCRIBER_AREA;
+    screen.menu == Some("ae2:inscriber") && !kit_window::is_open() && game.native_on(jei::ID) && kit_window::inside((screen.mouse[0], screen.mouse[1]), [x + ax, y + ay, aw, ah])
+}
+
+/// `native_screen_mouse_button_pressed_pre`: a click on the area opens its category.
+pub fn press_area(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i32, canceled: &mut bool) {
+    if button == 0 && on_inscriber_area(game, screen) {
+        *canceled = true;
+        kit_window::push_act(Act::Category("ae2:inscriber".to_owned()));
+    }
+}
+
+/// `native_screen_render_post`: the area says what a click on it does (IGuiClickableArea's tooltip).
+pub fn area_tooltip(game: &Game<'_>, batch: &mut HudBatch, screen: &NativeScreenView<'_>) {
+    if on_inscriber_area(game, screen) {
+        let lines = vec![(horizon_client::text::Text::literal("Show Recipes"), u32::MAX)];
+        game.draw_tooltip_lines(batch, &lines, screen.mouse[0], screen.mouse[1]);
+    }
 }
 
 /// FacadeRegistryPlugin.make: four cable anchors around the block make four facades of it.
@@ -375,13 +271,13 @@ fn is_block_facade(item: &str, components: &str) -> bool {
 }
 
 /// The facades a search leaves: every word in the facade's name, its block's or its block's id (`@ae2` for the mod).
-fn facades_for(l: &Layer, search: &str) -> Vec<Stack> {
+fn facades_for(facades: &[String], names: &HashMap<String, String>, search: &str) -> Vec<Stack> {
     let words: Vec<String> = search.to_lowercase().split_whitespace().map(str::to_owned).collect();
-    let facade = l.names.get("ae2:facade").map_or("facade", String::as_str).to_lowercase();
-    l.facades
+    let facade = names.get("ae2:facade").map_or("facade", String::as_str).to_lowercase();
+    facades
         .iter()
         .filter(|block| {
-            let name = l.names.get(*block).map_or("", String::as_str).to_lowercase();
+            let name = names.get(*block).map_or("", String::as_str).to_lowercase();
             words.iter().all(|w| match w.strip_prefix('@') {
                 Some(m) => "ae2".contains(m),
                 None => facade.contains(w.as_str()) || name.contains(w.as_str()) || block.contains(w.as_str()),
@@ -395,96 +291,36 @@ fn facades_for(l: &Layer, search: &str) -> Vec<Stack> {
 /// each item once, so this layer puts them after its list whenever JEI has sent one, and clicks past JEI's end are this
 /// layer's alone (`listed`).
 fn list_facades(game: &mut Game<'_>) {
-    use crate::game::native_panel::port_jei_panel_size as panel;
+    use self::kit_panel as panel;
     let Some((version, search, mut items)) = panel::changed_items(game, jei::ID, PANEL_SEEN.get()) else { return };
     PANEL_SEEN.set(version);
-    if !crate::game::port_ae2_me::facades_in_jei() || items.iter().any(|s| is_block_facade(&s.item, &s.components)) || !game.native_on(jei::ID) || !ensure(game) {
+    if !crate::game::port_ae2_me::facades_in_jei() || items.iter().any(|s| is_block_facade(&s.item, &s.components)) || !game.native_on(jei::ID) || !kit_layer::ensure(game) {
         return;
     }
-    let added = LAYER.with_borrow(|l| l.as_ref().map_or_else(Vec::new, |l| facades_for(l, &search)));
+    let added = FACADES.with_borrow(|f| kit_layer::with_names(|names| facades_for(f.as_deref().unwrap_or(&[]), names, &search))).unwrap_or_default();
     if added.is_empty() {
         return;
     }
     // JEI's empty list keeps one invisible slot, which isn't wanted now.
     items.retain(|s| s.item != "minecraft:air");
     items.extend(added.into_iter().map(|s| NativeStack { item: s.item, count: s.count, components: s.components }));
-    LAYER.with_borrow_mut(|l| {
-        if let Some(l) = l.as_mut() {
-            l.listed = items.iter().map(|s| Stack { item: s.item.clone(), count: s.count, components: s.components.clone() }).collect();
-        }
-    });
+    kit_layer::set_listed(items.iter().map(|s| Stack { item: s.item.clone(), count: s.count, components: s.components.clone() }).collect());
     game.native_panel_items(jei::ID, items);
     PANEL_SEEN.set(panel::items_version(game));
 }
 
 /// FacadeRegistryPlugin.getRecipes: a block's uses have its facade, a facade's recipes the recipe of that facade (JEI's
 /// viewer stops at 256 of a tab's recipes; the panel's facade, of no block, stands for them all).
-fn facade_views(facades: &[String], page: &Page) -> Vec<View> {
-    if page.uses {
-        return facades.iter().filter(|b| **b == page.item.item).map(|b| facade_view(b)).collect();
+fn facade_views(facades: &[String], item: &Stack, uses: bool) -> Vec<View> {
+    if uses {
+        return facades.iter().filter(|b| **b == item.item).map(|b| facade_view(b)).collect();
     }
-    if page.item.item != "ae2:facade" {
+    if item.item != "ae2:facade" {
         return Vec::new();
     }
     // FacadeItem.getTextureItem: the block's id, quoted, in the stack's components.
-    let of_this: Vec<View> = facades.iter().filter(|b| page.item.components.contains(&format!("\"{b}\""))).map(|b| facade_view(b)).collect();
+    let of_this: Vec<View> = facades.iter().filter(|b| item.components.contains(&format!("\"{b}\""))).map(|b| facade_view(b)).collect();
     if of_this.is_empty() { facades.iter().map(|b| facade_view(b)).collect() } else { of_this }
-}
-
-/// Vanilla's tabs for a page (from the layer's own JEI viewer), then AE2's, then where it comes from.
-fn page_of(game: &Game<'_>, page: &Page, ctx: &Context<'_>) -> Shown {
-    LAYER.with_borrow_mut(|l| {
-        let Some(l) = l.as_mut() else { return Shown { title: String::new(), tabs: Vec::new(), vanilla: 0 } };
-        let key = if page.uses { ctx.uses_key } else { ctx.recipe_key };
-        let mut tabs: Vec<Tab> = Vec::new();
-        let first = l.query.handle(Event::Key { key: key.to_owned(), stack: page.item.clone() }, ctx);
-        if let Some(Out::Recipes { tabs: icons, views, .. }) = first.into_iter().next()
-            && !icons.is_empty()
-        {
-            tabs.push(vanilla(&icons[0].item, views));
-            for (t, icon) in icons.iter().enumerate().skip(1) {
-                if let Some(Out::Recipes { views, .. }) = l.query.handle(Event::Tab(t), ctx).into_iter().next() {
-                    tabs.push(vanilla(&icon.item, views));
-                }
-            }
-            // Back to an empty history for the next question.
-            l.query.handle(Event::Back, ctx);
-        }
-        let vanilla_tabs = tabs.len();
-        // JEI's catalysts: U on a station, or on a crafting terminal, has its whole category.
-        if page.uses {
-            for station in Station::ALL {
-                if vanilla_tab(station.icon()).1.contains(&page.item.item.as_str()) {
-                    add_to_tab(&mut tabs, station.icon(), station_views(&l.catalog, station));
-                }
-            }
-        }
-        add_to_tab(&mut tabs, CRAFTING, facade_views(&l.facades, page));
-        for c in &l.categories {
-            let wanted = |s: &Stack| s.item == page.item.item;
-            // U on the category's catalyst: all of it.
-            let whole = page.uses && CATALYSTS.contains(&page.item.item.as_str()) && c.catalysts.contains(&page.item.item.as_str());
-            let cards: Vec<Card> = c
-                .recipes
-                .iter()
-                .filter(|r| whole || if page.uses { r.slots.iter().flatten().any(wanted) } else { r.results.iter().any(wanted) })
-                .map(|r| Card::Recipe(ae2_view(game, c, r)))
-                .collect();
-            if !cards.is_empty() {
-                tabs.push(Tab { icon: c.icon.to_owned(), title: c.title.clone(), catalysts: c.catalysts.iter().map(|s| (*s).to_owned()).collect(), cards });
-            }
-        }
-        if !page.uses
-            && let Some(text) = crate::game::port_ae2_guide::summary(game, &page.item.item)
-        {
-            let lines = crate::game::port_jei_collection::wrap_text(game, &text);
-            tabs.push(Tab { icon: "minecraft:book".to_owned(), title: "Information".to_owned(), catalysts: Vec::new(), cards: vec![Card::Text(lines)] });
-        }
-        // Where it comes from when not crafted, or what a spawn egg's mob drops and who trades for it.
-        tabs.extend(if page.uses { crate::game::port_jei_collection::use_tabs(game, &page.item.item) } else { crate::game::port_jei_collection::got_tabs(game, &page.item.item) });
-        let name = l.names.get(&page.item.item).cloned().unwrap_or_else(|| page.item.item.clone());
-        Shown { title: format!("{}: {name}", if page.uses { "Uses" } else { "Recipes" }), tabs, vanilla: vanilla_tabs }
-    })
 }
 
 fn ae2_view(game: &Game<'_>, c: &Category, r: &Ae2Recipe) -> View {
@@ -501,173 +337,8 @@ fn ae2_view(game: &Game<'_>, c: &Category, r: &Ae2Recipe) -> View {
         height = 1;
     }
     // The note as the card's width has it.
-    let note = r.note.split('\n').flat_map(|line| crate::game::port_jei_collection::wrap_text(game, line)).collect::<Vec<_>>().join("\n");
+    let note = r.note.split('\n').flat_map(|line| kit_collection::wrap_text(game, line)).collect::<Vec<_>>().join("\n");
     View { layout, width, height, slots: r.slots.clone(), results: r.results.clone(), note, action: None }
-}
-
-/// The merged page, in the window. On the pattern encoding terminal every recipe (not a source) gets the "+" that
-/// encodes it (EncodePatternTransferHandler is universal); on a crafting terminal only the Crafting tab's do
-/// (UseCraftingRecipeTransfer takes `RecipeTypes.CRAFTING` and no other: a machine's recipe has none).
-fn show(game: &Game<'_>, page: &Page, ctx: &Context<'_>, terminal: bool) {
-    let mut shown = page_of(game, page, ctx);
-    if shown.tabs.is_empty() {
-        return;
-    }
-    let tab = page.tab.min(shown.tabs.len() - 1);
-    if terminal {
-        let encoding = encoding_open(game);
-        for t in &mut shown.tabs {
-            let crafting = t.icon == CRAFTING;
-            for c in &mut t.cards {
-                if let Card::Recipe(v) = c {
-                    let takes = if encoding { !v.results.is_empty() } else { crafting && v.layout == Layout::Grid };
-                    v.action = takes.then_some(true);
-                }
-            }
-        }
-    }
-    LAYER.with_borrow_mut(|l| {
-        if let Some(l) = l.as_mut() {
-            l.vanilla_tabs = shown.vanilla;
-        }
-    });
-    crate::game::port_jei_window::show(shown.title, shown.tabs, tab);
-}
-
-/// Once a frame: what the player did on the window, and the panel keeps its items.
-pub fn frame(game: &mut Game<'_>) {
-    if game.native_player().is_none() {
-        LAYER.with_borrow_mut(|l| *l = None);
-        crate::game::port_jei_window::close();
-        return;
-    }
-    crate::game::port_jei_collection::frame(game);
-    crate::game::port_jei_creative::frame(game);
-    if crate::game::native_panel::port_jei_panel_size::has_recipes(game) {
-        game.native_panel_recipes(jei::ID, "", Vec::new(), 0, Vec::new());
-    }
-    list_facades(game);
-    // The window goes with its screen.
-    if matches!(game.screen, crate::game::Screen::Playing) && crate::game::port_jei_window::is_open() {
-        crate::game::port_jei_window::close();
-        LAYER.with_borrow_mut(|l| {
-            if let Some(l) = l.as_mut() {
-                l.history.clear();
-            }
-        });
-    }
-    crate::game::port_jei_window::frame(game);
-    let acts = crate::game::port_jei_window::take_acts();
-    if acts.is_empty() {
-        return;
-    }
-    let (recipe_key, uses_key) = keys(game);
-    let known = game.native_known_recipes();
-    let ctx = Context { recipe_key: &recipe_key, uses_key: &uses_key, give: false, creative: false, known: &known };
-    let terminal = ae2_terminal_open(game);
-    for act in acts {
-        match act {
-            Act::Tab(tab) => go_to_tab(game, &ctx, terminal, |_| tab),
-            Act::NextTab(by) => {
-                let n = crate::game::port_jei_window::tab_count().max(1) as i32;
-                go_to_tab(game, &ctx, terminal, |now| (now as i32 + by).rem_euclid(n) as usize);
-            }
-            Act::Page(by) => crate::game::port_jei_window::turn_page(by, crate::game::port_jei_window::cards_area(game)),
-            Act::Slot { stack, uses } => open(game, Stack { count: 1, ..stack }, uses, &ctx, terminal),
-            Act::Key { key, stack } => {
-                let stack = Stack { count: 1, ..stack };
-                if key == recipe_key || key == uses_key {
-                    open(game, stack, key == uses_key, &ctx, terminal);
-                } else if key == "key.keyboard.w" {
-                    crate::game::port_ae2_me::open_guide(game, &stack.item);
-                }
-            }
-            Act::Close => {
-                crate::game::port_jei_window::close();
-                LAYER.with_borrow_mut(|l| {
-                    if let Some(l) = l.as_mut() {
-                        l.history.clear();
-                    }
-                });
-            }
-            Act::Back => {
-                let page = LAYER.with_borrow_mut(|l| {
-                    let l = l.as_mut()?;
-                    l.history.pop();
-                    l.history.last().cloned()
-                });
-                match page {
-                    Some(page) => show(game, &page, &ctx, terminal),
-                    None => crate::game::port_jei_window::close(),
-                }
-            }
-            Act::Plus(index) => plus(game, index, &ctx, terminal),
-            // JEIPlugin.getGuiClickableAreas: the category, as U on its catalyst has it.
-            Act::Category(item) => {
-                if game.native_on(jei::ID) && ensure(game) {
-                    open(game, Stack::item(&item), true, &ctx, terminal);
-                }
-            }
-        }
-    }
-}
-
-fn go_to_tab(game: &Game<'_>, ctx: &Context<'_>, terminal: bool, tab: impl Fn(usize) -> usize) {
-    let page = LAYER.with_borrow_mut(|l| {
-        let top = l.as_mut()?.history.last_mut()?;
-        top.tab = tab(top.tab);
-        Some(top.clone())
-    });
-    if let Some(page) = page {
-        show(game, &page, ctx, terminal);
-    }
-}
-
-/// The "+": on an AE2 terminal the recipe fills it; elsewhere the game's recipe book places it.
-fn plus(game: &mut Game<'_>, index: usize, ctx: &Context<'_>, terminal: bool) {
-    let Some(page) = LAYER.with_borrow(|l| l.as_ref().and_then(|l| l.history.last().cloned())) else { return };
-    let vanilla = LAYER.with_borrow(|l| l.as_ref().map_or(0, |l| l.vanilla_tabs));
-    if terminal {
-        if let Some(view) = crate::game::port_jei_window::recipe_view(index) {
-            // What the last frame drew may have gone since.
-            if transfer_state(game, &view).is_some_and(|s| !s.enabled) {
-                return;
-            }
-            let crafting = crate::game::port_jei_window::shown_icon().as_deref() == Some(CRAFTING) && view.layout == Layout::Grid;
-            // UseCraftingRecipeTransfer: craftMissing is Control held (the encoder has nothing to craft).
-            let craft_missing = crafting && !encoding_open(game) && game.has_control_down();
-            let wanted = if craft_missing { to_craft(game, &view) } else { Vec::new() };
-            transfer(game, &view, crafting, false);
-            if !wanted.is_empty() {
-                // JEI goes back to the screen, where the confirm dialog opens.
-                crate::game::port_jei_window::close();
-                LAYER.with_borrow_mut(|l| {
-                    if let Some(l) = l.as_mut() {
-                        l.history.clear();
-                    }
-                });
-                crate::game::port_ae2_me::jei_craft_missing(wanted);
-            }
-        }
-        return;
-    }
-    if page.tab >= vanilla {
-        return;
-    }
-    let key = if page.uses { ctx.uses_key } else { ctx.recipe_key };
-    let out = LAYER.with_borrow_mut(|l| {
-        let l = l.as_mut()?;
-        l.query.handle(Event::Key { key: key.to_owned(), stack: page.item.clone() }, ctx);
-        l.query.handle(Event::Tab(page.tab), ctx);
-        let out = l.query.handle(Event::Action(index), ctx);
-        l.query.handle(Event::Back, ctx);
-        Some(out)
-    });
-    for o in out.into_iter().flatten() {
-        if let Out::Place { book_id, all } = o {
-            let _ = game.native_place_recipe(book_id, all);
-        }
-    }
 }
 
 /// An AE2 terminal that takes recipes is open (`AEGuiContainerHandler`).

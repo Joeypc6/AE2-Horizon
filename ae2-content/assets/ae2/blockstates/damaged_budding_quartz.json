@@ -1,21 +1,6 @@
 {
   "variants": {
-    "facing=north": {
-      "model": "ae2:block/damaged_budding_quartz"
-    },
-    "facing=south": {
-      "model": "ae2:block/damaged_budding_quartz"
-    },
-    "facing=west": {
-      "model": "ae2:block/damaged_budding_quartz"
-    },
-    "facing=east": {
-      "model": "ae2:block/damaged_budding_quartz"
-    },
-    "facing=up": {
-      "model": "ae2:block/damaged_budding_quartz"
-    },
-    "facing=down": {
+    "": {
       "model": "ae2:block/damaged_budding_quartz"
     }
   }

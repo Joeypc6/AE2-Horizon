@@ -829,3 +829,86 @@ The registry's check builds on the newest Nightly, where AE2 15.4.13 didn't comp
 
 AE2 alone compiled as `native-66f3981-dd348c92bfbf`. **It wasn't run**, at the owner's choice. The last build to pass the test suites is `native-6475f62-6b04867df72c`, on Horizon `6475f62`. With JEI or Jade on this Horizon it wasn't compiled either.
 The registry log's `ItemRenderState` and `title::Button` errors aren't in this source, and didn't come up in this compile: nothing was needed for them.
+
+## Round 27 (2026-11-06): Horizon's hooks for what was worked around
+
+- **Budding quartz** is on `minecraft:budding_amethyst`, and `native_random_tick` queues its growth for the level's tick. So `random_tick_speed` reaches it, it needs no block entity, right-clicking it opens nothing, pistons pop it as AE2's, and it needs a tool for its drops.
+- **Fixtures and light detectors** drop with nothing behind them. `native_can_survive` only speaks for templates that ask (plants, torches), which these don't, so this uses `native_neighbor_changed` and a look when placed.
+- **Energy cells** drop with their charge from a blast (first through `native_explosion_detonate`, where the same blast burned the item; Round 28 moved it to `native_block_drops`). The loot function can't read the cell's share from the world crate. AE2's table has `survives_explosion`, so it drops 1 in the blast's radius; these always drop.
+- **Closing the confirm screen** stops its plan: `native_screen_closing` for the menu, and the Cancel button.
+
+Not adopted, by choice: `native_item_container` (moves the cells and toolbelt, needs full tests), `native_register_configs` (a new file format for existing configs), `native_menu_extra_data` and the level helpers.
+No mod API for dimensions or villager professions on Horizon `41f822b`, and arismoko/horizon#1042 and #1043 are open.
+
+The registry's check compiles a new version with the 20 most downloaded native mods. On `66f3981`, `eatinganimation` 0.1.1 fails on `ItemRenderState` and `mod_menu` 0.3.3 on `title::Button`. Neither is this mod, so read the check's verdict line.
+
+AE2 alone compiled as `native-66f3981-30bb7d8ad97e`. None of this round was run at the time, at the owner's choice (Round 28 ran it); `native-6475f62-6b04867df72c` on Horizon `6475f62` is the last tested build.
+
+## Round 28 (2026-11-07): the first real run on Horizon 66f3981
+
+The owner found two bugs that the compile-only move had let through:
+
+- **Menus of parts on cables didn't open.** Since 66f3981 the server's `horizon:menu_extra` names the screen's position, which for a part is its virtual position, and `part_ids_for_screen` looked for parts there. It now maps that back to the host and puts the opened side first.
+- **Shift-click did nothing as a shift-click in AE2's screens** (seen on the wireless terminal). Screens read Shift from `game.keys`, but a real Left Shift pressed with a screen open never gets there (`KeyAction::Press if !screen_open`). They now read `game.has_shift_down()`, as Horizon's own screens do. horizon-ctl's `key` writes `game.keys` directly, so the tests had passed; real window key messages to the test window showed the bug. After the fix the tests' Shift still sets the modifier, but real keyboard input after the fix was left to the owner to confirm.
+
+Running the hooks found one more: **a blast burned the energy cell it had just dropped**, since `native_explosion_detonate` comes before the blast hurts entities. Moved to `native_block_drops`. Both cells now drop with their charge. (A drop that lands in the fire a blast starts burns, as any item does: that read as "a plain cell vanishes" for a while, until the two swapped places in a run.)
+
+Tested on `native-66f3981-ed8159c43302` (AE2, Jade 26.3.7, Zoom 2.0.0): all suites and LAN with one guest, 0 panics. Four checks of `tools` and three of the cable-into-a-cell test failed once in the long run, and passed twice each when repeated.
+
+Not run on 66f3981: the JEI integration (JEI isn't in this build), and the dedicated server and its attack tests.
+
+Builds from a session's Bash or PowerShell fail on the `native/target` junction, through the session's sandbox; run them in a Terminal panel tab.
+
+## Round 29 (2026-11-07): Horizon `ebcfa22` (main), and the page's list
+
+**Not publishable yet.** The newest Nightly is still `66f3981`, and the registry checks against the newest Nightly, so this source waits for a newer one. It builds as a pinned commit from `native-build/main` (no `"hooks"` in its manifest, or that overrides the pin), into the `ae2-dev` instance. 15.4.15 on `66f3981` stays shippable: `publish/ae2-15.4.15-on-66f3981.hnmod`.
+
+The move itself: one changed type (`FluidAt::Mod`) and one in Jade (`mob_hit`). `native_default_state` replaces 42 lookups into the registry. The fluid provider isn't adopted: `native_fluid_at` has to be hooked for parts' virtual positions anyway, so it wouldn't remove the dependency.
+
+Fixed from the list:
+
+- **Two storage buses on one inventory.** All buses of an open share one copy of each slot and tank, so one sees what another moved. Both list it (AE2 does too), and no more can come out than is there.
+- **Power paid.** An IO port and the crafting terminal's refills, wireless included.
+- **Power judged each tick** (`power_due`): down at once, back on the 32nd tick. What a look pays is the ticks since the last.
+- **Crafting time is live.** The forecast comes from the job's state each second; a job with no progress past twice its slowest machine's time climbs instead of counting down, and the status screen says why: no power (at once, no time shown), waiting for machines, or stalled.
+- **Unformed crafting, quantum and spatial blocks** have no node, so they neither join nor carry a network (`unformed_blocks`).
+- **Patterns are per unit** (AEProcessingPattern.Input), so part of an input can come from storage and the rest be crafted.
+- **Blocking mode by side**: a blocked side is passed over. **Machines ask CRAFT_LESS** and make what they can. Provider priority was already there.
+- **24 orientations** on the nine FacingWithSpinStrategy blocks: a `spin` property and a variant's `z`; placement and the wrench as AE2's.
+- **Menus in the game's language**: `ui_lang.rs`, from AE2's en_us.json (`tools/make_ui_lang.py`). A few words this port wrote itself stay English.
+- **Fluix tools** are FluixToolType's: iron's tier, 750 uses, speed 7.2, damage times 1.2.
+- **Guide annotations**: lines, boxes and diamonds, with their tooltips. Part of a scene now draws as it scrolls.
+- **World height**: hosts below -64 get a band of their own and worlds above 1024 a higher base; saves from -64 keep their positions. Only checked at normal height.
+- **The guide key** only works on a tooltip really drawn (`native_tooltip_render_pre`): a tooltip is also worked out for searches and Jade lines, so W opened the guide with nothing under the pointer.
+
+Jade: the energy icon is Jade's own sprite. The game rule uses public hooks only: `/gamerule jade:max_position_deviation` goes through the command hooks and `native_register_commands`, is read at `native_world_lifecycle` and saved to data/jade/game_rules.dat as before. 14 injections into Horizon's tables are gone. The cost: no row on the Game Rules screen, as no mod can add one.
+
+Still not AE2's: nested P2P's error is judged with one node to a tunnel where AE2 has two (only with no controller). The part placement known issue didn't reproduce in 160 real clicks; `hosted_place` now logs each refusal and `/ae2debug places` counts what arrived, so the next miss says whether the click got there.
+
+Tested on `ebcfa22` with AE2 and Jade: all suites, LAN with one guest, the new list, power, time and orientation tests, 0 panics. The game ran capped at 40 FPS (`--player-dir`). German menus, the annotated scene and the guide key were checked by eye, on screen. Not run: JEI (not in this build), a dedicated server, and a real keyboard's Shift (the owner's to confirm).
+
+## Round 30 (2026-11-07): the JEI kit, and three bugs
+
+**The kit moved out of AE2.** The JEI window, Mob Drops, World Gen and the other source tabs, the creative panel and the guide are `jei-kit/` now; `jei-kit/apply.py` copies them into each mod that uses them. Each copy adds a marker module `hz_kit_v<version>_<mod>`, and `<mod>_optional` reads the staged `game.rs` so that only the newest copy compiles (a tie: the id first in the alphabet). AE2 keeps what is its own as a `Provider` in `int_jei_jei.rs`: its categories, facades, terminal transfer, meteorites and the inscriber's clickable area. Raise `VERSION` in `apply.py` when the kit changes. See `jei-kit/README.md`.
+
+Fixed:
+
+- **Middle click** is MEStorageScreen's ClickType.CLONE (checked in AE2's bytecode): what the network can craft opens the amount dialog, stored or not, in every game mode; only the rest is the creative duplicate. Every terminal now gets the craftable list.
+- **The guide key** ignores repeats (W held from walking up), a press in the first 500 ms of a screen, an item the pointer has been on for under 100 ms, and any press while a text box or dialog has the keyboard.
+- **Jade on a controller** said `0 / 100 kFE`: the FE intake buffer. BodyProviderAdapter hides that line on AE2's blocks in every mode; the check only held in one.
+
+Tested on `ebcfa22`, offscreen, with AE2, Elevator, Jade, JEI and Zoom: list, orientation and Elevator suites, JEI tabs against a baseline taken before the move, real W key and middle mouse messages, 0 panics. The pick was tested with one copy marked v2 (it won, AE2's tabs came through it), and Elevator with JEI and no AE2. Not run on this build: LAN, a dedicated server, and the attack rig.
+
+## Round 31 (2026-11-07): Nightly 6560641, and the last list
+
+Pinned to Nightly `6560641` (Horizon API 411), so this version can go on the registry. Its new mod hooks (`native_chat_suggestion_applied`, `native_screen_text_field_char_typed_pre`, `native_transfer_recipe`, `native_wind_burst`, more `LevelRef` and `EntityRef` helpers) replace none of the workarounds: no mod dimensions yet, though the engine's level keys moved toward them (#11282). The mesher's `face` took a `cell`, and `BakedFace` two more fields.
+
+- **ME P2P tunnels have AE2's two nodes.** `MEP2PTunnelPart`: the main node (REQUIRE_CHANNEL, COMPRESSED_CHANNEL) on its host, the outer node (DENSE_CAPACITY, CANNOT_CARRY_COMPRESSED) on what's in front of it. The outer nodes of an input and an output join once both main nodes are online on one grid (`updateConnections`), and grids settle to a fixed point over that. **The carried network now goes in at the tunnel's front, as in AE2.** Before this it went through the host, so **a build that carried a network host to host must be rewired**: both tunnels' hosts on one network, and the carried network against their fronts.
+- **NESTED_P2P_TUNNEL is AE2's rule** (`calculateAdHocChannels`): no controller, and a grid with both a tunnel's main node and any outer node. It only takes down that grid's channels.
+- **A terminal's tooltip is the stack's whole tooltip**, as AEKeyRendering: custom name, enchantments, damage in advanced tooltips, attributes, lore, mod name. `screen_tooltip` now takes the game.
+- **The `guide` key works.** It defaults to W (AE2's is G; the user chose W), `jei-kit/src/guide.rs` reads it through Options > Mods for any mod with pages, and the hint says the bound key. The kit is version 2.
+- `/ae2debug node x y z [side]` says what the network says of a block, for tests.
+
+Tested on `6560641`, offscreen, with AE2, Jade, JEI, Elevator, Iron Furnaces and Zoom: all of `final67` (bus, kinds, hopper, collision, tunnels, stress, reload, Researcher, slots, regression, config, JEI, plot, LAN with one guest), the list and orientation suites, the JEI tabs against their baseline with no difference, and the new nested and hosted tunnel rigs, 0 panics. A terminal's tooltip by screenshot, the guide key rebound to G by real key messages, the wireless terminals' bars by screenshot (AE2's own width and colour). `bus_test2`'s `p2p` part was left out: it built host to host, which AE2 doesn't carry.
+
+Not run on this build: a dedicated server, the attack rig, and a real middle press (that code didn't change).

@@ -761,7 +761,7 @@ pub fn level_tick(game: &mut Game<'_>, dimension: &str) {
             if meteor.pos[1] < bounds[1] || meteor.pos[1] > bounds[4] {
                 continue;
             }
-            let Some(copied) = game.pack.assets.registry.default_state(meteor.copied) else { continue };
+            let Some(copied) = game.native_default_state(meteor.copied) else { continue };
             let size = f64::from(meteor.radius);
             let real_crater = size * 2.0 + 5.0;
             let mut placer = Placer {

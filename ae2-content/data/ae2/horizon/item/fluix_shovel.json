@@ -1,3 +1,38 @@
 {
-  "template": "minecraft:diamond_shovel"
+  "template": "minecraft:iron_shovel",
+  "components": {
+    "minecraft:max_damage": 750,
+    "minecraft:repairable": {
+      "items": "ae2:fluix_crystal"
+    },
+    "minecraft:attribute_modifiers": [
+      {
+        "type": "minecraft:attack_damage",
+        "id": "minecraft:base_attack_damage",
+        "amount": 3.9,
+        "operation": "add_value",
+        "slot": "mainhand"
+      },
+      {
+        "type": "minecraft:attack_speed",
+        "id": "minecraft:base_attack_speed",
+        "amount": -3.0,
+        "operation": "add_value",
+        "slot": "mainhand"
+      }
+    ],
+    "minecraft:tool": {
+      "rules": [
+        {
+          "blocks": "#minecraft:incorrect_for_iron_tool",
+          "correct_for_drops": false
+        },
+        {
+          "blocks": "#minecraft:mineable/shovel",
+          "correct_for_drops": true,
+          "speed": 7.2
+        }
+      ]
+    }
+  }
 }

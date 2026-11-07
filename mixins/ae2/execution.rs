@@ -98,6 +98,11 @@ impl ElapsedTimeTracker {
     }
 
     /// Nanoseconds the job has run; the clock stops once all work is done.
+    /// What has been started and completed so far, of every kind.
+    pub fn done_so_far(&self) -> i64 {
+        self.started.iter().chain(&self.completed).sum()
+    }
+
     pub fn elapsed_nanos(&self) -> u64 {
         let all_done = (0..2).all(|i| self.completed[i] >= self.started[i]);
         if all_done { self.elapsed_nanos } else { self.elapsed_nanos + self.last_time.elapsed().as_nanos() as u64 }
@@ -659,6 +664,12 @@ impl CraftingCpu {
                 }
             }
         }
+    }
+
+    /// What changes whenever the job gets anywhere: results back and crafts started, what it waits for, the tasks left.
+    pub fn progress_mark(&self) -> Option<(i64, i64, i64)> {
+        let job = self.job.as_ref()?;
+        Some((job.time.done_so_far(), job.waiting_for.iter().map(|(_, n)| n).sum(), job.tasks.iter().map(|(_, n)| *n).sum()))
     }
 
     pub fn cant_store_items(&self) -> bool {

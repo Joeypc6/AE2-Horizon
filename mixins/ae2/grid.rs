@@ -108,10 +108,14 @@ pub struct Network {
     /// Block positions, for the controller size rule.
     positions: HashMap<NodeId, [i32; 3]>,
     links: HashMap<NodeId, BTreeSet<NodeId>>,
-    /// Which of the links are an ME P2P tunnel's, to the tunnels on its frequency. Java's tunnel has two nodes: its main
-    /// one (REQUIRE_CHANNEL, COMPRESSED_CHANNEL) on the network feeding it, and the outer one (CANNOT_CARRY_COMPRESSED)
-    /// on the network it carries. Here one node stands for both, so what's carried is told by the route through these.
+    /// ME P2P tunnels on one frequency, by their main nodes (an input with its outputs). MEP2PTunnelPart has two nodes:
+    /// the main one (REQUIRE_CHANNEL, COMPRESSED_CHANNEL) on its host, and the outer one (DENSE_CAPACITY,
+    /// CANNOT_CARRY_COMPRESSED) on what's in front of it. The outer nodes of a pair join (`updateConnections`) once both
+    /// main nodes are online on one grid.
     tunnels: BTreeMap<NodeId, BTreeSet<NodeId>>,
+    /// A tunnel's main node to its outer one, which only this file knows of: no `Grid` lists it.
+    outers: HashMap<NodeId, NodeId>,
+    outer_nodes: HashSet<NodeId>,
     /// Nodes of one multiblock (a CPU, a spatial structure), by a number for it.
     multiblocks: HashMap<NodeId, u64>,
 }
@@ -137,26 +141,33 @@ impl Network {
                 }
             }
         }
-        if let Some(others) = self.tunnels.remove(&id) {
-            for o in others {
-                if let Some(l) = self.tunnels.get_mut(&o) {
-                    l.remove(&id);
-                }
-            }
+        self.tunnels.remove(&id);
+        for ends in self.tunnels.values_mut() {
+            ends.remove(&id);
         }
     }
 
-    /// An ME P2P tunnel's link to another on its frequency.
+    /// The outer node of the ME tunnel with this main node, made the first time.
+    pub fn tunnel_outer(&mut self, main: NodeId) -> NodeId {
+        if let Some(outer) = self.outers.get(&main) {
+            return *outer;
+        }
+        // From the top of the range: `pack` only comes near it for a block at x and z -1, y 4095 and down.
+        let outer = u64::MAX - self.outers.len() as u64;
+        let pos = self.positions.get(&main).copied().unwrap_or([0; 3]);
+        self.add_node(outer, NodeKind { controller: false, requires_channel: false, max_channels: 32, dense: true, idle_power: 0.0 }, pos);
+        self.outers.insert(main, outer);
+        self.outer_nodes.insert(outer);
+        outer
+    }
+
+    /// An input and an output on one frequency, by their main nodes.
     pub fn connect_tunnel(&mut self, a: NodeId, b: NodeId) {
         if a != b && self.kinds.contains_key(&a) && self.kinds.contains_key(&b) {
-            self.connect(a, b);
+            self.tunnel_outer(a);
+            self.tunnel_outer(b);
             self.tunnels.entry(a).or_default().insert(b);
-            self.tunnels.entry(b).or_default().insert(a);
         }
-    }
-
-    fn is_tunnel_link(&self, a: NodeId, b: NodeId) -> bool {
-        self.tunnels.get(&a).is_some_and(|l| l.contains(&b))
     }
 
     pub fn connect(&mut self, a: NodeId, b: NodeId) {
@@ -181,6 +192,36 @@ impl Network {
 
     /// The grids: connected devices, each with its controller state and channels.
     pub fn grids(&self) -> Vec<Grid> {
+        // MEP2PTunnelPart.updateConnections happens as grids settle: a pair joined can change who has a channel. Stop at a
+        // fixed point; a rig that never has one (joining takes the channels that let it join) ends on its last round.
+        let mut joined: BTreeSet<(NodeId, NodeId)> = BTreeSet::new();
+        let mut grids = self.grids_once();
+        for _ in 0..8 {
+            let mut next = BTreeSet::new();
+            let on = |node: &NodeId| grids.iter().position(|g| g.with_channel.contains(node));
+            for (input, outputs) in &self.tunnels {
+                for output in outputs {
+                    if let (Some(a), Some(b)) = (on(input), on(output))
+                        && a == b
+                    {
+                        next.insert((*input, *output));
+                    }
+                }
+            }
+            if next == joined {
+                break;
+            }
+            joined = next;
+            let mut net = self.clone();
+            for (input, output) in &joined {
+                net.connect(self.outers[input], self.outers[output]);
+            }
+            grids = net.grids_once();
+        }
+        grids
+    }
+
+    fn grids_once(&self) -> Vec<Grid> {
         let mut seen = HashSet::new();
         let mut out = Vec::new();
         let mut ids: Vec<_> = self.kinds.keys().copied().collect();
@@ -199,7 +240,12 @@ impl Network {
                     }
                 }
             }
-            out.push(self.path(members));
+            let mut grid = self.path(members);
+            grid.nodes.retain(|n| !self.outer_nodes.contains(n));
+            grid.used_channels.retain(|n, _| !self.outer_nodes.contains(n));
+            if !grid.nodes.is_empty() {
+                out.push(grid);
+            }
         }
         out
     }
@@ -254,64 +300,6 @@ impl Network {
         ControllerState::ControllerOnline
     }
 
-    /// PathingService's NESTED_P2P_TUNNEL without a controller: a grid holding both a tunnel's outer node and a tunnel
-    /// that needs a channel. With one node to a tunnel: cut the tunnels' links and the grid falls into stretches; each
-    /// frequency touches some of them; two frequencies sharing a stretch but not all of them are a tunnel carried by a
-    /// tunnel (two pairs side by side between the same two stretches aren't, nor one input with many outputs).
-    fn nested_tunnels(&self, members: &BTreeSet<NodeId>) -> bool {
-        let tunnels: Vec<NodeId> = members.iter().copied().filter(|n| self.tunnels.contains_key(n)).collect();
-        if tunnels.is_empty() {
-            return false;
-        }
-        let mut stretch: HashMap<NodeId, usize> = HashMap::new();
-        for (i, &tunnel) in tunnels.iter().enumerate() {
-            if stretch.contains_key(&tunnel) {
-                continue;
-            }
-            stretch.insert(tunnel, i);
-            let mut queue = VecDeque::from([tunnel]);
-            while let Some(n) = queue.pop_front() {
-                for &o in &self.links[&n] {
-                    if !self.is_tunnel_link(n, o) && !stretch.contains_key(&o) {
-                        stretch.insert(o, i);
-                        queue.push_back(o);
-                    }
-                }
-            }
-        }
-        let mut frequencies: Vec<BTreeSet<usize>> = Vec::new();
-        let mut seen = HashSet::new();
-        for &tunnel in &tunnels {
-            if !seen.insert(tunnel) {
-                continue;
-            }
-            let mut touched = BTreeSet::from([stretch[&tunnel]]);
-            let mut queue = VecDeque::from([tunnel]);
-            while let Some(n) = queue.pop_front() {
-                for &o in self.tunnels.get(&n).into_iter().flatten() {
-                    if seen.insert(o) {
-                        touched.insert(stretch[&o]);
-                        queue.push_back(o);
-                    }
-                }
-            }
-            frequencies.push(touched);
-        }
-        frequencies.iter().enumerate().any(|(i, a)| frequencies[i + 1..].iter().any(|b| a != b && !a.is_disjoint(b)))
-    }
-
-    /// Whether `start`'s route to the controllers goes through a tunnel's link.
-    fn carried(&self, start: NodeId, route: &HashMap<NodeId, Option<NodeId>>) -> bool {
-        let mut at = start;
-        while let Some(&Some(parent)) = route.get(&at) {
-            if self.is_tunnel_link(at, parent) {
-                return true;
-            }
-            at = parent;
-        }
-        false
-    }
-
     /// Channels for one grid's devices.
     fn path(&self, members: BTreeSet<NodeId>) -> Grid {
         let state = self.controller_state(&members);
@@ -327,7 +315,7 @@ impl Network {
             ControllerState::ControllerConflict => {}
             ControllerState::NoController => {
                 // PathingService.calculateAdHocChannels: a compressed channel where one can't be carried is 0 channels.
-                grid.nested_p2p = self.nested_tunnels(&grid.nodes);
+                grid.nested_p2p = grid.nodes.iter().any(|n| self.outers.contains_key(n)) && grid.nodes.iter().any(|n| self.outer_nodes.contains(n));
                 // AdHocChannelUpdater: up to 8 devices work without a controller, more and none do.
                 let wanting: Vec<NodeId> = grid.nodes.iter().copied().filter(|n| self.kinds[n].requires_channel).collect();
                 if !grid.nested_p2p && self.channels_wanted(&grid.nodes) <= ad_hoc_channels() {
@@ -367,21 +355,12 @@ impl Network {
                     if route.contains_key(&o) {
                         continue;
                     }
-                    // MEP2PTunnelPart: a tunnel without its channel is offline, and connects nothing.
-                    if self.is_tunnel_link(n, o) && !grid.with_channel.contains(&n) {
-                        continue;
-                    }
                     route.insert(o, Some(n));
                     self.try_use_channel(o, &route, grid);
                     let index = if self.kinds[&o].dense { 0 } else { 1 }.max(q);
                     queues[index].push_back(o);
                 }
             }
-        }
-        // A tunnel reached before the other end of its own link has a second try, now that the routes are all known.
-        let late: Vec<NodeId> = self.tunnels.keys().copied().filter(|t| route.contains_key(t) && !grid.with_channel.contains(t)).collect();
-        for tunnel in late {
-            self.try_use_channel(tunnel, &route, grid);
         }
     }
 
@@ -410,18 +389,13 @@ impl Network {
             grid.with_channel.insert(start);
             return;
         }
-        // PathingCalculation.tryUseChannel: COMPRESSED_CHANNEL through a CANNOT_CARRY_COMPRESSED node (a tunnel's outer
-        // node) gets none. A tunnel is at home on the side a route reached first: only if that end too came through a
-        // tunnel is this one nested.
-        if let Some(ends) = self.tunnels.get(&start)
-            && self.carried(start, route)
-            && !ends.iter().any(|end| route.contains_key(end) && !self.carried(*end, route))
-        {
-            return;
-        }
         let path: Vec<NodeId> = std::iter::successors(Some(start), |n| route.get(n).copied().flatten())
             .filter(|n| !self.kinds[n].controller)
             .collect();
+        // PathingCalculation.tryUseChannel: a COMPRESSED_CHANNEL through a CANNOT_CARRY_COMPRESSED node gets none.
+        if self.outers.contains_key(&start) && path.iter().any(|n| self.outer_nodes.contains(n)) {
+            return;
+        }
         if path.iter().any(|n| grid.used_channels.get(n).copied().unwrap_or(0) >= capacity(self.kinds[n].max_channels)) {
             return;
         }

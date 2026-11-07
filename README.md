@@ -38,18 +38,8 @@ doesn't show you.
   a player or an occupied plot takes up to about a second, where AE2's is instant.
 - **AE2's Java API.** Java addons for AE2 can't run on this port.
 - **Crafting ETA.** The time left is an estimate. It averaged 1.1% off on the test rig and was 2.0% off at worst.
-- **Nested P2P error.** Worked out from the stretches between tunnels, so it is an approximation.
-- **`craftingCalculationTimePerTick`.** Only applies to jobs that don't come from the confirm screen, whose plan runs on its
-  own thread.
+- **`craftingCalculationTimePerTick`.** It is in the config file but does nothing: plans run on their own thread here.
 - **Two storage buses on one inventory.** Only the first reaches it. AE2's buses read it live; here each would count the same items.
-- **Moving items** costs power through a terminal, an interface, an export bus and a wireless terminal. An IO port and the crafting
-  terminal's refills pay nothing yet.
-- **Power** is judged once a second, so a network with too little goes down at the next look and comes back after about 40 ticks, where AE2's
-  is at once and 32.
-- **Unformed crafting, quantum and spatial blocks** join a network before they're formed.
-- **Other gaps** an outside review found are still open: crafting patterns in `crafting.rs` keep inputs as one template, blocking mode looks at all six sides,
-  budding quartz and machines differ in smaller ways, fluix tools are diamond tools, and guide scenes have no annotations. `PLAN.md` Round 25 says what was fixed.
-- **World height.** Parts on cables assume a world from -64 to 319.
 - **JEI and Jade addons.** The integrations work only with those mods' Horizon ports, not with Java addons for them.
 
 The Fluix Researcher and its trades are there, but through mixins on tables compiled into the game, so they are the part
@@ -58,9 +48,10 @@ most likely to break on a Horizon update.
 ### Not tested
 
 A real pipe from another mod into a part on a cable (no such mod exists yet; the engine lookup it would use is tested),
-more than one guest at a time, and speed against the Java mod.
+more than one guest at a time, and speed against the Java mod. Back up a world before updating: **ME P2P tunnels now work as AE2's, with
+the carried network at the tunnel's front and both hosts on one network**, so a build that carried a network host to host needs rewiring.
 
-`PLAN.md` has the full history; Round 25 is the current list, and Round 26 the move to this Horizon.
+`PLAN.md` has the full history; Round 31 is the latest.
 
 ## Multiplayer
 
@@ -71,7 +62,7 @@ and `PLAN.md` Round 24 has the list. Report anything found to the issues page.
 ## Build
 
 This is a [Horizon](https://github.com/horizon-rust/horizon) native mod bundle: Rust mixins compiled into the game.
-It compiles on Horizon commit `66f3981` (Minecraft 26.3) as `native-66f3981-dd348c92bfbf`, alone, but wasn't run there. It was last tested on Horizon commit `6475f62` (native hooks API 359), as `native-6475f62-6b04867df72c`.
+It was last tested on Horizon commit `6560641` (Minecraft 26.3) as `native-6560641-d2a33c2ec68d`, with Jade, JEI, Elevator, Iron Furnaces and Zoom.
 Native mods are unsandboxed code that runs with your rights, so read what you build.
 
 Put each bundle's `mixins/<id>` folder in one folder, then:
@@ -83,7 +74,7 @@ horizon-launcher native-build "path/to/that/folder" --trust-native-code
 ## Status
 
 An unofficial port, not made or endorsed by the original authors. Please report problems here, not to them.
-It was tested on Windows, in single player, on LAN with one guest, and on a dedicated server with one client. Other platforms were not tested.
+It was tested on Windows, in single player and on LAN with one guest, and on an older Horizon on a dedicated server with one client. Other platforms were not tested.
 The JEI integration was in the client on that server, but nothing specific to JEI was checked there.
 A Horizon update can break it until it is rebuilt: it is built for the one Horizon commit named under Build.
 

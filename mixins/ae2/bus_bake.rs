@@ -18,16 +18,17 @@ fn ae2_bus_bake(me: &mut Mesher<'_>, region: &[[Option<&Chunk>; 3]; 3], sy: i32,
             continue;
         }
         let state = &me.tables.info[*id as usize];
+        let cell = hz_ae2_cells::padded_cell(*at);
         let origin = [at[0] as f32 + shift[0], at[1] as f32 + shift[1], at[2] as f32 + shift[2]];
         for model in &models {
             for face in &model.faces {
                 match clip {
                     Some(b) => {
                         if let Some(cut) = hz_ae2_cells::clipped(face, b) {
-                            me.face(pad, &mut tints, &mut out, *at, origin, &cut, false, (*id, state), world, false);
+                            me.face(pad, &mut tints, &mut out, *at, cell, origin, &cut, false, (*id, state), world, false);
                         }
                     }
-                    None => me.face(pad, &mut tints, &mut out, *at, origin, face, false, (*id, state), world, false),
+                    None => me.face(pad, &mut tints, &mut out, *at, cell, origin, face, false, (*id, state), world, false),
                 }
             }
         }

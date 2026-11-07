@@ -28,6 +28,11 @@ impl Mesher<'_> {
 }
 
 /// A full block's face cut to a facade's plate: corners moved into the box, its UVs with them.
+/// A section position's place in the padded arrays, as the mesher's own loop works it out.
+pub(super) fn padded_cell(at: [i32; 3]) -> usize {
+    pi(at[0], at[1], at[2])
+}
+
 pub(super) fn clipped(face: &BakedFace, b: &[f32; 6]) -> Option<BakedFace> {
     let mut q = face.quad.clone();
     let p = face.quad.positions;
@@ -59,5 +64,5 @@ pub(super) fn clipped(face: &BakedFace, b: &[f32; 6]) -> Option<BakedFace> {
         q.positions[i] = v;
     }
     q.cull = None;
-    Some(BakedFace { quad: q, layer: face.layer, opaque: face.opaque, translucent: face.translucent, fusion: face.fusion })
+    Some(BakedFace::new(q, face.layer, face.opaque, face.translucent, face.fusion))
 }
