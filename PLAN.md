@@ -912,3 +912,32 @@ Pinned to Nightly `6560641` (Horizon API 411), so this version can go on the reg
 Tested on `6560641`, offscreen, with AE2, Jade, JEI, Elevator, Iron Furnaces and Zoom: all of `final67` (bus, kinds, hopper, collision, tunnels, stress, reload, Researcher, slots, regression, config, JEI, plot, LAN with one guest), the list and orientation suites, the JEI tabs against their baseline with no difference, and the new nested and hosted tunnel rigs, 0 panics. A terminal's tooltip by screenshot, the guide key rebound to G by real key messages, the wireless terminals' bars by screenshot (AE2's own width and colour). `bus_test2`'s `p2p` part was left out: it built host to host, which AE2 doesn't carry.
 
 Not run on this build: a dedicated server, the attack rig, and a real middle press (that code didn't change).
+
+## Round 32 (2026-11-08): other mods' machines, and a job's time left
+
+15.4.17, still on Nightly `6560641` (API 411). Nightly `2ebf00a` came out: it builds this, and adds only a HUD mode
+hook not yet numbered and Horizon's own Recipes panel on the creative screen, so nothing moved to it.
+
+- **Other mods' machines in a job's time left.** `port_ae2_me::register_machine` lets a mod say how long its machine
+  takes for a pattern's inputs (`MachineTime`: a craft at its full pace, push to last result, the work under way).
+  Iron Furnaces (tier, recipe, speed and fuel augments, the higher tiers' multiplier, a factory's Auto Split) and
+  Hostile Neural Networks (the Simulation Chamber's 240 or 300 ticks, the Loot Fabricator's 60) register when AE2 is
+  in the build. What has been measured still wins when the machine runs over 10% slower (short of fuel or power).
+  A result still in a registered machine counts as made, as a furnace's output slot already did.
+- **The CPU's pace in the forecast.** A push counts against the CPU for the three ticks after it, so a CPU pushes
+  co-processors + 1 every four ticks; the forecast had three. Fast machines fed by a CPU with no co-processors (an
+  obsidian factory, an assembler with no cards) were forecast a quarter too fast.
+- **An import bus's last pull.** Results an import bus takes from a job's machine come in on the bus's own time,
+  which slows to every 40 ticks while it has nothing to take: one interval more at the end of the job.
+- Machines don't send their results back by themselves unless set to (`machine_pull` stays off, as in AE2): an Iron
+  Furnace needs its provider's face set to Input/Output with Auto Output on, or an import bus. A job without a way
+  back waits for its results forever, the "stuck at 99%" seen in testing; the mods' READMEs say how to wire them.
+- The JEI kit is version 3: it builds with JEI 0.2 (`Viewer::with_variants`, chosen by `if_has!`), and when JEI itself
+  carries the kit (Joeypc6/horizon-jei 0.3.0, marker `hz_jeikit_v3_jei`) the mods' copies leave their JEI parts out
+  and use JEI's; the W guide stays the mods' and the window reaches it through `if_guide!`.
+
+Measured on screen with real jobs (time left at each sample against when the job really ended, the samples after 90%
+left out): Iron Furnace 12 stone 0.29% mean, 0.97% worst; with a Speed Augment 0.45%, 1.45%; obsidian factory with
+Auto Split, 240 stone, 0.60%, 1.27%; Simulation Chamber through an import bus 0.64%, 1.41%; Molecular Assembler, no
+cards, 400 sticks, 1.00%, 1.76%. The seconds shown are whole, so a sample can be up to a second off on its own; short
+jobs (under ten seconds) are further off in percent for that.

@@ -66,8 +66,21 @@ fn choose_mod(input: TokenStream) -> TokenStream {
     if in_build(&name) { kept } else { otherwise }
 }
 
+/// JEI carries the kit's JEI parts itself (Joeypc6/horizon-jei adds the marker `hz_jeikit_v<version>_jei`): the
+/// recipe window, the sources, the creative panel and `Provider`. Then the mods' copies leave theirs out and use JEI's,
+/// and only the W guide (AE2's, kept out of JEI) still comes from the newest copy.
+fn jei_provides() -> bool {
+    game_rs().contains("mod hz_jeikit_v")
+}
+
+/// The kit's parts JEI carries when it does.
+const JEI_PARTS: [&str; 5] = ["layer", "window", "collection", "panel", "creative"];
+
 fn choose_kit(input: TokenStream, needs_jei: bool) -> TokenStream {
     let (id, kept, otherwise) = parts(input);
+    if needs_jei && jei_provides() {
+        return if id == "jei" { kept } else { otherwise };
+    }
     let wins = winner().as_deref() == Some(id.as_str());
     if wins && (!needs_jei || in_build("jei")) { kept } else { otherwise }
 }
@@ -82,6 +95,30 @@ pub fn if_mod_items(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn if_mod(input: TokenStream) -> TokenStream {
     block(choose_mod(input))
+}
+
+/// A block's value, by what the build's source says: `if_has!("fn with_variants(", { ... } else { ... })` keeps the
+/// first when that text is in the staged game.rs (a mod's newer API), else the second.
+#[proc_macro]
+pub fn if_has(input: TokenStream) -> TokenStream {
+    let (text, kept, otherwise) = parts(input);
+    block(if game_rs().contains(&text) { kept } else { otherwise })
+}
+
+/// A block's value, kept while a mod's copy (and so the W guide) is in the build: `if_guide!("guide", { ... } else
+/// { ... })`. JEI's own parts reach the guide only through this.
+#[proc_macro]
+pub fn if_guide(input: TokenStream) -> TokenStream {
+    let (_, kept, otherwise) = parts(input);
+    block(if winner().is_some() { kept } else { otherwise })
+}
+
+/// `guide!(is_open)`: that function of the guide in the newest copy. Only inside `if_guide!`'s first block.
+#[proc_macro]
+pub fn guide(input: TokenStream) -> TokenStream {
+    let name = input.to_string();
+    let id = winner().expect("no copy of the kit's guide in this build");
+    format!("crate::game::hz_kit_guide_{id}::{}", name.trim()).parse().expect("guide")
 }
 
 /// Items of a kit copy, kept when this mod's copy is the newest: `if_kit_items!("ae2", { ... });`.
@@ -114,7 +151,7 @@ pub fn kit_use(input: TokenStream) -> TokenStream {
     let words: Vec<String> = input.into_iter().map(|t| t.to_string()).collect();
     let [part, as_word, name] = words.as_slice() else { panic!("kit_use!(part as name)") };
     assert_eq!(as_word, "as", "kit_use!(part as name)");
-    let id = winner().expect("no copy of the kit in this build");
+    let id = if JEI_PARTS.contains(&part.as_str()) && jei_provides() { "jei".to_owned() } else { winner().expect("no copy of the kit in this build") };
     let path = if part == "panel" { format!("crate::game::native_panel::hz_kit_panel_{id}") } else { format!("crate::game::hz_kit_{part}_{id}") };
     format!("#[allow(unused_imports)] pub(super) use {path} as {name};").parse().expect("kit_use")
 }

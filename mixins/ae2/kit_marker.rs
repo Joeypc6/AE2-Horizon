@@ -1,1 +1,1 @@
-// This mod carries version 2 of the JEI kit.
+// This mod carries version 3 of the JEI kit.

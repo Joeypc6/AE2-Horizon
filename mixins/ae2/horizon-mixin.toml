@@ -1,6 +1,6 @@
 [mod]
 id = "ae2"
-version = "15.4.16"
+version = "15.4.17"
 priority = 100
 
 # The Horizon commit this bundle was built and tested on.
@@ -2452,6 +2452,6 @@ bindings = [
 [[module]]
 id = "ae2-kit-marker"
 file = "crates/horizon-client/src/game.rs"
-name = "hz_kit_v2_ae2"
+name = "hz_kit_v3_ae2"
 source = "kit_marker.rs"
 # ---- END JEI KIT

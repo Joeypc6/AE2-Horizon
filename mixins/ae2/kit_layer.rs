@@ -172,7 +172,12 @@ pub fn ensure(game: &mut Game<'_>) -> bool {
         .collect();
     let names = items.iter().map(|i| (i.id.clone(), i.name.clone())).collect();
     let lang = jei::lang(game.native_setting(jei::ID, "language").as_deref());
-    let (query, out) = Viewer::new(items, recipes, lang);
+    // JEI 0.2 builds its viewer with the tables' variants (none here: the kit lists items, not subtypes); 0.1 without.
+    let (query, out) = ae2_optional::if_has!("fn with_variants(", {
+        Viewer::with_variants(items, recipes, Vec::new(), lang)
+    } else {
+        Viewer::new(items, recipes, lang)
+    });
     let listed = match out {
         Out::Items(stacks) => stacks,
         _ => Vec::new(),
@@ -225,9 +230,9 @@ pub fn event(game: &mut Game<'_>, mod_id: &str, event: &NativePanelEvent) {
             let stack = Stack { item: stack.item.clone(), count: 1, components: stack.components.clone() };
             if *key == recipe_key || *key == uses_key {
                 open(game, stack, *key == uses_key, &ctx);
-            } else if *key == crate::game::hz_kit_guide_ae2::hotkey(game) {
+            } else if crate::game::hz_kit_window_ae2::guide_hotkey(game).is_some_and(|h| *key == h) {
                 // The guide: its key over an item, the panel's too.
-                crate::game::hz_kit_guide_ae2::open_from_key(game, &stack.item);
+                crate::game::hz_kit_window_ae2::guide_open(game, &stack.item);
             }
         }
         NativePanelEvent::Clicked { index, right } => {
@@ -435,7 +440,7 @@ fn page_of(game: &Game<'_>, page: &Page, ctx: &Context<'_>) -> Shown {
             tabs.extend((p.tabs)(game, &page.item, page.uses));
         }
         if !page.uses
-            && let Some(text) = crate::game::hz_kit_guide_ae2::summary(game, &page.item.item)
+            && let Some(text) = crate::game::hz_kit_window_ae2::guide_summary(game, &page.item.item)
         {
             let lines = crate::game::hz_kit_collection_ae2::wrap_text(game, &text);
             tabs.push(Tab { icon: "minecraft:book".to_owned(), title: "Information".to_owned(), catalysts: Vec::new(), cards: vec![Card::Text(lines)] });
@@ -512,8 +517,8 @@ pub fn frame(game: &mut Game<'_>) {
                 let stack = Stack { count: 1, ..stack };
                 if key == recipe_key || key == uses_key {
                     open(game, stack, key == uses_key, &ctx);
-                } else if key == crate::game::hz_kit_guide_ae2::hotkey(game) {
-                    crate::game::hz_kit_guide_ae2::open_from_key(game, &stack.item);
+                } else if crate::game::hz_kit_window_ae2::guide_hotkey(game).is_some_and(|h| key == h) {
+                    crate::game::hz_kit_window_ae2::guide_open(game, &stack.item);
                 }
             }
             Act::Close => {

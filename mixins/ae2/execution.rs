@@ -533,8 +533,9 @@ impl CraftingCpu {
         let mut owed = std::collections::VecDeque::from(owed);
         let longest = tasks.iter().map(|t| t.left / t.rate).sum::<f64>() + owed.back().map_or(0.0, |o| o.0);
         let step = (longest / 500.0).max(1.0);
-        // `tick`: pushes in the last three ticks count against the CPU's limit.
-        let ops_per_tick = f64::from(self.co_processors + 1) / 3.0;
+        // `tick`: pushes in the last three ticks count against the CPU's limit, so a push frees its place on the
+        // fourth tick after it: co-processors + 1 pushes every four ticks (one a tick at three co-processors).
+        let ops_per_tick = f64::from(self.co_processors + 1) / 4.0;
         let mut now = 0.0f64;
         let mut ops = 0.0f64;
         // Long jobs' steps split crafts: what's left of one is nothing.

@@ -4633,9 +4633,46 @@ pub fn wireless_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &
     }
 }
 
+/// What another mod says of its machine, for a crafting job's time left: `ticks`, one craft of the pattern at the
+/// machine's full pace (a machine that works on several at once takes less a craft); `latency`, from the push to the
+/// last result of one craft; `done`, the ticks the work under way has had (None when idle).
+#[derive(Clone, Copy, Debug)]
+pub struct MachineTime {
+    pub ticks: f64,
+    pub latency: f64,
+    pub done: Option<f64>,
+}
+
+/// A mod's answer for its block at a position, given the block's id and the pattern's inputs (item or fluid id and
+/// the amount one craft takes). None: not its machine, or it can't work on those.
+pub type MachineProvider = fn(&Game<'_>, [i32; 3], &str, &[(&str, i64)]) -> Option<MachineTime>;
+
+static MACHINE_PROVIDERS: std::sync::Mutex<Vec<MachineProvider>> = std::sync::Mutex::new(Vec::new());
+
+/// Lets a mod tell AE2 how long its machine takes, so a job's time left is right from the first craft (its speed
+/// upgrades and recipe times included) rather than once AE2 has watched it work. Calling again does nothing.
+pub fn register_machine(f: MachineProvider) {
+    if let Ok(mut v) = MACHINE_PROVIDERS.lock()
+        && !v.iter().any(|g| *g as usize == f as usize)
+    {
+        v.push(f);
+    }
+}
+
+/// What a registered mod says of the machine at `q` for this pattern.
+fn mod_machine(game: &Game<'_>, q: Pos, block: &str, pattern: &Pattern) -> Option<MachineTime> {
+    let providers = MACHINE_PROVIDERS.lock().map(|v| v.clone()).ok()?;
+    if providers.is_empty() {
+        return None;
+    }
+    let inputs: Vec<(&str, i64)> = pattern.inputs.iter().filter_map(|i| i.possible.first().map(|p| (p.what.id(), p.amount * i.multiplier.max(1)))).collect();
+    providers.iter().find_map(|p| p(game, q, block, &inputs)).filter(|m| m.ticks > 0.0)
+}
+
 /// What a pattern's machines do now: its crafts a tick and the ticks a craft takes, from the providers that hold it
 /// and are on the network as it stands (channels, channel mode, P2P all decide that) and their machines: the speed
-/// cards in assemblers, a machine's own recipe time, or what that machine has been measured doing. None: nothing can.
+/// cards in assemblers, a machine's own recipe time (or what its mod says of it), or what that machine has been
+/// measured doing. None: nothing can.
 fn pattern_machines(game: &Game<'_>, patterns: &[(Pos, Arc<Pattern>)], pattern: &Pattern) -> Option<(f64, f64)> {
     let mut rate = 0.0;
     let mut latency: f64 = 0.0;
@@ -4650,6 +4687,15 @@ fn pattern_machines(game: &Game<'_>, patterns: &[(Pos, Arc<Pattern>)], pattern: 
                 }
                 let measured = SERVER.with_borrow(|s| s.machine_times.get(&q).map(|m| m.1)).filter(|m| *m > 0.0);
                 let per = pattern.primary_output().amount.max(1) as f64;
+                // A mod that says how long its machine takes: that, unless it has been measured well behind it
+                // (short of power or fuel).
+                if let Some(m) = mod_machine(game, q, &block, pattern) {
+                    let slow = measured.map(|t| t * per).filter(|t| *t > m.ticks * 1.1);
+                    let ticks = slow.unwrap_or(m.ticks);
+                    rate += 1.0 / ticks;
+                    latency = latency.max(if slow.is_some() { ticks } else { m.latency.max(ticks) });
+                    break;
+                }
                 let ticks = measured.map(|m| m * per).unwrap_or(match block.as_str() {
                     "minecraft:blast_furnace" | "minecraft:smoker" => 100.0,
                     "minecraft:furnace" => 200.0,
@@ -4719,6 +4765,12 @@ fn job_seconds_left(game: &Game<'_>, grid: usize, cpu: Pos) -> f64 {
                             let speed = [2.0, 3.0, 5.0, 10.0, 50.0][cards(e, 4, "ae2:speed_card").min(4)];
                             Some(f64::from(e.data.first().copied().unwrap_or(0)) / speed + nbt_i64(&e.nbt, "smash") as f64)
                         }
+                        // A registered mod's machine: the work it has under way.
+                        // A result of it still in the machine (waiting for a bus to take it) is as good as made.
+                        Some(horizon_client::containers::BlockEntity::Mod(e)) if mod_machine(game, q, &e.id, p).is_some() => {
+                            let waiting = e.items.iter().flatten().any(|s| &*s.item == k.id());
+                            Some(if waiting { f64::MAX } else { mod_machine(game, q, &e.id, p).and_then(|m| m.done).unwrap_or(0.0) })
+                        }
                         _ => s.machine_times.get(&q).map(|m| tick.saturating_sub(m.0) as f64),
                     })
                     .fold(0.0, f64::max);
@@ -4738,7 +4790,16 @@ fn job_seconds_left(game: &Game<'_>, grid: usize, cpu: Pos) -> f64 {
     let grace = working.iter().filter_map(|p| pattern_machines(game, &patterns, p).map(|m| m.1)).fold(STALL_TICKS as f64, |most, latency| most.max(latency * 2.0));
     SERVER.with_borrow_mut(|s| s.job_grace.insert(cpu, grace as u64));
     let late = tick.saturating_sub(job_last_progress(cpu, tick)) as f64 - grace;
-    let ticks = ticks.map(|t| t + late.max(0.0));
+    // The last results come back through an import bus on their machine on the bus's own time, which slows to its
+    // slowest (TickRates.ImportBus, 40 ticks) while there's nothing to take: one interval more at the end.
+    let machines: Vec<Pos> = patterns
+        .iter()
+        .filter(|(_, p)| working.iter().any(|w| **w == **p))
+        .flat_map(|(at, _)| provider_targets(game, *at).into_iter().map(|q| through_p2p(game, q)))
+        .collect();
+    let pulled = SERVER.with_borrow(|s| s.grids.get(grid).is_some_and(|g| g.io_buses.iter().any(|(_, t, import)| *import && machines.contains(t))));
+    let tail = if pulled { 40.0 } else { 0.0 };
+    let ticks = ticks.map(|t| t + late.max(0.0) + tail);
     // The real tick rate, measured over each forecast's second.
     let rate = SERVER.with_borrow_mut(|s| {
         let now = std::time::Instant::now();

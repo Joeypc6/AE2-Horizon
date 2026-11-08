@@ -51,7 +51,7 @@ A real pipe from another mod into a part on a cable (no such mod exists yet; the
 more than one guest at a time, and speed against the Java mod. Back up a world before updating: **ME P2P tunnels now work as AE2's, with
 the carried network at the tunnel's front and both hosts on one network**, so a build that carried a network host to host needs rewiring.
 
-`PLAN.md` has the full history; Round 31 is the latest.
+`PLAN.md` has the full history; Round 32 is the latest.
 
 ## Multiplayer
 
@@ -62,7 +62,8 @@ and `PLAN.md` Round 24 has the list. Report anything found to the issues page.
 ## Build
 
 This is a [Horizon](https://github.com/horizon-rust/horizon) native mod bundle: Rust mixins compiled into the game.
-It was last tested on Horizon commit `6560641` (Minecraft 26.3) as `native-6560641-d2a33c2ec68d`, with Jade, JEI, Elevator, Iron Furnaces and Zoom.
+It was last tested on Horizon commit `6560641` (Minecraft 26.3) as `native-6560641-c1fd7dde710b`, with Jade, JEI 0.3.0 (Joeypc6/horizon-jei), Elevator, Iron Furnaces, Hostile Neural Networks and Zoom.
+
 Native mods are unsandboxed code that runs with your rights, so read what you build.
 
 Put each bundle's `mixins/<id>` folder in one folder, then:

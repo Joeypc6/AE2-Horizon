@@ -1829,7 +1829,7 @@ pub fn frame_hook(game: &mut Game<'_>) {
         static SAID: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     }
     if !SAID.replace(true) {
-        log::info!("Horizon: the JEI kit in use is ae2's copy, version 2");
+        log::info!("Horizon: the JEI kit in use is ae2's copy, version 3");
     }
     load_all(game);
     {

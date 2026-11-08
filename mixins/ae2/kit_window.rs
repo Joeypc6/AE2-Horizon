@@ -11,6 +11,29 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::sync::Arc;
 
+// The W guide is the mods' (a port of AE2's guidebook): the copy of whichever mod is newest, or none when only JEI
+// carries the kit. These are the window's and the layer's only way to it.
+
+/// The guide is open over the screen.
+pub fn guide_is_open() -> bool {
+    ae2_optional::if_guide!("guide", { ae2_optional::guide!(is_open)() } else { false })
+}
+
+/// The guide's key, while a mod's guide is in the build.
+pub fn guide_hotkey(game: &Game<'_>) -> Option<String> {
+    ae2_optional::if_guide!("guide", { Some(ae2_optional::guide!(hotkey)(game)) } else { { let _ = game; None } })
+}
+
+/// Opens the guide's page for an item; false when it has none.
+pub fn guide_open(game: &Game<'_>, item: &str) -> bool {
+    ae2_optional::if_guide!("guide", { ae2_optional::guide!(open_from_key)(game, item) } else { { let _ = (game, item); false } })
+}
+
+/// The guide's summary of an item, for its Information tab.
+pub fn guide_summary(game: &Game<'_>, item: &str) -> Option<String> {
+    ae2_optional::if_guide!("guide", { ae2_optional::guide!(summary)(game, item) } else { { let _ = (game, item); None } })
+}
+
 pub const WIDTH: f32 = 192.0;
 const SLOT: f32 = 18.0;
 const TAB: f32 = 24.0;
@@ -240,11 +263,11 @@ pub fn hud_after(game: &mut Game<'_>, batch: &mut HudBatch) {
     if let Some(cursor) = HIDDEN_CURSOR.take() {
         game.cursor = cursor;
     }
-    if is_open() && !crate::game::hz_kit_guide_ae2::is_open() {
+    if is_open() && !guide_is_open() {
         tint(game, batch);
     }
     crate::game::hz_kit_creative_ae2::draw(game, batch);
-    if is_open() && !crate::game::hz_kit_guide_ae2::is_open() {
+    if is_open() && !guide_is_open() {
         draw(game, batch);
     }
 }

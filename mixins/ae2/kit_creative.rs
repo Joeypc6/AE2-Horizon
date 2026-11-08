@@ -25,7 +25,7 @@ thread_local! {
 }
 
 fn open(game: &Game<'_>) -> bool {
-    game.screen == crate::game::Screen::Creative && game.native_on("jei") && !crate::game::hz_kit_guide_ae2::is_open()
+    game.screen == crate::game::Screen::Creative && game.native_on("jei") && !crate::game::hz_kit_window_ae2::guide_is_open()
 }
 
 fn left(game: &Game<'_>) -> f32 {
