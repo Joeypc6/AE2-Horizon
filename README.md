@@ -62,7 +62,14 @@ and `PLAN.md` Round 24 has the list. Report anything found to the issues page.
 ## Build
 
 This is a [Horizon](https://github.com/horizon-rust/horizon) native mod bundle: Rust mixins compiled into the game.
-It was last tested on Horizon commit `6560641` (Minecraft 26.3) as `native-6560641-c1fd7dde710b`, with Jade, JEI 0.3.0 (Joeypc6/horizon-jei), Elevator, Iron Furnaces, Hostile Neural Networks and Zoom.
+It was last built on Horizon commit `fdc87ae` (Minecraft 26.3, Nightly 2026-11-08) as `native-fdc87ae-83d10460ef68`, together with
+Jade, JEI (Joeypc6/horizon-jei, mod kit 14), Elevator, Iron Furnaces, Hostile Neural Networks, Tinkers' Construct, Ender IO, Powah and
+Apothic Spawners: all ten compile together with none left out, and the W guide was checked in game on that build. The full play
+tests above were on Horizon commit `6560641` as `native-6560641-c1fd7dde710b`, with Jade, JEI 0.3.0, Elevator, Iron Furnaces, Hostile
+Neural Networks and Zoom.
+
+With mod kit 14, recipe cards draw fluids as their textures (still, tinted and tiled, as JEI does), never as buckets, and the W
+guide's 3D scenes find their structures from any page folder.
 
 Native mods are unsandboxed code that runs with your rights, so read what you build.
 
