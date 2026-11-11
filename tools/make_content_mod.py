@@ -134,6 +134,7 @@ DEVICES = {
     "inscriber", "charger", "condenser", "crystal_resonance_generator", "growth_accelerator",
 }
 # Machines that stand upright in AE2 (they only turn about the vertical): facing up or down keeps them level.
+FULL_ORIENTATION = ["drive", "chest", "io_port", "inscriber", "charger", "cell_workbench", "vibration_chamber", "spatial_io_port", "crafting_monitor"]
 UPRIGHT = {"sky_stone_chest", "smooth_sky_stone_chest", "charger", "inscriber", "cell_workbench", "vibration_chamber", "condenser",
            "molecular_assembler"}
 # CrystalResonanceGeneratorBlock.getVoxelShape: a 12-wide column, one pixel short at its front.
@@ -1492,6 +1493,75 @@ def final_fixes(out):
         if components:
             decl["components"] = components
         f.write_text(json.dumps(decl, indent=2))
+    # FluixToolType: iron's tier, three times its uses, and 1.2 times its speed and damage (FluixSwordItem and the others
+    # give the base damage and attack speed).
+    fluix = {
+        "fluix_sword": ("iron_sword", 3.0, -2.4, None),
+        "fluix_pickaxe": ("iron_pickaxe", 1.0, -2.8, "pickaxe"),
+        "fluix_axe": ("iron_axe", 6.0, -3.1, "axe"),
+        "fluix_shovel": ("iron_shovel", 1.5, -3.0, "shovel"),
+        "fluix_hoe": ("iron_hoe", -2.0, -1.0, "hoe"),
+    }
+    for name, (template, damage, speed, mines) in fluix.items():
+        path = out / f"data/{ID}/horizon/item/{name}.json"
+        components = {
+            "minecraft:max_damage": 750,
+            "minecraft:repairable": {"items": f"{ID}:fluix_crystal"},
+            "minecraft:attribute_modifiers": [
+                {"type": "minecraft:attack_damage", "id": "minecraft:base_attack_damage", "amount": round(damage + 2.4, 3), "operation": "add_value", "slot": "mainhand"},
+                {"type": "minecraft:attack_speed", "id": "minecraft:base_attack_speed", "amount": speed, "operation": "add_value", "slot": "mainhand"},
+            ],
+        }
+        if mines:
+            components["minecraft:tool"] = {
+                "rules": [
+                    {"blocks": "#minecraft:incorrect_for_iron_tool", "correct_for_drops": False},
+                    {"blocks": f"#minecraft:mineable/{mines}", "correct_for_drops": True, "speed": 7.2},
+                ],
+            }
+        path.write_text(json.dumps({"template": f"minecraft:{template}", "components": components}, indent=2))
+    # FacingWithSpinStrategy: these turn on six facings and four spins about each, 24 orientations. A variant's `z` turns
+    # the model about its front before its `x` and `y` point that front.
+    for name in FULL_ORIENTATION:
+        decl_file = out / f"data/{ID}/horizon/block/{name}.json"
+        bs_file = out / f"assets/{ID}/blockstates/{name}.json"
+        decl = json.loads(decl_file.read_text())
+        states = json.loads(bs_file.read_text())
+        decl["state_properties"] = {**decl.get("state_properties", {}), "spin": {"type": "enum", "values": ["0", "1", "2", "3"]}}
+        # A barrel's own `facing` has all six; a block on another template declares it (and it must not repeat a template's).
+        if decl.get("template") != "minecraft:barrel":
+            decl["state_properties"]["facing"] = {"type": "enum", "values": ["north", "south", "west", "east", "up", "down"]}
+            decl["default_state"] = {"facing": "north", **decl.get("default_state", {})}
+        decl["default_state"] = {**decl.get("default_state", {}), "spin": "0"}
+        decl_file.write_text(json.dumps(decl, indent=2))
+
+        def turned(apply, facing, spin):
+            out_apply = {k: v for k, v in apply.items() if k not in ("x", "y", "z")}
+            out_apply.update(FACING_ROTATIONS[facing])
+            if spin:
+                out_apply["z"] = 90 * spin
+            return out_apply
+
+        if "variants" in states:
+            variants = {}
+            for key, apply in states["variants"].items():
+                props = dict(kv.split("=") for kv in key.split(",") if kv)
+                if "facing" not in props:
+                    raise SystemExit(f"{name} has a variant with no facing: {key}")
+                for spin in range(4):
+                    variants[f"{key},spin={spin}"] = turned(apply, props["facing"], spin)
+            states["variants"] = variants
+        else:
+            parts = []
+            for part in states["multipart"]:
+                facing = part.get("when", {}).get("facing")
+                if facing is None or "|" in str(facing):
+                    parts.append(part)
+                    continue
+                for spin in range(4):
+                    parts.append({"when": {**part["when"], "spin": str(spin)}, "apply": turned(part["apply"], facing, spin)})
+            states["multipart"] = parts
+        bs_file.write_text(json.dumps(states, indent=2))
     # A cube's presses: Horizon's block loot has no `minecraft:tag` entry, so a pool for each.
     silk = {"type": "minecraft:match_tool", "predicate": {"predicates": {"minecraft:enchantments": [{"enchantments": "minecraft:silk_touch", "levels": {"min": 1}}]}}}
     presses = ["calculation_processor_press", "engineering_processor_press", "logic_processor_press", "silicon_press"]

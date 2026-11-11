@@ -12,8 +12,8 @@ const CREATIVE_WIDTH: f32 = 195.0;
 struct Queue {
     press: Option<([f32; 2], bool)>,
     unfocus: bool,
-    typed: String,
-    backspaces: u32,
+    /// The search box's edits in the order they came: text, or None for a Backspace.
+    edits: Vec<Option<String>>,
     keys: Vec<(String, bool)>,
     typing: bool,
     was_open: bool,
@@ -24,20 +24,23 @@ thread_local! {
     static SWAPPED: Cell<bool> = const { Cell::new(false) };
 }
 
+/// Whether the panel shows on the creative screen now.
 fn open(game: &Game<'_>) -> bool {
     game.screen == crate::game::Screen::Creative && game.native_on("jei") && !crate::game::hz_kit_window_ae2::guide_is_open()
 }
 
+/// Where the panel starts: right of the creative window.
 fn left(game: &Game<'_>) -> f32 {
     let (w, _) = game.gui_size();
     ((w - CREATIVE_WIDTH) / 2.0).floor() + CREATIVE_WIDTH + 8.0
 }
 
 /// `native_screen_width`, while the panel works for the creative screen.
-pub fn screen_width() -> Option<f32> {
+pub(in crate::game) fn screen_width() -> Option<f32> {
     SWAPPED.get().then_some(CREATIVE_WIDTH)
 }
 
+/// Runs `f` with the game told an inventory screen of the creative window's width is open.
 fn with_panel<R>(game: &mut Game<'_>, f: impl FnOnce(&mut Game<'_>) -> R) -> R {
     let screen = game.screen;
     game.screen = crate::game::Screen::Inventory;
@@ -48,7 +51,8 @@ fn with_panel<R>(game: &mut Game<'_>, f: impl FnOnce(&mut Game<'_>) -> R) -> R {
     out
 }
 
-pub fn draw(game: &mut Game<'_>, batch: &mut HudBatch) {
+/// Draws the panel on the creative screen and notes whether its search has the keyboard.
+pub(in crate::game) fn draw(game: &mut Game<'_>, batch: &mut HudBatch) {
     if !open(game) {
         return;
     }
@@ -63,8 +67,13 @@ pub fn draw(game: &mut Game<'_>, batch: &mut HudBatch) {
     QUEUE.with_borrow_mut(|q| q.typing = typing);
 }
 
+/// Whether the panel's search box on the creative screen has the keyboard (as last drawn).
+pub(in crate::game) fn typing() -> bool {
+    QUEUE.with_borrow(|q| q.typing)
+}
+
 /// A click on the creative screen: on the panel it is the panel's; anywhere else takes the focus off its search box.
-pub fn press(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
+pub(in crate::game) fn press(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
     if !open(game) {
         return;
     }
@@ -79,13 +88,13 @@ pub fn press(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool)
 }
 
 /// A key on the creative screen: the panel's search box takes it, or it looks up the item under the pointer.
-pub fn key(game: &Game<'_>, mouse: [f32; 2], key: &str, canceled: &mut bool) {
+pub(in crate::game) fn key(game: &Game<'_>, mouse: [f32; 2], key: &str, canceled: &mut bool) {
     if !open(game) {
         return;
     }
     if QUEUE.with_borrow(|q| q.typing) {
         if key == "key.keyboard.backspace" {
-            QUEUE.with_borrow_mut(|q| q.backspaces += 1);
+            QUEUE.with_borrow_mut(|q| q.edits.push(None));
         }
         if key != "key.keyboard.escape" {
             *canceled = true;
@@ -104,10 +113,14 @@ pub fn key(game: &Game<'_>, mouse: [f32; 2], key: &str, canceled: &mut bool) {
     }
 }
 
-pub fn char_typed(c: char, canceled: &mut bool) {
+/// A character typed while the panel's search has the keyboard: queued for it.
+pub(in crate::game) fn char_typed(c: char, canceled: &mut bool) {
     QUEUE.with_borrow_mut(|q| {
         if q.typing && !c.is_control() {
-            q.typed.push(c);
+            match q.edits.last_mut() {
+                Some(Some(text)) => text.push(c),
+                _ => q.edits.push(Some(c.to_string())),
+            }
             *canceled = true;
         }
     });
@@ -130,11 +143,11 @@ fn pointed(game: &mut Game<'_>) -> Option<crate::game::native_hooks::NativeStack
 }
 
 /// What the frame has to do for the panel, with the game to hand.
-pub fn frame(game: &mut Game<'_>) {
+pub(in crate::game) fn frame(game: &mut Game<'_>) {
     let is_open = open(game);
-    let (press, unfocus, typed, backspaces, keys, was_open) = QUEUE.with_borrow_mut(|q| {
+    let (press, unfocus, edits, keys, was_open) = QUEUE.with_borrow_mut(|q| {
         let was = std::mem::replace(&mut q.was_open, is_open);
-        (q.press.take(), std::mem::take(&mut q.unfocus), std::mem::take(&mut q.typed), std::mem::take(&mut q.backspaces), std::mem::take(&mut q.keys), was)
+        (q.press.take(), std::mem::take(&mut q.unfocus), std::mem::take(&mut q.edits), std::mem::take(&mut q.keys), was)
     });
     if was_open && !is_open {
         with_panel(game, |g| g.mod_browser_closed());
@@ -152,11 +165,11 @@ pub fn frame(game: &mut Game<'_>) {
         with_panel(game, |g| g.mod_browser_press(right));
         game.cursor = cursor;
     }
-    if !typed.is_empty() {
-        with_panel(game, |g| g.mod_browser_text(Some(&typed), false));
-    }
-    for _ in 0..backspaces {
-        with_panel(game, |g| g.mod_browser_text(None, true));
+    for edit in edits {
+        match edit {
+            Some(text) => with_panel(game, |g| g.mod_browser_text(Some(&text), false)),
+            None => with_panel(game, |g| g.mod_browser_text(None, true)),
+        }
     }
     for (key, panel) in keys {
         if panel {

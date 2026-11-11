@@ -120,6 +120,7 @@ pub struct Network {
     multiblocks: HashMap<NodeId, u64>,
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl Network {
     pub fn new() -> Self {
         Self::default()
@@ -409,11 +410,13 @@ impl Network {
 
 /// `EnergyService`: the AE stored in a grid's controllers and energy cells.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 pub struct EnergyStore {
     pub stored: f64,
     pub capacity: f64,
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl EnergyStore {
     pub fn new(capacity: f64) -> Self {
         Self { stored: 0.0, capacity }
@@ -543,6 +546,7 @@ impl<S> Default for NetworkStorage<S> {
     }
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl<S: MeStorage> NetworkStorage<S> {
     pub fn new() -> Self {
         Self::default()

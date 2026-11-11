@@ -4,5 +4,5 @@ fn jei_window_scrolled(game: &crate::game::Game<'_>, scroll: [f64; 2], canceled:
         return;
     }
     crate::game::hz_kit_window_ae2::scroll(scroll[1], canceled);
-} else { () })
+} else { let _ = (game, scroll, canceled); () })
 }

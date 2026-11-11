@@ -3,5 +3,5 @@ fn kit_guide_scrolled_ae2(game: &crate::game::Game<'_>, scroll: [f64; 2], cancel
     if game.player.is_some() {
         crate::game::hz_kit_guide_ae2::scroll(scroll[1], canceled);
     }
-} else { () })
+} else { let _ = (game, scroll, canceled); () })
 }

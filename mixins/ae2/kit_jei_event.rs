@@ -5,5 +5,5 @@ fn ae2_jei_event(
 ) {
     ae2_optional::if_kit_jei!("ae2", {
     crate::game::hz_kit_layer_ae2::event(game, mod_id, event);
-} else { () })
+} else { let _ = (game, mod_id, event); () })
 }

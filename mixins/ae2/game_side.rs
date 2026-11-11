@@ -8,7 +8,7 @@ use std::sync::LazyLock;
 /// The `tick` handler registered in Guide.watchDevelopmentSources (appeng/client/guidebook/Guide.java:245).
 /// The `tick` handler registered in OpenGuideHotkey.init (appeng/client/guidebook/hotkey/OpenGuideHotkey.java:50).
 #[allow(unused_mut, unused_variables, unused_parens, unreachable_code, clippy::all)]
-pub fn on_tick_1(game: &mut crate::game::Game<'_>) {
+pub(in crate::game) fn on_tick_1(game: &mut crate::game::Game<'_>) {
     open_guide_hotkey::NEW_TICK.set(true);
 }
 
@@ -16,13 +16,13 @@ pub fn on_tick_1(game: &mut crate::game::Game<'_>) {
 /// The `join` handler registered in AppEngClient.AppEngClient (appeng/core/AppEngClient.java:97).
 /// The `tick` handler registered in SiteExporter.initialize (appeng/siteexport/SiteExporter.java:119).
 /// AppEngClientStartup.onInitializeClient (appeng/core/AppEngClientStartup.java:6), without its Fabric registrations (they are the hooks).
-pub fn on_init(_game: &mut crate::game::Game<'_>) {}
+pub(in crate::game) fn on_init(_game: &mut crate::game::Game<'_>) {}
 
 static INIT: std::sync::Once = std::sync::Once::new();
 
 /// Called first by every hook: points FabricLoader's config folder at the mod's data folder, then runs
 /// the mod's initializer, once.
-pub fn ensure_init(game: &mut crate::game::Game<'_>) {
+pub(in crate::game) fn ensure_init(game: &mut crate::game::Game<'_>) {
     if INIT.is_completed() {
         return;
     }

@@ -4,5 +4,5 @@ fn ae2_jei_frame(game: &mut crate::game::Game<'_>) {
         return;
     }
     crate::game::port_ae2_jei::frame(game);
-} else { () })
+} else { let _ = game; () })
 }

@@ -13494,11 +13494,11 @@ pub mod java {
         use super::*;
         // The class itself isn't translated: it extends Fabric's `ForwardingBakedModel`. Its static parts are below.
         // DriveBakedModel.DriveBakedModel(4): not translated, its class isn't translated (it extends Fabric's `ForwardingBakedModel`).
-        pub fn get_slot_origin(row: i32, col: i32, mut translation: JVec3) {
+        pub fn get_slot_origin(row: i32, col: i32, translation: &mut JVec3) {
             let x_offset: f32 = ((9 - (col * 8)) as f32) / 16.0f32;
             let y_offset: f32 = ((13 - (row * 3)) as f32) / 16.0f32;
             let z_offset: f32 = 0.0625f32;
-            { let joml_0 = JVec3::new(x_offset, y_offset, z_offset); translation = joml_0; joml_0 };
+            *translation = JVec3::new(x_offset, y_offset, z_offset);
         }
         // DriveBakedModel.emitBlockQuads(5): not translated, its class isn't translated (it extends Fabric's `ForwardingBakedModel`).
         // DriveBakedModel.getCells(2): not translated, it uses Minecraft's `class_1792`.
@@ -26797,8 +26797,6 @@ pub mod java {
             } else {
                 return semantic.clone();
             }
-            #[allow(unreachable_code)]
-            unreachable!()
         }
         pub fn get(key: &str) -> slot_semantic::SlotSemantic {
             return ({ let a_0 = key.to_string(); slot_semantics::REGISTRY.with(|o| o.get(&a_0).cloned()) }).expect("null");
@@ -32415,8 +32413,6 @@ pub mod java {
             } else {
                 return if len <= flex_buffers_unsigned::int_to_unsigned_long(-1) { 2 } else { 3 };
             }
-            #[allow(unreachable_code)]
-            unreachable!()
         }
         // FlexBuffersBuilder.writeBlob(4): not translated, its class isn't translated (it uses ReadWriteBuf, which isn't translated (it's an interface)).
         // FlexBuffersBuilder.align(1): not translated, its class isn't translated (it uses ReadWriteBuf, which isn't translated (it's an interface)).
@@ -33981,8 +33977,6 @@ pub mod java {
             } else {
                 return s.clone();
             }
-            #[allow(unreachable_code)]
-            unreachable!()
         }
         // Constructor.getClassForNode(1): not translated, its class isn't translated (it extends `SafeConstructor`).
         // Constructor.getClassForName(1): not translated, its class isn't translated (it extends `SafeConstructor`).
@@ -34346,8 +34340,6 @@ pub mod java {
             } else {
                 return anchor.to_string();
             }
-            #[allow(unreachable_code)]
-            unreachable!()
         }
         // Emitter.analyzeScalar(1): not translated, its class isn't translated (it implements `Emitable`).
         // Emitter.flushStream(0): not translated, its class isn't translated (it implements `Emitable`).

@@ -22,7 +22,6 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 
-pub const ID: &str = "ae2";
 const NET_ITEMS: &str = "ae2:items";
 /// The pattern access terminal's providers and their patterns.
 const NET_PROVIDERS: &str = "ae2:providers";
@@ -722,7 +721,7 @@ fn slot_icon(block: &str, i: usize) -> Option<[f32; 2]> {
 }
 
 /// A right press on an inventory slot, with a portable cell on one side and a stack on the other.
-pub fn portable_stack_press(game: &Game<'_>, rect: [f32; 4], mouse: [f32; 2], button: i32, canceled: &mut bool) {
+pub(in crate::game) fn portable_stack_press(game: &Game<'_>, rect: [f32; 4], mouse: [f32; 2], button: i32, canceled: &mut bool) {
     if button != 1 || overlay_shown() {
         return;
     }
@@ -745,7 +744,7 @@ pub fn portable_stack_press(game: &Game<'_>, rect: [f32; 4], mouse: [f32; 2], bu
 
 /// A left press on an interface's stored fluid with a bucket in hand: into or out of the fluid, not the item slot
 /// that lies under it (AEBaseMenu's FILL_ITEM and EMPTY_ITEM).
-pub fn interface_bucket_press(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
+pub(in crate::game) fn interface_bucket_press(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
     let Some((block, [ox, oy])) = ghost_screen() else { return };
     if button != 0 || canon(&block) != "ae2:interface" || overlay_shown() {
         return;
@@ -766,7 +765,7 @@ pub fn interface_bucket_press(game: &Game<'_>, mouse: [f32; 2], button: i32, can
 }
 
 /// AEBaseScreen.renderSlot: the empty slots' icons, at 40%.
-pub fn slot_icons(game: &Game<'_>, block: &str, batch: &mut HudBatch, origin: [f32; 2]) {
+pub(in crate::game) fn slot_icons(game: &Game<'_>, block: &str, batch: &mut HudBatch, origin: [f32; 2]) {
     if overlay_shown() {
         return;
     }
@@ -774,7 +773,7 @@ pub fn slot_icons(game: &Game<'_>, block: &str, batch: &mut HudBatch, origin: [f
     let slots = be.slots();
     if block == "ae2:crafting_terminal" {
         let cells: Vec<Option<ItemStack>> = CT_GRID.map(|i| slots.get(i).cloned().flatten()).collect();
-        let result = game.res.recipes().craft(&cells, 3);
+        let result = game.recipes().craft(&cells, 3);
         let [x, y] = craft_result_at();
         let (x, y) = (origin[0] + x, origin[1] + y);
         if let Some(result) = &result {
@@ -1001,7 +1000,7 @@ pub fn block_entity_container(block: &str, out: &mut Option<ModContainer>) {
 
 /// `native_block_entity_tick`: devices report in; terminals show whether they're online, take what's put in
 /// their slot and hand it to the network; vibration chambers burn fuel.
-pub fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
+pub(in crate::game) fn block_entity_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
     if is_twin(&entity.id) {
         if entity.id.starts_with("ae2:hz_fcb") {
             OLD_TWINS.with_borrow_mut(|t| t.push(pos));
@@ -1849,7 +1848,7 @@ fn grid_energy_per_node() -> f64 {
 /// second open terminals get their items.
 /// Every level with a player or forced chunks has its own networks, as AE2's Grid has its level's nodes. The hook runs
 /// after the levels' pass, with the last of them in place.
-pub fn server_tick(game: &mut Game<'_>) {
+pub(in crate::game) fn server_tick(game: &mut Game<'_>) {
     let back = game.dim;
     for dim in game.levels_to_tick() {
         if game.enter_level(None, dim).is_ok() {
@@ -1871,6 +1870,7 @@ struct LevelState {
     resync: Vec<(Pos, u64)>,
     twins: Vec<Pos>,
     rates: HashMap<Pos, (u64, u64)>,
+    bursts: HashMap<Pos, (u32, u32)>,
     plans: Vec<PlanRunning>,
     due: Vec<(Pos, &'static str)>,
 }
@@ -1881,7 +1881,7 @@ thread_local! {
 }
 
 /// A level goes in place (Game::enter_level): this port's tables, kept by position, go with it.
-pub fn level_in_place(current: crate::game::Dim, target: crate::game::Dim) {
+pub(in crate::game) fn level_in_place(current: crate::game::Dim, target: crate::game::Dim) {
     let held = LEVEL_HELD.get().unwrap_or(current);
     LEVEL_HELD.set(Some(target));
     if held == target {
@@ -1897,6 +1897,7 @@ pub fn level_in_place(current: crate::game::Dim, target: crate::game::Dim) {
         resync: CELL_RESYNC.with_borrow_mut(std::mem::take),
         twins: OLD_TWINS.with_borrow_mut(std::mem::take),
         rates: BUS_RATES.with_borrow_mut(std::mem::take),
+        bursts: BUS_BURSTS.with_borrow_mut(std::mem::take),
         plans: PLANS_RUNNING.with_borrow_mut(std::mem::take),
         due: ADVANCEMENTS_DUE.with_borrow_mut(std::mem::take),
     };
@@ -1913,6 +1914,7 @@ pub fn level_in_place(current: crate::game::Dim, target: crate::game::Dim) {
     CELL_RESYNC.set(next.resync);
     OLD_TWINS.set(next.twins);
     BUS_RATES.set(next.rates);
+    BUS_BURSTS.set(next.bursts);
     PLANS_RUNNING.set(next.plans);
     ADVANCEMENTS_DUE.set(next.due);
 }
@@ -2114,7 +2116,7 @@ fn rebuild(game: &mut Game<'_>, tick: u64) {
     // formed (AE2 makes the cluster, then the nodes), so it neither joins nor carries a network: the walk finds what
     // isn't formed, and walks again without them.
     let mut unformed: HashSet<Pos> = HashSet::new();
-    let (mut blocks, mut net) = loop {
+    let (blocks, mut net) = loop {
     let mut blocks: HashMap<Pos, String> = HashMap::new();
     let mut net = Network::new();
     for start in starts.iter().copied() {
@@ -3219,7 +3221,7 @@ fn storage_close(game: &mut Game<'_>, open: OpenStorage, own: &mut Option<(Pos, 
 
 /// `native_right_click_block`: a player using a terminal becomes its viewer; a charger takes the crystal in
 /// the hand, or gives back what it holds.
-pub fn right_click(game: &mut Game<'_>, pos: Pos, face: Pos, canceled: &mut bool) {
+pub(in crate::game) fn right_click(game: &mut Game<'_>, pos: Pos, face: Pos, canceled: &mut bool) {
     let whole = game.held().is_some_and(|h| matches!(&*h.item, "ae2:facade" | "ae2:color_applicator"));
     let Some(part) = clicked_part(game, pos).filter(|_| !whole) else {
         right_click_at(game, pos, face, canceled);
@@ -3887,7 +3889,7 @@ fn link_of(stack: &ItemStack) -> Option<Pos> {
 pub const NET_WIRELESS: &str = "ae2:wireless";
 
 /// `native_use_item`: a linked wireless terminal in range of its access point opens the network's terminal.
-pub fn use_item(game: &mut Game<'_>, stack: &ItemStack, claimed: &mut bool) {
+pub(in crate::game) fn use_item(game: &mut Game<'_>, stack: &ItemStack, claimed: &mut bool) {
     // AE2's portable cells: sneak-use on an empty one takes it apart into its recipe (ME chest, component, energy
     // cell, housing), its charge going back into the energy cell.
     if let Some(name) = ae2_name(&stack.item).map(str::to_owned)
@@ -3994,14 +3996,14 @@ fn crafting_block_extra(item: &str) -> Option<&'static str> {
 }
 
 /// A key pressed with no screen open (`Hotkeys.checkHotkeys`): the server looks for the item.
-pub fn hotkey(game: &Game<'_>, name: &str) {
+pub(in crate::game) fn hotkey(game: &Game<'_>, name: &str) {
     if matches!(game.screen, super::Screen::Playing) {
         CLIENT.with_borrow_mut(|c| c.ui_out.push(format!("hotkey {name}")));
     }
 }
 
 /// The cursor as the server left it (`cursor` on `NET_UI`).
-pub fn cursor_frame(game: &mut Game<'_>) {
+pub(in crate::game) fn cursor_frame(game: &mut Game<'_>) {
     bake_cells(game);
     let Some((n, item)) = CLIENT.with_borrow_mut(|c| c.cursor_back.take()) else { return };
     game.carried = match game.carried.take() {
@@ -4147,7 +4149,7 @@ fn open_wireless(game: &mut Game<'_>, stack: &ItemStack, slot: i32) {
 }
 
 /// `native_inventory_tick`: an inventory slot the wireless terminal asked to put in the network.
-pub fn inventory_tick(game: &mut Game<'_>, slot: i32) {
+pub(in crate::game) fn inventory_tick(game: &mut Game<'_>, slot: i32) {
     if let Some(s) = game.native_carried_stack(slot) {
         give_frequency(s);
     }
@@ -4436,7 +4438,7 @@ fn wireless_rows() -> (usize, f32) {
 }
 
 /// `native_screen_render_post` on the wireless terminal's screen.
-pub fn wireless_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
+pub(in crate::game) fn wireless_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
     if game.native_mod_screen() != Some("ae2") || CLIENT.with_borrow(|c| c.wireless_open) != 2 {
         return;
     }
@@ -4477,7 +4479,7 @@ pub fn wireless_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
         }
         let size = grid.len().min(9);
         if size == 9
-            && let Some((_, result)) = game.res.recipes().find(&grid, 3)
+            && let Some((_, result)) = game.recipes().find(&grid, 3)
         {
             let (x, y) = (ox + CRAFT_RESULT[0], oy + CRAFT_RESULT[1]);
             game.native_item(batch, &result.item, [x, y], 16.0);
@@ -4554,7 +4556,7 @@ pub fn wireless_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
 }
 
 /// A click on the wireless terminal's screen: an item of the grid to take, or an inventory slot to put in.
-pub fn wireless_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
+pub(in crate::game) fn wireless_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
     if game.native_mod_screen() != Some("ae2") || CLIENT.with_borrow(|c| c.wireless_open) != 2 {
         return;
     }
@@ -4638,20 +4640,21 @@ pub fn wireless_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &
 /// last result of one craft; `done`, the ticks the work under way has had (None when idle).
 #[derive(Clone, Copy, Debug)]
 pub struct MachineTime {
-    pub ticks: f64,
-    pub latency: f64,
-    pub done: Option<f64>,
+    pub(in crate::game) ticks: f64,
+    pub(in crate::game) latency: f64,
+    pub(in crate::game) done: Option<f64>,
 }
 
 /// A mod's answer for its block at a position, given the block's id and the pattern's inputs (item or fluid id and
 /// the amount one craft takes). None: not its machine, or it can't work on those.
-pub type MachineProvider = fn(&Game<'_>, [i32; 3], &str, &[(&str, i64)]) -> Option<MachineTime>;
+pub(in crate::game) type MachineProvider = fn(&Game<'_>, [i32; 3], &str, &[(&str, i64)]) -> Option<MachineTime>;
 
 static MACHINE_PROVIDERS: std::sync::Mutex<Vec<MachineProvider>> = std::sync::Mutex::new(Vec::new());
 
 /// Lets a mod tell AE2 how long its machine takes, so a job's time left is right from the first craft (its speed
 /// upgrades and recipe times included) rather than once AE2 has watched it work. Calling again does nothing.
-pub fn register_machine(f: MachineProvider) {
+#[allow(dead_code)] // Called by Iron Furnaces and Hostile Neural Networks when they're in the build.
+pub(in crate::game) fn register_machine(f: MachineProvider) {
     if let Ok(mut v) = MACHINE_PROVIDERS.lock()
         && !v.iter().any(|g| *g as usize == f as usize)
     {
@@ -4677,7 +4680,11 @@ fn pattern_machines(game: &Game<'_>, patterns: &[(Pos, Arc<Pattern>)], pattern: 
     let mut rate = 0.0;
     let mut latency: f64 = 0.0;
     let processing = pattern.definition.id() == "ae2:processing_pattern";
-    for (at, _) in patterns.iter().filter(|(_, p)| **p == *pattern) {
+    // Each provider with the pattern once: copies of it in one provider push to the same machines, not more of them.
+    let mut providers: Vec<Pos> = patterns.iter().filter(|(_, p)| **p == *pattern).map(|(at, _)| *at).collect();
+    providers.sort_unstable();
+    providers.dedup();
+    for at in &providers {
         for q in provider_targets(game, *at) {
             let q = through_p2p(game, q);
             let block = block_id(game, q);
@@ -4766,15 +4773,24 @@ fn job_seconds_left(game: &Game<'_>, grid: usize, cpu: Pos) -> f64 {
                             Some(f64::from(e.data.first().copied().unwrap_or(0)) / speed + nbt_i64(&e.nbt, "smash") as f64)
                         }
                         // A registered mod's machine: the work it has under way.
-                        // A result of it still in the machine (waiting for a bus to take it) is as good as made.
+                        // A result of it still in the machine (waiting for a bus to take it) is as good as made, and
+                        // the machine goes on with the next meanwhile: a craft's time for each such result, and the
+                        // work under way on the next.
                         Some(horizon_client::containers::BlockEntity::Mod(e)) if mod_machine(game, q, &e.id, p).is_some() => {
-                            let waiting = e.items.iter().flatten().any(|s| &*s.item == k.id());
-                            Some(if waiting { f64::MAX } else { mod_machine(game, q, &e.id, p).and_then(|m| m.done).unwrap_or(0.0) })
+                            // (No more of them than the job waits for: a few may have been there before it.)
+                            let waiting: i64 = e.items.iter().flatten().filter(|s| &*s.item == k.id()).map(|s| i64::from(s.count)).sum::<i64>().min(c.waiting_for(k));
+                            let next = mod_machine(game, q, &e.id, p).and_then(|m| m.done).unwrap_or(0.0).min(latency);
+                            return Some(if waiting > 0 { waiting as f64 / out.amount.max(1) as f64 / rate + next } else { next });
                         }
                         _ => s.machine_times.get(&q).map(|m| tick.saturating_sub(m.0) as f64),
-                    })
+                    }
+                    .map(|t| t.min(latency)))
                     .fold(0.0, f64::max);
-                Some((rate * out.amount as f64, since.min(latency)))
+                // What has come into the network since the CPU's last tick is back, though the CPU takes it only on
+                // its next (CraftingServiceStorage's log): a craft's time for each.
+                let arrived: i64 = super::port_ae2_grid::CPU_WATCH.with_borrow(|w| w.log.iter().filter(|(on, what, _)| *on == grid && what == k).map(|(_, _, n)| *n).sum());
+                let arrived = arrived.min(c.waiting_for(k)).max(0);
+                Some((rate * out.amount as f64, since + arrived as f64 / out.amount.max(1) as f64 / rate))
             }).unwrap_or((1.0, 0.0))
         })
     });
@@ -4792,14 +4808,84 @@ fn job_seconds_left(game: &Game<'_>, grid: usize, cpu: Pos) -> f64 {
     let late = tick.saturating_sub(job_last_progress(cpu, tick)) as f64 - grace;
     // The last results come back through an import bus on their machine on the bus's own time, which slows to its
     // slowest (TickRates.ImportBus, 40 ticks) while there's nothing to take: one interval more at the end.
-    let machines: Vec<Pos> = patterns
-        .iter()
-        .filter(|(_, p)| working.iter().any(|w| **w == **p))
-        .flat_map(|(at, _)| provider_targets(game, *at).into_iter().map(|q| through_p2p(game, q)))
-        .collect();
-    let pulled = SERVER.with_borrow(|s| s.grids.get(grid).is_some_and(|g| g.io_buses.iter().any(|(_, t, import)| *import && machines.contains(t))));
-    let tail = if pulled { 40.0 } else { 0.0 };
-    let ticks = ticks.map(|t| t + late.max(0.0) + tail);
+    // The job's machines: each with the crafts still to come back from it and the ticks between them (its pattern's
+    // pace shared out over its machines).
+    let mut machines: Vec<(Pos, f64, f64)> = Vec::new();
+    for (i, w) in working.iter().enumerate() {
+        if working[..i].iter().any(|v| **v == **w) {
+            continue;
+        }
+        let mut targets: Vec<Pos> = patterns
+            .iter()
+            .filter(|(_, p)| **p == **w)
+            .flat_map(|(at, _)| provider_targets(game, *at).into_iter().map(|q| through_p2p(game, q)))
+            .collect();
+        targets.sort_unstable();
+        targets.dedup();
+        let out = w.primary_output();
+        // (Less what is back in the network already, for the CPU's next tick.)
+        let arrived: i64 = super::port_ae2_grid::CPU_WATCH.with_borrow(|w| w.log.iter().filter(|(on, what, _)| *on == grid && *what == out.what).map(|(_, _, n)| *n).sum());
+        let items = SERVER.with_borrow(|s| s.cpus.get(&cpu).map_or(0, |c| c.waiting_for(&out.what).saturating_sub(arrived.max(0)).max(0) + c.pending_outputs(&out.what)));
+        let crafts = (items as f64 / out.amount.max(1) as f64).ceil();
+        let gap = pattern_machines(game, &patterns, w).map_or(0.0, |(rate, _)| 1.0 / rate);
+        let share = targets
+            .iter()
+            .filter(|q| {
+                let block = block_id(game, **q);
+                game.world.block_entities.contains_key(&(q[0], q[1], q[2])) && !(block.starts_with("ae2:") && !ae2_machine(&block))
+            })
+            .count()
+            .max(1) as f64;
+        machines.extend(targets.into_iter().map(|q| (q, (crafts / share).ceil(), gap * share)));
+    }
+    let pullers: Vec<(Pos, Pos)> = SERVER.with_borrow(|s| {
+        s.grids.get(grid).map_or(Vec::new(), |g| g.io_buses.iter().filter(|(_, t, import)| *import && machines.iter().any(|m| m.0 == *t && m.1 > 0.0)).map(|(b, t, _)| (*b, *t)).collect())
+    });
+    // Each such bus's own schedule (BUS_RATES: its interval and next run), followed from now to the forecast end: it
+    // slows by a tick each run that finds nothing, to 40, and speeds up by 2 each run that takes something, to 5. The
+    // machine's earlier results come out a craft apart up to the end, and each keeps the bus at work for as many runs
+    // as the last of them did (BUS_BURSTS: a machine may make more than one stack a craft). The wait is from the end
+    // to the bus's first run after it.
+    let tail = |end: f64| -> f64 {
+        pullers
+            .iter()
+            .map(|(b, t)| {
+                let (rate, due) = BUS_RATES.with_borrow(|r| r.get(b).copied()).unwrap_or((22, tick));
+                let (now_burst, burst) = BUS_BURSTS.with_borrow(|r| r.get(b).copied()).unwrap_or((0, 0));
+                let burst = burst.clamp(1, 64);
+                let (crafts, gap) = machines.iter().find(|m| m.0 == *t && m.1 > 0.0).map_or((1.0, 0.0), |m| (m.1.max(1.0), m.2));
+                let (mut at, mut rate) = (due as f64, rate as f64);
+                let end = tick as f64 + end;
+                // Runs still to come for a result it has started on, then the results to come before the last.
+                let mut queue = if now_burst > 0 { burst.saturating_sub(now_burst) } else { 0 };
+                let mut next = 0.0;
+                let mut runs = 0;
+                while at < end {
+                    while next < crafts - 1.0 && end - (crafts - 1.0 - next) * gap <= at {
+                        queue += burst;
+                        next += 1.0;
+                    }
+                    if queue > 0 {
+                        queue -= 1;
+                        rate = (rate - 2.0).max(5.0);
+                    } else {
+                        rate = (rate + 1.0).min(40.0);
+                    }
+                    at += rate;
+                    runs += 1;
+                    // Too far ahead to follow: half an interval, on average.
+                    if runs > 20_000 {
+                        return rate / 2.0;
+                    }
+                }
+                at - end
+            })
+            .fold(f64::MAX, f64::min)
+    };
+    let ticks = ticks.map(|t| {
+        let t = t + late.max(0.0);
+        if pullers.is_empty() { t } else { t + tail(t) }
+    });
     // The real tick rate, measured over each forecast's second.
     let rate = SERVER.with_borrow_mut(|s| {
         let now = std::time::Instant::now();
@@ -4890,11 +4976,12 @@ fn crafting_status(game: &Game<'_>, grid: usize) -> String {
             let progress = job.time.progress();
             let left = lefts.iter().find(|(k, _)| k == key).map_or(-1.0, |l| l.1);
             out.push_str(&format!(
-                "#j {} {} {} {}\n",
+                "#j {} {} {} {} {:.2}\n",
                 job.final_output.what.id(),
                 job.remaining_amount,
                 (progress * 100.0) as i64,
-                left.round() as i64
+                left.round() as i64,
+                left
             ));
         }
         // CraftingStatusMenu's CPU list, and each busy one's CraftingStatus entries: stored, active, scheduled.
@@ -4939,7 +5026,7 @@ const CREATIVE_DUPLICATE: i32 = 7;
 /// SpatialAnchorScreen's one button, Settings.OVERLAY_MODE.
 const ANCHOR_OVERLAY: i32 = 1;
 
-pub fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, id: i32, carried: &mut Option<ItemStack>) {
+pub(in crate::game) fn menu_button(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity, id: i32, carried: &mut Option<ItemStack>) {
     if let Some((uuid, _)) = CLICKER.get()
         && !client_message_allowed(uuid, 0)
     {
@@ -5381,9 +5468,6 @@ struct Client {
     jei_craft: Vec<(String, i64)>,
     /// Where an open terminal's panel is (for clicks the screen hook doesn't see: the middle button).
     term_origin: Option<[f32; 2]>,
-    /// The meteorite compass' last answer, and when it was asked (CompassManager).
-    compass: Compass,
-    compass_asked: Option<std::time::Instant>,
     /// The open screen's data slots as last drawn (for its tooltips).
     screen_data: Vec<i32>,
     /// Shift held as the screen was last drawn (for the scroll hook, which gets no keys).
@@ -5718,7 +5802,7 @@ pub fn from_server(channel: &str, data: &[u8]) {
             }
         } else if let Some(rest) = l.strip_prefix("#j ") {
             let f: Vec<&str> = rest.split(' ').collect();
-            if let [id, left, pct, secs] = f.as_slice() {
+            if let [id, left, pct, secs, ..] = f.as_slice() {
                 jobs.push(((*id).to_owned(), left.parse().unwrap_or(0), pct.parse().unwrap_or(0), secs.parse().unwrap_or(-1)));
             }
         }
@@ -5753,7 +5837,7 @@ pub fn from_server(channel: &str, data: &[u8]) {
 }
 
 /// `native_screen`: AE2's layouts over its GUI textures.
-pub fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks::NativeScreen>) {
+pub(in crate::game) fn screen(game: &Game<'_>, block: &str, out: &mut Option<super::native_hooks::NativeScreen>) {
     use super::native_hooks::NativeScreen;
     *out = match ae2_name(block) {
         Some("drive") => Some(NativeScreen {
@@ -6126,7 +6210,7 @@ fn draw_upgrade_panel(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32, w
 }
 
 /// `native_screen_draw`.
-pub fn screen_draw(game: &Game<'_>, block: &str, data: &[i32], batch: &mut HudBatch, origin: [f32; 2]) {
+pub(in crate::game) fn screen_draw(game: &Game<'_>, block: &str, data: &[i32], batch: &mut HudBatch, origin: [f32; 2]) {
     let shift = game.has_shift_down();
     CLIENT.with_borrow_mut(|c| {
         c.screen_data = data.to_vec();
@@ -7002,7 +7086,7 @@ fn draw_terminal_items(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32, 
 }
 
 /// `native_screen_click`: a press on the terminal's grid becomes a menu button for the server.
-pub fn screen_click(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, button: &mut Option<i32>) {
+pub(in crate::game) fn screen_click(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, button: &mut Option<i32>) {
     screen_click_inner(game, block, at, right, button);
     // The left toolbar lies outside the window, where Horizon sends no menu button: its buttons go as a UI
     // message instead (`button N`, run on the viewed block's entity).
@@ -7338,7 +7422,7 @@ fn screen_click_inner(game: &Game<'_>, block: &str, at: [f32; 2], right: bool, b
 }
 
 /// `native_screen_tooltip`: an item's name and full amount on the terminal's grid.
-pub fn screen_tooltip(game: &Game<'_>, block: &str, at: [f32; 2], lines: &mut Vec<String>) {
+pub(in crate::game) fn screen_tooltip(game: &Game<'_>, block: &str, at: [f32; 2], lines: &mut Vec<String>) {
     CLIENT.with_borrow_mut(|c| c.mouse = at);
     if shows_power_unit(block) && on_power_unit(at) {
         lines.extend(power_unit_tooltip());
@@ -7886,8 +7970,7 @@ thread_local! {
 
 /// `native_frame`: the sounds the renderers queued, where the player hears them (a renderer only runs for what
 /// is near, and it can't say where its block is).
-pub fn play_queued_sounds(game: &mut Game<'_>) {
-    compass_ask(game);
+pub(in crate::game) fn play_queued_sounds(game: &mut Game<'_>) {
     // The wireless terminal's screen: opened when the server says, its clicks sent, closed when it shuts.
     let (open, out) = CLIENT.with_borrow_mut(|c| (c.wireless_open, std::mem::take(&mut c.wireless_out)));
     if open == 3 {
@@ -7917,7 +8000,7 @@ pub fn play_queued_sounds(game: &mut Game<'_>) {
 }
 
 /// `native_mod_container_viewers`: a sky stone chest shows itself open while anyone has it open (its update tag).
-pub fn container_viewers(game: &mut Game<'_>, pos: Pos, viewers: u32, previous: u32) {
+pub(in crate::game) fn container_viewers(game: &mut Game<'_>, pos: Pos, viewers: u32, previous: u32) {
     if (viewers > 0) == (previous > 0) || !is_sky_chest(&block_id(game, pos)) {
         return;
     }
@@ -8069,7 +8152,7 @@ fn fixture_check(game: &mut Game<'_>, pos: Pos) {
 
 /// CrankBlockEntity's tick and CrankBlock.canSurvive: a turn in progress pays at its end, and with nothing to turn the
 /// crank drops.
-pub fn crank_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
+pub(in crate::game) fn crank_tick(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
     let Some(target) = crank_target(game, pos) else {
         SERVER.with_borrow_mut(|s| s.crank_breaks.push(pos));
         return;
@@ -8124,9 +8207,6 @@ fn crank_submit(
     game.native_draw_block(draw, "ae2:hz_crank_handle", &[]);
     draw.pop();
 }
-
-/// Ticks a molecular assembler takes for one craft.
-const ASSEMBLE_TICKS: u64 = 10;
 
 /// What the inscriber's window shows: its top, middle, bottom and output items, then `1` while it works.
 fn inscriber_look(entity: &ModBlockEntity) -> String {
@@ -8205,7 +8285,7 @@ fn inscriber_submit(game: &Game<'_>, entity: &ModBlockEntity, draw: &mut super::
 const CELL_LIGHTS: [u32; 5] = [0x000000, 0x00FF00, 0x00AAFF, 0xFFAA00, 0xFF0000];
 
 /// `native_block_entity_submit`: a drive's cells in the holes of its front, each with its status light.
-pub fn submit(
+pub(in crate::game) fn submit(
     game: &Game<'_>,
     pos: Pos,
     block: &str,
@@ -8357,9 +8437,6 @@ fn once(text: &str) {
 /// crafting_terminal.json: the grid's and the result's slots (left 37 / bottom 154, left 131 / bottom 136 of 241).
 const CRAFT_GRID: [f32; 2] = [37.0, 87.0];
 const CRAFT_RESULT: [f32; 2] = [131.0, 105.0];
-/// The pattern encoding terminal's buttons and their ids.
-/// The terminals' crafting status button, in the header beside the title.
-const STATUS_BUTTON: [f32; 4] = [158.0, 3.0, 12.0, 12.0];
 
 /// The mode tabs on the right edge (crafting, then processing), 20 square.
 const ENC_TABS: [[f32; 2]; 4] = [[173.0, 79.0], [173.0, 99.0], [173.0, 119.0], [173.0, 139.0]];
@@ -8529,14 +8606,10 @@ fn craft_preview(game: &Game<'_>, cells: &[Option<(String, i64)>]) -> Option<(St
     if grid.iter().all(Option::is_none) {
         return None;
     }
-    game.res.recipes().craft(&grid, 3).map(|r| (r.item.to_string(), i64::from(r.count)))
+    game.recipes().craft(&grid, 3).map(|r| (r.item.to_string(), i64::from(r.count)))
 }
 /// The custom data key of an encoded pattern.
 const PATTERN_KEY: &str = "ae2:pattern";
-
-fn draw_button(game: &Game<'_>, batch: &mut HudBatch, rect: [f32; 4], label: &str) {
-    draw_button_at(game, batch, rect, label, false);
-}
 
 /// A button, lit while the mouse is over it (`origin`: the screen's top left).
 fn draw_button_hover(game: &Game<'_>, batch: &mut HudBatch, rect: [f32; 4], label: &str, origin: [f32; 2]) {
@@ -8618,7 +8691,7 @@ fn crafting_terminal_take(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEn
     let mut made: Option<AeKey> = None;
     for _ in 0..if all { 64 } else { 1 } {
         let cells: Vec<Option<ItemStack>> = entity.items[CT_GRID].to_vec();
-        let Some((name, result)) = game.res.recipes().find(&cells, 3).map(|(n, r)| (n.to_owned(), r)) else { break };
+        let Some((name, result)) = game.recipes().find(&cells, 3).map(|(n, r)| (n.to_owned(), r)) else { break };
         let key = key_of(game, &result);
         if made.as_ref().is_some_and(|k| *k != key) {
             break;
@@ -8630,7 +8703,7 @@ fn crafting_terminal_take(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEn
             break;
         }
         made = Some(key);
-        let remainders = game.res.recipes().remainders(&name, &cells, 3);
+        let remainders = game.recipes().remainders(&name, &cells, 3);
         for (i, slot) in CT_GRID.enumerate() {
             let Some(stack) = entity.items[slot].as_mut() else { continue };
             let key = key_of(game, &ItemStack { count: 1, ..stack.clone() });
@@ -8758,7 +8831,7 @@ fn decode_pattern(game: &Game<'_>, stack: &ItemStack) -> Option<Pattern> {
 
 /// What an item leaves in a crafting grid (a milk bucket, a bucket).
 fn item_remainder(game: &Game<'_>, id: &str) -> Option<AeKey> {
-    let left = game.res.recipes().remainders("", &[Some(ItemStack::new(id, 1))], 1).into_iter().next().flatten()?;
+    let left = game.recipes().remainders("", &[Some(ItemStack::new(id, 1))], 1).into_iter().next().flatten()?;
     Some(key_of(game, &left))
 }
 
@@ -8808,8 +8881,8 @@ fn assembler_plan(game: &Game<'_>, stack: &ItemStack) -> Option<AssemblerPlan> {
             all
         }
     };
-    let (name, result) = game.res.recipes().find(&cells, 3).map(|(n, r)| (n.to_owned(), r))?;
-    let placement = if p.get(&java("subs")).is_some() { game.res.recipes().placement(&name) } else { None };
+    let (name, result) = game.recipes().find(&cells, 3).map(|(n, r)| (n.to_owned(), r))?;
+    let placement = if p.get(&java("subs")).is_some() { game.recipes().placement(&name) } else { None };
     let valid = cells
         .iter()
         .map(|c| {
@@ -8880,7 +8953,7 @@ fn assembler_alone(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
         return;
     };
     let cells: Vec<Option<ItemStack>> = entity.items[ASSEMBLER_GRID..ASSEMBLER_OUTPUT].to_vec();
-    let found = game.res.recipes().find(&cells, 3).map(|(n, r)| (n.to_owned(), r));
+    let found = game.recipes().find(&cells, 3).map(|(n, r)| (n.to_owned(), r));
     let Some((name, result)) = found.filter(|(_, r)| *r.item == *output) else {
         set_nbt_i64(&mut entity.nbt, "progress", 0);
         return;
@@ -8897,7 +8970,7 @@ fn assembler_alone(game: &mut Game<'_>, pos: Pos, entity: &mut ModBlockEntity) {
         return;
     }
     set_nbt_i64(&mut entity.nbt, "progress", 0);
-    let left = game.res.recipes().remainders(&name, &cells, 3);
+    let left = game.recipes().remainders(&name, &cells, 3);
     for (i, cell) in entity.items[ASSEMBLER_GRID..ASSEMBLER_OUTPUT].iter_mut().enumerate() {
         if let Some(s) = cell.as_mut() {
             s.count -= 1;
@@ -8933,8 +9006,8 @@ fn assembler_eject(pos: Pos, entity: &mut ModBlockEntity) {
 /// The cells of a crafting grid whose filled bucket the recipe gives back empty: its fluid may stand in
 /// (`AECraftingPattern.getItemOrFluidInput`, the terminal's `slotsSupportingFluidSubstitution`).
 fn fluid_sub_cells(game: &Game<'_>, grid: &[Option<ItemStack>]) -> Vec<usize> {
-    let Some(name) = game.res.recipes().find(grid, 3).map(|(n, _)| n.to_owned()) else { return Vec::new() };
-    let left = game.res.recipes().remainders(&name, grid, 3);
+    let Some(name) = game.recipes().find(grid, 3).map(|(n, _)| n.to_owned()) else { return Vec::new() };
+    let left = game.recipes().remainders(&name, grid, 3);
     (0..grid.len())
         .filter(|&i| {
             grid[i].as_ref().is_some_and(|c| bucket_fluid(&c.item).is_some())
@@ -9000,8 +9073,8 @@ fn encoder_button(game: &mut Game<'_>, entity: &mut ModBlockEntity, id: i32) {
     // Substitutions on: each input may be anything its slot's ingredient takes (AECraftingPattern's possible inputs).
     let mut alternatives: Vec<String> = Vec::new();
     if !processing && nbt_i64(&entity.nbt, "substitute") != 0 {
-        let found = game.res.recipes().find(&grid, 3).map(|(name, _)| name.to_owned());
-        if let Some(placement) = found.and_then(|name| game.res.recipes().placement(&name)) {
+        let found = game.recipes().find(&grid, 3).map(|(name, _)| name.to_owned());
+        if let Some(placement) = found.and_then(|name| game.recipes().placement(&name)) {
             for (key, _) in &inputs {
                 let probe = stack_of(key, 1);
                 let list = placement.ingredients.iter().find(|i| i.test(&probe)).map_or_else(Vec::new, |i| i.order.clone());
@@ -9028,12 +9101,12 @@ fn encoder_button(game: &mut Game<'_>, entity: &mut ModBlockEntity, id: i32) {
     }
     let output = if processing {
         grid.iter().flatten().next().and_then(|first| {
-            let cooked = game.res.recipes().cook("minecraft:smelting", first)?.result.clone();
+            let cooked = game.recipes().cook("minecraft:smelting", first)?.result.clone();
             let count = cooked.count * first.count;
             Some((cooked, count))
         })
     } else {
-        game.res.recipes().craft(&grid, 3).map(|r| {
+        game.recipes().craft(&grid, 3).map(|r| {
             let n = r.count;
             (r, n)
         })
@@ -9372,7 +9445,7 @@ fn run_cpus(game: &mut Game<'_>, tick: u64) {
 }
 
 /// `native_server_stopping`: every CPU as it is now, on its block entity.
-pub fn save_cpus(game: &mut Game<'_>) {
+pub(in crate::game) fn save_cpus(game: &mut Game<'_>) {
     let keys: Vec<Pos> = SERVER.with_borrow_mut(|s| s.cpus_unsaved.drain().collect());
     for key in keys {
         let Some(cpu) = SERVER.with_borrow_mut(|s| s.cpus.remove(&key)) else { continue };
@@ -10006,7 +10079,7 @@ fn inscriber_side_slot(face: horizon_core::geometry::Direction) -> usize {
 /// A hopper under an AE2 block, about to pull from it (None: as any container). An item tunnel's output reaches what its
 /// input faces, and an input gives nothing (StorageP2PTunnelPart's OutputStorage, InsertionOnlyStorage). An inscriber
 /// with separate sides gives its bottom press from below, not the result (getExposedInventoryForSide, AutomationFilter).
-pub fn hopper_pull(game: &mut Game<'_>, above: Pos, to: Pos) -> Option<bool> {
+pub(in crate::game) fn hopper_pull(game: &mut Game<'_>, above: Pos, to: Pos) -> Option<bool> {
     use horizon_core::geometry::Direction;
     if side_taken(game, above, [0, -1, 0]) {
         return Some(part_to_hopper(game, part_pos(above, 0), to));
@@ -10120,7 +10193,7 @@ fn chance(game: &mut Game<'_>, p: f64) -> bool {
 }
 
 /// `native_dispense_item`: Tiny TNT comes out lit; an entropy manipulator works the block in front, heat then cool.
-pub fn dispense(game: &mut Game<'_>, pos: Pos, facing: horizon_core::geometry::Direction, stack: &ItemStack, answer: &mut Option<super::dispenser::NativeDispensed>) {
+pub(in crate::game) fn dispense(game: &mut Game<'_>, pos: Pos, facing: horizon_core::geometry::Direction, stack: &ItemStack, answer: &mut Option<super::dispenser::NativeDispensed>) {
     let front = {
         use horizon_core::geometry::Direction;
         add(
@@ -10602,7 +10675,7 @@ fn cell_tooltip_image(stack: &ItemStack) -> Option<(Vec<(String, i64)>, bool, Ve
 }
 
 /// StorageCellClientTooltipComponent's size.
-pub fn tooltip_component(game: &Game<'_>, stack: &ItemStack, size: &mut Option<[f32; 2]>) {
+pub(in crate::game) fn tooltip_component(game: &Game<'_>, stack: &ItemStack, size: &mut Option<[f32; 2]>) {
     let Some((content, more, cards)) = cell_tooltip_image(stack) else { return };
     let (mut width, mut height) = (0.0_f32, 0.0_f32);
     if !content.is_empty() {
@@ -10619,7 +10692,7 @@ pub fn tooltip_component(game: &Game<'_>, stack: &ItemStack, size: &mut Option<[
 }
 
 /// StorageCellClientTooltipComponent's drawing: the icons, their amounts small, "…" for more, the cards after a label.
-pub fn tooltip_component_draw(game: &Game<'_>, stack: &ItemStack, batch: &mut HudBatch, origin: [f32; 2]) {
+pub(in crate::game) fn tooltip_component_draw(game: &Game<'_>, stack: &ItemStack, batch: &mut HudBatch, origin: [f32; 2]) {
     let Some((content, more, cards)) = cell_tooltip_image(stack) else { return };
     let [x, mut y] = origin;
     if !content.is_empty() {
@@ -10895,7 +10968,7 @@ fn viewers_tick(game: &mut Game<'_>) {
 /// `native_net_from_client`: a recipe JEI's "+" sent for the terminal the player has open. The pattern encoding
 /// terminal takes it as ghosts (its mode follows the recipe); the crafting terminal's grid goes back to the
 /// network and fills with the recipe's items from it, as AE2's transfer does.
-pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]) {
+pub(in crate::game) fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]) {
     if !client_message_allowed(player, data.len()) {
         return;
     }
@@ -11093,13 +11166,8 @@ pub fn from_client(game: &mut Game<'_>, player: u128, channel: &str, data: &[u8]
     }
 }
 
-/// AE2's guide (W over an item in JEI's panel): the item's page.
-pub fn open_guide(game: &mut Game<'_>, item: &str) {
-    self::kit_guide::open_item(game, item);
-}
-
 /// A text box of this mod has the keyboard (or a dialog over the screen does): a key is a letter there.
-pub fn keyboard_taken(game: &Game<'_>, menu: Option<&str>) -> bool {
+pub(in crate::game) fn keyboard_taken(game: &Game<'_>, menu: Option<&str>) -> bool {
     let wireless = wireless_open(game);
     (wireless && WIRELESS_JEI.with_borrow(|j| j.typing))
         || CLIENT.with_borrow(|c| {
@@ -11204,7 +11272,7 @@ pub fn register_commands(commands: &mut Vec<super::native_server::NativeCommand>
 }
 
 /// `native_perform_command` (a LAN guest's `/ae2debug`).
-pub fn perform_command(game: &mut Game<'_>, player: &super::native_server::NativeServerPlayer, command: &str, ran: &mut bool) {
+pub(in crate::game) fn perform_command(game: &mut Game<'_>, player: &super::native_server::NativeServerPlayer, command: &str, ran: &mut bool) {
     match command.split_whitespace().next() {
         Some("ae2debug") => {
             *ran = true;
@@ -11220,7 +11288,7 @@ pub fn perform_command(game: &mut Game<'_>, player: &super::native_server::Nativ
 }
 
 /// `native_perform_console_command`: `/ae2` on a server's console, level 4 and nobody's position.
-pub fn perform_console_command(game: &mut Game<'_>, command: &str, ran: &mut bool) {
+pub(in crate::game) fn perform_console_command(game: &mut Game<'_>, command: &str, ran: &mut bool) {
     let mut words = command.split_whitespace();
     if words.next() == Some("ae2") {
         *ran = true;
@@ -11233,7 +11301,7 @@ pub fn perform_console_command(game: &mut Game<'_>, command: &str, ran: &mut boo
 /// server, which runs it for them.
 pub const NET_DEBUG: &str = "ae2:debug";
 
-pub fn client_command(game: &mut Game<'_>, command: &str, ran: &mut bool) {
+pub(in crate::game) fn client_command(game: &mut Game<'_>, command: &str, ran: &mut bool) {
     if let Some(rest) = command.strip_prefix("ae2guide") {
         *ran = true;
         let msg = self::kit_guide::command(game, rest);
@@ -11324,7 +11392,9 @@ fn debug_command(game: &mut Game<'_>, uuid: u128, position: [f64; 3], command: &
             let Some(grid) = nearest_grid(player_position) else { return };
             let text = crafting_status(game, grid);
             let state: Vec<String> = SERVER.with_borrow(|s| s.cpus.values().map(|c| c.debug_state()).filter(|t| !t.is_empty()).collect());
-            say(game, format!("ETA {} {}", text.replace('\n', " "), state.join(" ")));
+            // Each molecular assembler's timed cycle (cards, ticks), for the ETA tests.
+            let cycles: Vec<String> = SERVER.with_borrow(|s| s.assembler_cycles.iter().map(|(q, c)| format!("{},{},{}:{}:{:.2}", q[0], q[1], q[2], c.0, c.2)).collect());
+            say(game, format!("ETA {} {} #A {}", text.replace('\n', " "), state.join(" "), cycles.join(" ")));
         }
         // `nbt x y z`: a device's settings as saved (priority, mode, level, power, the ghosts), for the tests.
         Some("nbt") => {
@@ -11654,7 +11724,7 @@ const SKY_CHEST_SLOTS: [usize; 36] = {
 
 /// `native_use_item_on`: AE2's quartz wrenches turn an AE2 block a quarter turn about the clicked face's axis
 /// (`IOrientationStrategy`), its block entity and contents kept.
-pub fn use_item_on(game: &mut Game<'_>, stack: &ItemStack, pos: Pos, face: Pos, claimed: &mut bool) {
+pub(in crate::game) fn use_item_on(game: &mut Game<'_>, stack: &ItemStack, pos: Pos, face: Pos, claimed: &mut bool) {
     if cauldron_wash(game, stack, pos) {
         *claimed = true;
         return;
@@ -11901,7 +11971,7 @@ fn tool_use(game: &mut Game<'_>, tool: &str, pos: Pos, block: &str) -> bool {
                 }
                 let dim = game.dim.id().to_owned();
                 // performInWorldSmelting: what it would drop, smelted, on the ground.
-                if let Some(result) = game.res.recipes().cook("minecraft:smelting", &ItemStack::new(block, 1)).map(|r| r.result.clone()) {
+                if let Some(result) = game.recipes().cook("minecraft:smelting", &ItemStack::new(block, 1)).map(|r| r.result.clone()) {
                     if let Some(air) = game.native_default_state("minecraft:air") {
                         game.native_set_block(&dim, pos, air, 3);
                     }
@@ -12662,7 +12732,7 @@ fn anchor_submit(pos: Pos, entity: &ModBlockEntity) {
 
 /// `frame`, before the frame is built: last frame's facades and preview go (what wants them draws them again), and
 /// OverlayManager's list follows the anchors, one broken, unloaded or turned off out of sight going too.
-pub fn translucent_frame(game: &Game<'_>) {
+pub(in crate::game) fn translucent_frame(game: &Game<'_>) {
     horizon_client::gfx::native_render::RenderNeeds::hz_ae2_clear(false);
     ANCHOR_OVERLAYS.with_borrow_mut(|(shown, dirty)| {
         if shown.is_empty() && !*dirty {
@@ -12726,7 +12796,7 @@ fn overlay_chunk(chunks: &HashSet<(i32, i32)>, (cx, cz): (i32, i32), y1: f64, y2
 }
 
 /// RenderBlockOutlineHook.replaceBlockOutline: before the outline of the block looked at, a part's or a facade's preview.
-pub fn block_highlight(game: &Game<'_>, pos: Pos, canceled: &mut bool) {
+pub(in crate::game) fn block_highlight(game: &Game<'_>, pos: Pos, canceled: &mut bool) {
     if cell_highlight(game, pos) {
         *canceled = true;
     }
@@ -12867,7 +12937,7 @@ fn grant_near(game: &mut Game<'_>, at: Pos, id: &'static str) {
 }
 
 /// `native_player_tick`: AppEngAdvancementTrigger.trigger, for what's due this player.
-pub fn player_tick(game: &mut Game<'_>) {
+pub(in crate::game) fn player_tick(game: &mut Game<'_>) {
     if ADVANCEMENTS_PENDING.with_borrow(Vec::is_empty) {
         return;
     }
@@ -13193,7 +13263,7 @@ fn plot_loaded(game: &mut Game<'_>, o: Pos, size: [i32; 3]) -> bool {
 }
 
 /// The camera's in a plot: AE2's sky and music, not the End's.
-pub fn in_plot(game: &Game<'_>) -> bool {
+pub(in crate::game) fn in_plot(game: &Game<'_>) -> bool {
     game.dim == crate::game::Dim::End && game.eye_position().is_some_and(|e| in_plot_band((e[0] as i32) >> 4, (e[2] as i32) >> 4))
 }
 
@@ -13445,7 +13515,7 @@ fn cycle_applicator(stack: &mut ItemStack) {
 }
 
 /// `native_player_pick_item`: with an applicator in either hand, picking a coloured cable selects its colour.
-pub fn pick_item(game: &mut Game<'_>, pos: Pos, from_entity: bool, cancel: &mut bool) {
+pub(in crate::game) fn pick_item(game: &mut Game<'_>, pos: Pos, from_entity: bool, cancel: &mut bool) {
     if from_entity {
         return;
     }
@@ -13472,7 +13542,7 @@ pub fn pick_item(game: &mut Game<'_>, pos: Pos, from_entity: bool, cancel: &mut 
 }
 
 /// `native_wheel`: sneaking with an applicator, the wheel picks its colour instead of the hotbar slot.
-pub fn wheel(game: &Game<'_>, steps: f32, claimed: &mut bool) {
+pub(in crate::game) fn wheel(game: &Game<'_>, steps: f32, claimed: &mut bool) {
     if steps != 0.0 && sneaking(game) && game.held().is_some_and(|h| &*h.item == "ae2:color_applicator") {
         *claimed = true;
         CLIENT.with_borrow_mut(|c| c.ui_out.push(format!("wheel {}", if steps > 0.0 { "up" } else { "down" })));
@@ -13662,7 +13732,7 @@ fn spend_held_power(game: &mut Game<'_>, ae: f64) {
 
 /// `native_use_item` for the applicator (sneak: the next colour) and the cutting knife (an iron ingot into a
 /// name press). True when it took the use.
-pub fn tool_use_air(game: &mut Game<'_>, stack: &ItemStack) -> bool {
+pub(in crate::game) fn tool_use_air(game: &mut Game<'_>, stack: &ItemStack) -> bool {
     let Some(player) = game.native_acting_player() else { return false };
     match &*stack.item {
         // MemoryCardItem.clearCard.
@@ -13814,7 +13884,8 @@ thread_local! {
 }
 
 /// `describe`, leaving out the providers the player turned off.
-pub fn describe_without(game: &mut Game<'_>, pos: Pos, off: Vec<&'static str>) -> Vec<String> {
+#[allow(dead_code)] // Called by int_jade_jade_ae2.rs, which is in the build only with Jade.
+pub(in crate::game) fn describe_without(game: &mut Game<'_>, pos: Pos, off: Vec<&'static str>) -> Vec<String> {
     DESCRIBE_OFF.with_borrow_mut(|o| *o = off);
     let lines = describe(game, pos);
     DESCRIBE_OFF.with_borrow_mut(Vec::clear);
@@ -13825,7 +13896,7 @@ fn describing(provider: &str) -> bool {
     DESCRIBE_OFF.with_borrow(|o| !o.iter().any(|k| k.ends_with(provider)))
 }
 
-pub fn describe(game: &mut Game<'_>, pos: Pos) -> Vec<String> {
+pub(in crate::game) fn describe(game: &mut Game<'_>, pos: Pos) -> Vec<String> {
     // Component.translatable: a `waila.ae2.*` string in the game's language with `%s`, `%d`, `%1$d` and `%%` filled in.
     fn say(key: &str, english: &str, args: &[&str]) -> String {
         let text = horizon_client::lang::get_or(key, english);
@@ -14276,10 +14347,6 @@ const ERROR_BUTTONS: [[f32; 4]; 3] = [[5.0, 62.0, 50.0, 20.0], [84.0, 62.0, 50.0
 
 fn open_dialog(kind: DialogKind, text: String) {
     CLIENT.with_borrow_mut(|c| c.dialog = Some(Dialog::new(kind, text)));
-}
-
-pub fn dialog_open() -> bool {
-    CLIENT.with_borrow(|c| c.dialog.is_some())
 }
 
 /// The dialog's number confirmed (its button or Enter): the plan asked for, or the amount saved.
@@ -14843,7 +14910,7 @@ fn status_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bo
 }
 
 /// `native_screen_render_post`: the open dialog, or the crafting status.
-pub fn dialog_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
+pub(in crate::game) fn dialog_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
     toolbar_tooltip(game, batch, mouse);
     toolbelt_draw(game, batch);
     toolbelt_tooltip(game, batch, mouse);
@@ -14996,7 +15063,7 @@ pub fn dialog_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
 }
 
 /// `native_screen_mouse_button_pressed_pre`: a click on the open dialog (nothing under it gets the click).
-pub fn dialog_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
+pub(in crate::game) fn dialog_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
     if settings_click(game, mouse, button, canceled) || status_click(game, mouse, button, canceled) {
         return;
     }
@@ -15189,14 +15256,6 @@ fn ui_from_server(data: &[u8]) {
     let head = lines.next().unwrap_or("");
     let words: Vec<&str> = head.split(' ').collect();
     match words.as_slice() {
-        // CompassResponsePacket.
-        ["compass", what] => CLIENT.with_borrow_mut(|c| {
-            c.compass = match *what {
-                "spin" => Compass::Spin,
-                "none" => Compass::None,
-                r => r.parse().map_or(Compass::None, Compass::At),
-            };
-        }),
         ["plan", bytes, can] => CLIENT.with_borrow_mut(|c| {
             let Some(d) = c.dialog.as_mut() else { return };
             d.waiting = false;
@@ -15500,6 +15559,7 @@ fn settings_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut 
 
 /// JEI's "+" with Control (FillCraftingGridFromRecipePacket's craftMissing, CraftConfirmMenu.openWithCraftingList): the
 /// confirm screen for the first key, each key after it when the one before has started.
+#[allow(dead_code)] // Called by int_jei_jei.rs, which is in the build only with JEI.
 pub fn jei_craft_missing(mut wanted: Vec<(String, i64)>) {
     wanted.reverse();
     CLIENT.with_borrow_mut(|c| {
@@ -15520,6 +15580,7 @@ fn jei_craft_next(c: &mut Client) {
 }
 
 /// `enableFacadesInJEI`: the facades in JEI's ingredient list.
+#[allow(dead_code)] // Called by int_jei_jei.rs, which is in the build only with JEI.
 pub fn facades_in_jei() -> bool {
     config().enable_facades_in_jei
 }
@@ -15587,7 +15648,7 @@ fn inventory_slot_at(at: [f32; 2], inv_y: f32) -> Option<i32> {
 }
 
 /// `native_screen_render_post` for the item screens.
-pub fn item_screen_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
+pub(in crate::game) fn item_screen_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
     let (kind, state) = CLIENT.with_borrow(|c| (c.item_screen.clone(), c.item_screen_state));
     if state != 2 || game.native_mod_screen() != Some("ae2") {
         return;
@@ -15749,7 +15810,7 @@ pub fn item_screen_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) 
 }
 
 /// A click on an item screen.
-pub fn item_screen_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
+pub(in crate::game) fn item_screen_click(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
     let (kind, state) = CLIENT.with_borrow(|c| (c.item_screen.clone(), c.item_screen_state));
     if state != 2 || game.native_mod_screen() != Some("ae2") {
         return;
@@ -15943,21 +16004,6 @@ fn ui_message(game: &mut Game<'_>, player: u128, text: &str) {
                 cpu.cancel(&mut net);
             }
             SERVER.with_borrow_mut(|s| s.cpus.insert(key, cpu));
-        }
-        // CompassRequestPacket: the direction from the player's chunk (CompassService, 174 chunks out).
-        ["compass", _, _] => {
-            let Some(at) = game.native_server_players().into_iter().find(|p| p.uuid == player).map(|p| p.position) else { return };
-            let (cx, cz) = ((at[0].floor() as i32) >> 4, (at[2].floor() as i32) >> 4);
-            let dim = game.dim.id().to_owned();
-            let reply = match super::port_ae2_meteor::nearest(game, &dim, [cx, cz], 174) {
-                Some(c) if c == [cx, cz] => "compass spin".to_owned(),
-                Some(c) => {
-                    let (up, side) = (f64::from(c[1] - cz), f64::from(c[0] - cx));
-                    format!("compass {}", (-up).atan2(side) - std::f64::consts::FRAC_PI_2)
-                }
-                None => "compass none".to_owned(),
-            };
-            let _ = game.native_net_send_to_player(player, NET_UI, reply.as_bytes());
         }
         ["plan", index, amount] => {
             let (Ok(index), Ok(amount)) = (index.parse::<usize>(), amount.parse::<i64>()) else { return };
@@ -16665,12 +16711,6 @@ fn network_tool_slot(game: &mut Game<'_>) -> Option<i32> {
     (0..36).find(|&i| game.native_carried_stack(i).is_some_and(|s| s.count > 0 && &*s.item == "ae2:network_tool"))
 }
 
-fn toolbelt_parse(text: &str) -> Vec<(String, i64)> {
-    let mut out: Vec<(String, i64)> = text.split(';').map(|e| e.split_once(' ').map(|(id, n)| (id.to_owned(), n.parse().unwrap_or(0))).unwrap_or_default()).collect();
-    out.resize(9, (String::new(), 0));
-    out
-}
-
 /// A slot of ToolboxMenu (RestrictedInputSlot of UPGRADES): the cursor's cards in or the slot's out, as any slot does.
 /// A menu's button has no player's inventory at hand: the click waits for their inventory tick (`toolbelt_ops`), which
 /// changes the tool and hands out what comes back in one step. Cards going in wait with it, off the cursor.
@@ -17007,7 +17047,7 @@ fn wb_clear_on(entity: &mut ModBlockEntity) {
 
 /// Clicks are handled before the block entities tick, and a tick can hold several: the workbench is brought up to date
 /// before each (`native_quick_move`, which every click on a menu passes first).
-pub fn before_menu_click(game: &mut Game<'_>, pos: Pos) {
+pub(in crate::game) fn before_menu_click(game: &mut Game<'_>, pos: Pos) {
     if block_id(game, pos) == "ae2:cell_workbench" {
         game.native_with_mod_block_entity(pos, workbench_tick);
     }
@@ -17352,7 +17392,7 @@ fn try_transform(game: &mut Game<'_>, recipes: &[TransformRecipe], fluid: &str, 
 
 /// `native_block_drops` for a blast: energy cells have empty loot tables, since their charge isn't the table's to read,
 /// so each drops here with its share. Spawned any earlier, the same blast would burn the item.
-pub fn blast_cell_drop(game: &Game<'_>, pos: Pos, explosion: Option<f32>, drops: &mut Vec<ItemStack>) {
+pub(in crate::game) fn blast_cell_drop(game: &Game<'_>, pos: Pos, explosion: Option<f32>, drops: &mut Vec<ItemStack>) {
     if explosion.is_none() {
         return;
     }
@@ -17364,7 +17404,7 @@ pub fn blast_cell_drop(game: &Game<'_>, pos: Pos, explosion: Option<f32>, drops:
 
 /// `native_explosion_detonate`: a singularity and ender dust caught in an explosion become a pair of entangled
 /// singularities (AE2's transform). The items would burn in the blast, so the pair goes to the nearest player.
-pub fn explosion(game: &mut Game<'_>, dimension: &str, center: [f64; 3]) {
+pub(in crate::game) fn explosion(game: &mut Game<'_>, dimension: &str, center: [f64; 3]) {
     let lo = [center[0] - 4.0, center[1] - 4.0, center[2] - 4.0];
     let hi = [center[0] + 4.0, center[1] + 4.0, center[2] + 4.0];
     let items = game.native_item_entities(dimension, lo, hi);
@@ -17690,8 +17730,6 @@ fn bus_ghost_click(entity: &mut ModBlockEntity, cell: usize, carried: Option<&It
 
 /// AE2's redstone modes with a redstone card: ignore (no card), active with signal, without, on a pulse.
 const REDSTONE_MODES: [&str; 3] = ["Active with signal", "Active without signal", "Active once per pulse"];
-/// The export bus' scheduling: in order, round robin, random.
-const SCHEDULES: [&str; 3] = ["Default", "Round robin", "Random"];
 const BUS_REDSTONE: i32 = 1;
 const BUS_SCHEDULE: i32 = 2;
 const BUS_CRAFT_ONLY: i32 = 3;
@@ -17846,6 +17884,7 @@ fn run_buses(game: &mut Game<'_>) {
     // A TickTracker lives with its part: a new one at the same place starts over.
     if now % 20 == 3 {
         BUS_RATES.with_borrow_mut(|r| r.retain(|p, _| buses.iter().any(|b| b.1 == *p)));
+        BUS_BURSTS.with_borrow_mut(|r| r.retain(|p, _| buses.iter().any(|b| b.1 == *p)));
     }
     for (grid, bus, target, import) in buses {
         // TickRates.ImportBus and ExportBus, TickTracker: from the middle of the range, faster by 2 each time it moves
@@ -18006,12 +18045,26 @@ fn run_buses(game: &mut Game<'_>) {
             let faster = rate.saturating_sub(2).max(fastest);
             BUS_RATES.with_borrow_mut(|r| r.insert(bus, (faster, now + faster)));
         }
+        // How many runs in a row an import bus takes something, for a job's time left (a machine that makes more than
+        // one stack a craft keeps its bus at work for more than one run).
+        if import {
+            BUS_BURSTS.with_borrow_mut(|r| {
+                let b = r.entry(bus).or_insert((0, 0));
+                if worked {
+                    b.0 = b.0.saturating_add(1);
+                } else if b.0 > 0 {
+                    *b = (0, b.0);
+                }
+            });
+        }
     }
 }
 
 thread_local! {
     /// Each import and export bus' tick rate and next tick.
     static BUS_RATES: RefCell<HashMap<Pos, (u64, u64)>> = RefCell::new(HashMap::new());
+    /// Each import bus' runs in a row that took something: the run of them now, and the last whole run of them.
+    static BUS_BURSTS: RefCell<HashMap<Pos, (u32, u32)>> = RefCell::new(HashMap::new());
 }
 
 /// A bus' filter as saved (ids), turned into keys with the game.
@@ -18432,7 +18485,7 @@ fn is_network_block(block: &str) -> bool {
 /// `native_block_placed` for AE2's directional blocks: a part on a cable sits on it facing out, as AE2 puts it on
 /// the cable's face; a bus, plane or tunnel against anything else faces into it (what it works on); emitters
 /// need a cable or network block to sit on; the crystal resonance generator points out of the clicked face.
-pub fn placed(game: &mut Game<'_>, pos: Pos) {
+pub(in crate::game) fn placed(game: &mut Game<'_>, pos: Pos) {
     SERVER.with_borrow_mut(|s| s.fixture_checks.push(pos));
     if is_network_block(&block_id(game, pos)) {
         repath(pos);
@@ -19008,7 +19061,8 @@ fn level_widget_click(at: [f32; 2], right: bool, box_w: f32, button: &mut Option
 
 /// `native_item_decorations`: an encoded pattern shows the item it makes while shift is held (AE2's
 /// pattern rendering).
-pub fn pattern_decoration(game: &Game<'_>, stack: &ItemStack, x: f32, y: f32, batch: &mut HudBatch) {
+pub(in crate::game) fn pattern_decoration(game: &Game<'_>, stack: &ItemStack, x: f32, y: f32, batch: &mut HudBatch) {
+    // The compass's needle is its item model, swapped by the server every 4 ticks (`compass_tick`).
     if &*stack.item == "ae2:meteorite_compass" {
         return;
     }
@@ -19273,7 +19327,7 @@ fn monitor_click(game: &mut Game<'_>, pos: Pos) -> bool {
 
 /// A punch on a conversion monitor: a stack of the shown item from the network (one with Shift). True when the
 /// monitor took it (AE2's BlockAttackHook: the punch then doesn't dig the monitor).
-pub fn monitor_punch(game: &mut Game<'_>, pos: Pos) -> bool {
+pub(in crate::game) fn monitor_punch(game: &mut Game<'_>, pos: Pos) -> bool {
     let pos = aimed_part(game, pos).unwrap_or(pos);
     if ae2_name(&block_id(game, pos)) != Some("conversion_monitor") {
         return false;
@@ -20314,7 +20368,7 @@ fn wireless_drain(game: &mut Game<'_>, player: u128, creative: bool, at: [f64; 3
 static STAFF_HITS: std::sync::Mutex<Vec<i32>> = std::sync::Mutex::new(Vec::new());
 
 /// `native_attack_entity`.
-pub fn attack_entity(game: &mut Game<'_>, entity: i32, pos: [f64; 3]) {
+pub(in crate::game) fn attack_entity(game: &mut Game<'_>, entity: i32, pos: [f64; 3]) {
     // EntropyManipulatorItem.hurtEnemy: 1 600 AE, and eight seconds alight.
     if game.held().map(|h| &*h.item) == Some("ae2:entropy_manipulator") && held_power(game) > 1600.0 {
         spend_held_power(game, 1600.0);
@@ -20461,7 +20515,7 @@ fn tiny_tnt_show(game: &mut Game<'_>, dim: &str, t: &mut super::tnt::PrimedTnt) 
 }
 
 /// `native_server_stopping`: this list isn't saved, so its displays mustn't be.
-pub fn tiny_tnt_stop(game: &mut Game<'_>) {
+pub(in crate::game) fn tiny_tnt_stop(game: &mut Game<'_>) {
     let dim = game.dim.id().to_owned();
     for t in SERVER.with_borrow_mut(|s| std::mem::take(&mut s.tiny_tnts)) {
         game.native_remove_entity(&dim, t.id);
@@ -21061,7 +21115,7 @@ pub fn chunk_logged(dimension: &str, chunk: [i32; 2], load: bool) {
 }
 
 /// `/ae2 ...` as typed: to the server, where AE2's state is; on the server itself it runs here.
-pub fn ae2_command(game: &mut Game<'_>, args: &[&str]) -> bool {
+pub(in crate::game) fn ae2_command(game: &mut Game<'_>, args: &[&str]) -> bool {
     let line = format!("ae2 {}", args.join(" "));
     if game.native_net_send_to_server(NET_DEBUG, line.as_bytes()).is_err() {
         let own = game.level.player_uuid.map(horizon_client::lan::playerdata::ints_uuid);
@@ -21175,46 +21229,8 @@ fn ae2_run(game: &mut Game<'_>, player: Option<u128>, level: u8, at: [f64; 3], a
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// AE2's meteorite compass (MeteoriteCompassItem, MeteoriteCompassBakedModel, CompassManager): the client asks the
-// server about its chunk every second while it carries one; the pointer turns toward the answer (spins on the
-// spot, turns slowly with no answer).
-
-#[derive(Clone, Copy, Default)]
-enum Compass {
-    #[default]
-    None,
-    Spin,
-    At(f64),
-}
-
-fn compass_ask(game: &mut Game<'_>) {
-    if !game.inventory.iter().flatten().any(|s| &*s.item == "ae2:meteorite_compass") {
-        return;
-    }
-    let due = CLIENT.with_borrow(|c| c.compass_asked.is_none_or(|t| t.elapsed().as_millis() >= 1000));
-    let Some(eye) = game.eye_position() else { return };
-    if !due {
-        return;
-    }
-    let msg = format!("compass {} {}", (eye[0].floor() as i32) >> 4, (eye[2].floor() as i32) >> 4);
-    if game.native_net_send_to_server(NET_UI, msg.as_bytes()).is_ok() {
-        CLIENT.with_borrow_mut(|c| c.compass_asked = Some(std::time::Instant::now()));
-    }
-}
-
-/// MeteoriteCompassBakedModel.getAnimatedRotation, drawn as the nearest of the sixteen pointer models.
-fn compass_pointer(game: &Game<'_>, x: f32, y: f32, batch: &mut HudBatch) {
-    use std::f64::consts::PI;
-    let millis = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis());
-    let player = f64::from(game.yaw) / 180.0 * PI + PI;
-    let angle = match CLIENT.with_borrow(|c| c.compass) {
-        Compass::At(rad) => rad + player,
-        Compass::Spin => (millis % 500) as f64 / 500.0 * 2.0 * PI,
-        Compass::None => (millis % 3000) as f64 / 3000.0 * 2.0 * PI,
-    };
-    let i = ((angle / (PI / 8.0)).round() as i64).rem_euclid(16);
-    game.native_item_model(batch, "ae2:meteorite_compass", &format!("ae2:hz_compass_pointer_{i}"), [x, y], 16.0);
-}
+// AE2's meteorite compass (MeteoriteCompassItem, MeteoriteCompassBakedModel, CompassManager): the server works out
+// the needle and swaps the carried compass's item model (`compass_tick`), so no client asks for it.
 
 // ---------------------------------------------------------------------------------------------------------
 // AE2's matter cannon (MatterCannonItem): a one-type storage cell of ammo (loaded in an ME chest or drive). A shot
@@ -21490,7 +21506,7 @@ fn cannon_paint(game: &mut Game<'_>, eye: [f64; 3], dir: [f64; 3], ball: &str) {
 }
 
 /// The middle button on a terminal's grid (AE2's MEStorageScreen: CREATIVE_DUPLICATE in creative mode).
-pub fn terminal_middle_click(game: &Game<'_>, menu: Option<&str>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
+pub(in crate::game) fn terminal_middle_click(game: &Game<'_>, menu: Option<&str>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
     if button != 2 {
         return;
     }
@@ -21533,8 +21549,6 @@ pub fn terminal_middle_click(game: &Game<'_>, menu: Option<&str>, mouse: [f32; 2
 // ---------------------------------------------------------------------------------------------------------
 // AE2's facades (FacadeItem, FacadePart, FacadeContainer): a plate of a block's faces, two pixels thick, on a side
 // of a cable (one a side). Made by FacadeRecipe (data/ae2/recipe/hz_facade/*); its block is the item's `item`.
-
-const FACE_NAMES: [&str; 6] = ["down", "up", "north", "south", "west", "east"];
 
 /// The block a facade item is of.
 fn facade_block(stack: &ItemStack) -> Option<String> {
@@ -21745,7 +21759,7 @@ fn facade_submit(game: &Game<'_>, pos: Pos, entity: &ModBlockEntity) {
 }
 
 /// `native_destroy_block`: a cable broken drops its facades (FacadeContainer's drops).
-pub fn destroyed(game: &mut Game<'_>, pos: Pos, canceled: &mut bool) {
+pub(in crate::game) fn destroyed(game: &mut Game<'_>, pos: Pos, canceled: &mut bool) {
     if break_in_cell(game, pos) {
         *canceled = true;
         return;
@@ -21854,17 +21868,6 @@ fn is_twin(block: &str) -> bool {
 }
 
 const TWIN_SIDES: [&str; 6] = ["down", "up", "north", "south", "west", "east"];
-
-/// The twin's core for a cable kind (CableCoreType: glass 6..10, covered and smart 5..11, dense 3..13).
-fn twin_core(cable: &str) -> usize {
-    if cable.contains("dense") {
-        2
-    } else if cable.contains("glass") {
-        0
-    } else {
-        1
-    }
-}
 
 /// The twin at `pos`: its core, joined arms and facades.
 fn twin_masks(game: &Game<'_>, pos: Pos) -> Option<(usize, u32, u32)> {
@@ -22098,7 +22101,7 @@ fn paint_submit(game: &Game<'_>, entity: &ModBlockEntity, draw: &mut super::nati
 }
 
 /// `native_use_item_on`: a block placed where paint is replaces it (the paint block is replaceable in AE2).
-pub fn clear_paint_for(game: &mut Game<'_>, stack: &ItemStack, pos: Pos, face: Pos) {
+pub(in crate::game) fn clear_paint_for(game: &mut Game<'_>, stack: &ItemStack, pos: Pos, face: Pos) {
     let at = add(pos, face);
     if !is_paint(&block_id(game, at)) || game.native_default_state(&stack.item).is_none() {
         return;
@@ -22340,14 +22343,14 @@ fn wcraft_ops(game: &mut Game<'_>, player: u128) {
                 // the ingredients from the network first, then the grid.
                 let times = if *shift == "1" { 64 } else { 1 };
                 for _ in 0..times {
-                    let Some((name, result)) = game.res.recipes().find(&grid, 3).map(|(n, r)| (n.to_owned(), r)) else { break };
+                    let Some((name, result)) = game.recipes().find(&grid, 3).map(|(n, r)| (n.to_owned(), r)) else { break };
                     if *shift != "1" {
                         match &cursor {
                             Some(c) if key_of(game, c) != key_of(game, &result) || c.count + result.count > max_stack(game, &c.item) => break,
                             _ => {}
                         }
                     }
-                    let remainders = game.res.recipes().remainders(&name, &grid, 3);
+                    let remainders = game.recipes().remainders(&name, &grid, 3);
                     for (i, cell) in grid.iter_mut().enumerate() {
                         let Some(st) = cell.as_mut() else { continue };
                         let key = key_of(game, &ItemStack { count: 1, ..st.clone() });
@@ -22546,7 +22549,7 @@ thread_local! {
 
 /// AEBaseScreen.hasClickedOutside: the widgets beyond the window (the toolbar, the side panels and their slots) aren't
 /// outside it, so what's carried isn't thrown.
-pub fn clicked_widget(game: &Game<'_>, batch: &HudBatch) -> bool {
+pub(in crate::game) fn clicked_widget(game: &Game<'_>, batch: &HudBatch) -> bool {
     let Some((block, [ox, oy])) = ghost_screen() else { return false };
     if ae2_name(&block).is_none() {
         return false;
@@ -22608,7 +22611,7 @@ fn ghost_target_at(at: [f32; 2]) -> Option<i32> {
 
 /// `native_screen_mouse_button_pressed_pre`: a left press on JEI's panel (right of the window) over a screen with
 /// config slots waits for the frame to learn whether it picked up an item.
-pub fn ghost_press(game: &Game<'_>, screen: &crate::game::native_hooks::NativeScreenView<'_>, button: i32, canceled: &mut bool) {
+pub(in crate::game) fn ghost_press(game: &Game<'_>, screen: &crate::game::native_hooks::NativeScreenView<'_>, button: i32, canceled: &mut bool) {
     if button != 0 || game.carried.is_some() || !game.native_on("jei") {
         return;
     }
@@ -22707,7 +22710,7 @@ fn terminal_frame(game: &mut Game<'_>) {
 /// `native_frame`: the held-back press asks JEI's panel what it was on (a `Key` event over the item, the pointer
 /// put back where it was pressed); not an item (the page arrows, the search box), the panel has the press as it was.
 /// A click let go in place is the panel's too.
-pub fn ghost_frame(game: &mut Game<'_>) {
+pub(in crate::game) fn ghost_frame(game: &mut Game<'_>) {
     wireless_jei_frame(game);
     terminal_frame(game);
     let (probe, replay) = GHOST_DRAG.with_borrow_mut(|g| (g.probe.take(), g.replay.take()));
@@ -22751,7 +22754,7 @@ pub fn ghost_panel_event(event: &crate::game::native_hooks::NativePanelEvent) {
 
 /// `native_screen_mouse_button_released_pre`: dropped on a config slot, the server sets it; let go where it was
 /// picked up, it was a click (JEI's recipes, or its give in cheat mode).
-pub fn ghost_release(game: &Game<'_>, canceled: &mut bool) {
+pub(in crate::game) fn ghost_release(game: &Game<'_>, canceled: &mut bool) {
     let at = [game.cursor.0, game.cursor.1];
     let (pending, dragging) = GHOST_DRAG.with_borrow_mut(|g| {
         if g.probe.is_some() {
@@ -22780,7 +22783,7 @@ fn ghost_drop(at: [f32; 2]) {
 
 /// `native_screen_render_post`: the config slots it may go in (GhostIngredientDrag.drawTargets) and the item at the
 /// pointer.
-pub fn ghost_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
+pub(in crate::game) fn ghost_draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
     let Some((item, _, _)) = GHOST_DRAG.with_borrow(|g| g.drag.clone()) else { return };
     let Some((block, [ox, oy])) = ghost_screen() else {
         GHOST_DRAG.with_borrow_mut(|g| g.drag = None);
@@ -22929,7 +22932,7 @@ fn migrate_legacy_twins(game: &mut Game<'_>) {
 
 /// `PartHostTooltips`: on a cable with facades, the facade the crosshair meets (its stack's name, the facade's
 /// block as its icon), else the cable (its item).
-pub fn part_host_name(game: &Game<'_>, pos: Pos, block: &str, hit: [f64; 3]) -> Option<(String, String, String)> {
+pub(in crate::game) fn part_host_name(game: &Game<'_>, pos: Pos, block: &str, hit: [f64; 3]) -> Option<(String, String, String)> {
     if !is_twin(block) {
         return None;
     }
@@ -23019,7 +23022,7 @@ fn with_panel<R>(game: &mut Game<'_>, f: impl FnOnce(&mut Game<'_>) -> R) -> R {
 
 /// FinishedJobToast: top right for 2.5 seconds, when no terminal is open and the player carries a wireless terminal
 /// (PendingCraftingJobs.hasNotificationEnablingItem).
-pub fn job_toast_draw(game: &Game<'_>, batch: &mut HudBatch) {
+pub(in crate::game) fn job_toast_draw(game: &Game<'_>, batch: &mut HudBatch) {
     let Some((id, amount, shown)) = CLIENT.with_borrow(|c| c.job_toast.clone()) else { return };
     // PendingCraftingJobs: AEConfig's `notifyForFinishedCraftingJobs` (the server may not have heard of a reload yet).
     if !config().settings[4] {
@@ -23057,7 +23060,7 @@ pub fn job_toast_draw(game: &Game<'_>, batch: &mut HudBatch) {
 }
 
 /// `hud_layers`, once the frame's screen has drawn: the panel, its tooltips on top.
-pub fn wireless_jei_draw(game: &mut Game<'_>, batch: &mut HudBatch) {
+pub(in crate::game) fn wireless_jei_draw(game: &mut Game<'_>, batch: &mut HudBatch) {
     if !wireless_open(game) {
         return;
     }
@@ -23087,7 +23090,7 @@ fn wireless_jei_click(game: &Game<'_>, mouse: [f32; 2], button: i32) -> bool {
 
 /// A key on the wireless screen or a terminal: the panel's search box takes it, or it looks up the item under the
 /// pointer. True when it was the search box's.
-pub fn jei_key(game: &Game<'_>, menu: Option<&str>, mouse: [f32; 2], key: &str) -> bool {
+pub(in crate::game) fn jei_key(game: &Game<'_>, menu: Option<&str>, mouse: [f32; 2], key: &str) -> bool {
     let wireless = wireless_open(game);
     if wireless && WIRELESS_JEI.with_borrow(|j| j.typing) {
         if key == "key.keyboard.backspace" {
@@ -23158,11 +23161,13 @@ fn wireless_jei_frame(game: &mut Game<'_>) {
 
 /// JEI's "+": the open terminal's list as the server last sent it (id, amount; 0 is craftable only), and what its grid
 /// can craft, stored or not.
+#[allow(dead_code)] // Called by int_jei_jei.rs, which is in the build only with JEI.
 pub fn jei_terminal_stock() -> (HashMap<String, i64>, HashSet<String>) {
     CLIENT.with_borrow(|c| (c.items.iter().filter(|(id, n)| !id.is_empty() && *n >= 0).cloned().collect(), c.craftable.clone()))
 }
 
 /// The wireless crafting terminal is open (a recipe's "+" fills its grid).
+#[allow(dead_code)] // Called by int_jei_jei.rs, which is in the build only with JEI.
 pub fn wireless_crafting_open() -> bool {
     CLIENT.with_borrow(|c| c.wireless_open == 2 && c.wireless_craft)
 }
@@ -23185,7 +23190,7 @@ fn network_item_under(game: &Game<'_>, menu: Option<&str>, mouse: [f32; 2]) -> O
 
 /// How far past its width the open screen reaches (AE2's upgrade and view cell columns), which JEI's panel keeps clear
 /// (`AEGuiContainerHandler.getGuiExtraAreas`).
-pub fn panel_clearance(game: &Game<'_>) -> f32 {
+pub(in crate::game) fn panel_clearance(game: &Game<'_>) -> f32 {
     if CLIENT.with_borrow(|c| c.wireless_open) == 2 {
         return 0.0;
     }
@@ -23336,7 +23341,7 @@ fn part_view(game: &Game<'_>, v: Pos) -> Option<PartState> {
 }
 
 /// `native_block` past the world's top: a hosted part's block.
-pub fn part_block(game: &Game<'_>, pos: Pos) -> Option<String> {
+pub(in crate::game) fn part_block(game: &Game<'_>, pos: Pos) -> Option<String> {
     if !is_virtual(pos) {
         return None;
     }
@@ -23344,7 +23349,7 @@ pub fn part_block(game: &Game<'_>, pos: Pos) -> Option<String> {
 }
 
 /// `native_block_property` for a hosted part; the outer None is any other block.
-pub fn part_property(game: &Game<'_>, pos: Pos, key: &str) -> Option<Option<String>> {
+pub(in crate::game) fn part_property(game: &Game<'_>, pos: Pos, key: &str) -> Option<Option<String>> {
     if !is_virtual(pos) {
         return None;
     }
@@ -23352,7 +23357,7 @@ pub fn part_property(game: &Game<'_>, pos: Pos, key: &str) -> Option<Option<Stri
 }
 
 /// `native_set_block_property_with` for a hosted part.
-pub fn part_set_property(game: &Game<'_>, pos: Pos, key: &str, value: &str) -> Option<bool> {
+pub(in crate::game) fn part_set_property(game: &Game<'_>, pos: Pos, key: &str, value: &str) -> Option<bool> {
     if !is_virtual(pos) {
         return None;
     }
@@ -23371,7 +23376,7 @@ pub fn part_set_property(game: &Game<'_>, pos: Pos, key: &str, value: &str) -> O
 }
 
 /// `native_set_block` for a hosted part: gone, or another part (a tunnel attuned, a panel lit).
-pub fn part_set_block(game: &mut Game<'_>, pos: Pos, state: horizon_world::registry::BlockStateId) -> Option<bool> {
+pub(in crate::game) fn part_set_block(game: &mut Game<'_>, pos: Pos, state: horizon_world::registry::BlockStateId) -> Option<bool> {
     if !is_virtual(pos) {
         return None;
     }
@@ -23609,7 +23614,7 @@ fn in_box(b: &[f64; 6], at: [f64; 3]) -> bool {
 }
 
 /// `Game::outline_boxes` on a cell with parts, in world space: the cable, its facades and each part's own shape.
-pub fn cell_outline(game: &Game<'_>, pos: Pos) -> Option<Vec<[f64; 6]>> {
+pub(in crate::game) fn cell_outline(game: &Game<'_>, pos: Pos) -> Option<Vec<[f64; 6]>> {
     let parts = parts_of(game, pos);
     // CableRenderMode.CABLE_VIEW: a network tool's holder selects through facades.
     let through = cable_view(game);
@@ -23772,7 +23777,7 @@ fn open_part_menu(game: &mut Game<'_>, part: Pos, canceled: &mut bool) {
 }
 
 /// A client's menu on a cell of parts: which part's screen. The one whose menu it is; of several, the one looked at.
-pub fn part_ids_for_screen(game: &Game<'_>, host: Pos) -> Vec<String> {
+pub(in crate::game) fn part_ids_for_screen(game: &Game<'_>, host: Pos) -> Vec<String> {
     sync_part_y(game);
     // Since Horizon 66f3981 a screen from the server names the part's own place, not the cable holding it.
     let (cell, opened) = if is_virtual(host) { (host_of(host), Some(side_of(host))) } else { (host, None) };
@@ -23784,7 +23789,7 @@ pub fn part_ids_for_screen(game: &Game<'_>, host: Pos) -> Vec<String> {
 }
 
 /// `predict_break`: with parts or facades left a dig takes one of them, so the client doesn't clear the block.
-pub fn keeps_predicted_break(game: &Game<'_>, pos: Pos) -> bool {
+pub(in crate::game) fn keeps_predicted_break(game: &Game<'_>, pos: Pos) -> bool {
     match game.world.block_entities.get(&(pos[0], pos[1], pos[2])) {
         Some(horizon_client::containers::BlockEntity::Mod(m)) if is_twin(&m.id) => m.nbt.get(&java("parts")).is_some() || facade_mask(&m.nbt) != 0,
         _ => false,
@@ -24081,7 +24086,7 @@ fn side_index(face: horizon_core::geometry::Direction) -> usize {
 }
 
 /// The part on that face of a cell.
-pub fn part_on_face(game: &Game<'_>, q: Pos, face: horizon_core::geometry::Direction) -> Option<Pos> {
+pub(in crate::game) fn part_on_face(game: &Game<'_>, q: Pos, face: horizon_core::geometry::Direction) -> Option<Pos> {
     if is_virtual(q) {
         return None;
     }
@@ -24104,7 +24109,7 @@ fn facing_target(game: &Game<'_>, from: Pos, q: Pos) -> Pos {
 
 /// `native_insert_item` into a cell's part (the engine finds a container by its block): what its inputs take, the rest
 /// back. None: not a part's to answer.
-pub fn part_insert(game: &mut Game<'_>, pos: Pos, face: horizon_core::geometry::Direction, stack: &ItemStack) -> Option<Option<ItemStack>> {
+pub(in crate::game) fn part_insert(game: &mut Game<'_>, pos: Pos, face: horizon_core::geometry::Direction, stack: &ItemStack) -> Option<Option<ItemStack>> {
     let part = if is_virtual(pos) { pos } else { part_on_face(game, pos, face)? };
     let id = part_view(game, part)?.id;
     let mut container = None;
@@ -24147,7 +24152,7 @@ pub fn part_insert(game: &mut Game<'_>, pos: Pos, face: horizon_core::geometry::
 
 /// `remote_block_reacts`: what the client knows of a cell. A part with a screen or an AE2 tool on it takes the click, so
 /// no second use follows for the other hand.
-pub fn part_takes_click(game: &Game<'_>, pos: Pos, point: [f64; 3]) -> bool {
+pub(in crate::game) fn part_takes_click(game: &Game<'_>, pos: Pos, point: [f64; 3]) -> bool {
     if sneaking(game) || host_parts(game, pos).is_none() {
         return false;
     }
@@ -24174,7 +24179,8 @@ fn aimed_part(game: &Game<'_>, pos: Pos) -> Option<Pos> {
 }
 
 /// For Jade's lines: the part at a point of a cell.
-pub fn part_under(game: &Game<'_>, pos: Pos, point: [f64; 3]) -> Option<Pos> {
+#[allow(dead_code)] // Called by int_jade_jade_ae2.rs, which is in the build only with Jade.
+pub(in crate::game) fn part_under(game: &Game<'_>, pos: Pos, point: [f64; 3]) -> Option<Pos> {
     part_at(game, pos, point).map(|i| part_pos(pos, i))
 }
 
@@ -24241,7 +24247,7 @@ fn cell_light(game: &Game<'_>, host: Pos) -> u8 {
 }
 
 /// `hopper_eject` into a cell: the part on the side it points at takes what its inputs take. None: not a part's.
-pub fn hopper_into_part(game: &mut Game<'_>, pos: Pos) -> Option<bool> {
+pub(in crate::game) fn hopper_into_part(game: &mut Game<'_>, pos: Pos) -> Option<bool> {
     let facing = game.native_block_property(pos, "facing")?;
     let d = facing_dir(Some(facing.as_str()));
     let front = add(pos, d);
@@ -24309,7 +24315,7 @@ fn cable_view(game: &Game<'_>) -> bool {
 }
 
 /// What a hosted part's block is, for the engine's lookups that go by a block's state; none for any other position.
-pub fn part_id_at(game: &Game<'_>, pos: Pos) -> Option<String> {
+pub(in crate::game) fn part_id_at(game: &Game<'_>, pos: Pos) -> Option<String> {
     if !is_virtual(pos) {
         return None;
     }

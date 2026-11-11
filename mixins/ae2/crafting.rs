@@ -173,6 +173,7 @@ pub struct CraftingPlan {
     /// Not everything was there: the plan only shows what is missing and can't start.
     pub simulation: bool,
     /// Some key had more than one pattern to choose from.
+    #[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
     pub multiple_paths: bool,
     /// What to take from the network's storage.
     pub used_items: KeyCounter,

@@ -4,7 +4,7 @@ ae2_optional::if_kit_jei_items!("ae2", {
 // it; this draws it and turns what the player does on it into `Act`s the layer takes on the next frame.
 use crate::game::Game;
 use crate::game::jei::{Layout, Stack, View};
-use crate::game::native_hooks::{NativeScreenView, NativeStack};
+use crate::game::native_hooks::NativeStack;
 use horizon_client::hud::{HudBatch, rgba};
 use horizon_client::mobs::Mob;
 use std::cell::{Cell, RefCell};
@@ -15,57 +15,72 @@ use std::sync::Arc;
 // carries the kit. These are the window's and the layer's only way to it.
 
 /// The guide is open over the screen.
-pub fn guide_is_open() -> bool {
+pub(in crate::game) fn guide_is_open() -> bool {
     ae2_optional::if_guide!("guide", { ae2_optional::guide!(is_open)() } else { false })
 }
 
 /// The guide's key, while a mod's guide is in the build.
-pub fn guide_hotkey(game: &Game<'_>) -> Option<String> {
+pub(in crate::game) fn guide_hotkey(game: &Game<'_>) -> Option<String> {
     ae2_optional::if_guide!("guide", { Some(ae2_optional::guide!(hotkey)(game)) } else { { let _ = game; None } })
 }
 
 /// Opens the guide's page for an item; false when it has none.
-pub fn guide_open(game: &Game<'_>, item: &str) -> bool {
+pub(in crate::game) fn guide_open(game: &Game<'_>, item: &str) -> bool {
     ae2_optional::if_guide!("guide", { ae2_optional::guide!(open_from_key)(game, item) } else { { let _ = (game, item); false } })
 }
 
 /// The guide's summary of an item, for its Information tab.
-pub fn guide_summary(game: &Game<'_>, item: &str) -> Option<String> {
+pub(in crate::game) fn guide_summary(game: &Game<'_>, item: &str) -> Option<String> {
     ae2_optional::if_guide!("guide", { ae2_optional::guide!(summary)(game, item) } else { { let _ = (game, item); None } })
 }
 
-pub const WIDTH: f32 = 192.0;
+pub(in crate::game) const WIDTH: f32 = 192.0;
 const SLOT: f32 = 18.0;
 const TAB: f32 = 24.0;
 const MOB_AREA: f32 = 54.0;
 /// The width of a card's text.
-pub const TEXT_WIDTH: f32 = WIDTH - 20.0;
+pub(in crate::game) const TEXT_WIDTH: f32 = WIDTH - 20.0;
 const CARD_X: f32 = 6.0;
 const CARDS_TOP: f32 = 38.0;
 
-pub const WORLD_ICONS: [&str; 3] = ["minecraft:grass_block", "minecraft:netherrack", "minecraft:end_stone"];
+pub(in crate::game) const WORLD_ICONS: [&str; 3] = ["minecraft:grass_block", "minecraft:netherrack", "minecraft:end_stone"];
 
 /// A category: its tab's icon, its title, the blocks it is made on, its cards.
-pub struct Tab {
-    pub icon: String,
-    pub title: String,
-    pub catalysts: Vec<String>,
-    pub cards: Vec<Card>,
+pub(in crate::game) struct Tab {
+    pub(in crate::game) icon: String,
+    pub(in crate::game) title: String,
+    pub(in crate::game) catalysts: Vec<String>,
+    pub(in crate::game) cards: Vec<Card>,
 }
 
-pub struct MobDrop {
-    pub item: String,
-    pub count: u32,
+pub(in crate::game) struct MobDrop {
+    pub(in crate::game) item: String,
+    pub(in crate::game) count: u32,
     /// "100%, x0-2, more with Looting".
-    pub line: String,
+    pub(in crate::game) line: String,
 }
 
-pub enum Card {
+pub(in crate::game) enum Card {
     /// A recipe as JEI lays it out, with its "+" when it has one.
     Recipe(View),
     /// Something that gives an item: its slot, an arrow, the item, and lines under them.
     Source { from: Vec<Stack>, item: Stack, lines: Vec<String> },
     Text(Vec<String>),
+    /// A recipe drawn as its JEI category draws it (`IRecipeCategory.draw`): part `src` of a GUI sprite as the
+    /// background, parts of it laid over (`covers`: src, at), the stacks at their places (slots the background already
+    /// frames), items drawn only (`items`, JEI's render-only slots and `fakeItem`), lines of text, and places with a
+    /// tooltip (`getTooltip`). Every place is from the background's top left, as in the category.
+    #[allow(dead_code)] // Mods build it (Apothic Spawners' modifiers); JEI's own categories don't.
+    Picture {
+        sprite: String,
+        src: [f32; 4],
+        covers: Vec<([f32; 4], [f32; 2])>,
+        slots: Vec<([f32; 2], Vec<Stack>, Vec<String>)>,
+        items: Vec<([f32; 2], String)>,
+        texts: Vec<PictureText>,
+        hovers: Vec<PictureHover>,
+        fluids: Vec<PictureFluid>,
+    },
     /// Where a block generates in one world: the world's icon and name, and its lines.
     World { dimension: usize, name: String, lines: Vec<String> },
     /// A mob turning in its frame, what it says of itself, and all it drops.
@@ -77,6 +92,7 @@ pub enum Card {
 }
 
 impl Card {
+    /// The card's height in the window.
     fn height(&self) -> f32 {
         let lines = |n: usize| n as f32 * 10.0;
         match self {
@@ -91,6 +107,7 @@ impl Card {
             }
             Card::Source { lines: l, .. } => 26.0 + lines(l.len()) + 10.0,
             Card::Text(l) => lines(l.len()) + 8.0,
+            Card::Picture { src, .. } => src[3] + 6.0,
             Card::World { lines: l, .. } => 22.0 + lines(l.len()) + 6.0,
             Card::Mob { info, .. } => 6.0 + lines(info.len() + 1) + MOB_AREA + 6.0,
             Card::Trade { station, .. } => 6.0 + lines(1) + if station.is_some() { 18.0 } else { 0.0 } + MOB_AREA + 6.0,
@@ -100,7 +117,7 @@ impl Card {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Act {
+pub(in crate::game) enum Act {
     Tab(usize),
     NextTab(i32),
     Page(i32),
@@ -112,23 +129,24 @@ pub enum Act {
     /// A key over a slot.
     Key { key: String, stack: Stack },
     /// JEI's clickable area on a screen: the category this item is made on.
+    #[allow(dead_code)] // Made by other mods' clickable areas (AE2's machines).
     Category(String),
 }
 
 /// What a recipe's "+" says on an AE2 terminal (`IRecipeTransferError`): whether it can be pressed, the tint over it
 /// (`getButtonHighlightColor`), and while the pointer is on it the tooltip and the slots marked (`showError`).
-pub struct Transfer {
-    pub enabled: bool,
-    pub tint: Option<u32>,
-    pub lines: Vec<(String, u32)>,
-    pub marks: Vec<(usize, u32)>,
+pub(in crate::game) struct Transfer {
+    pub(in crate::game) enabled: bool,
+    pub(in crate::game) tint: Option<u32>,
+    pub(in crate::game) lines: Vec<(String, u32)>,
+    pub(in crate::game) marks: Vec<(usize, u32)>,
 }
 
-pub struct Window {
-    pub title: String,
-    pub tabs: Vec<Tab>,
-    pub tab: usize,
-    pub page: usize,
+pub(in crate::game) struct Window {
+    pub(in crate::game) title: String,
+    pub(in crate::game) tabs: Vec<Tab>,
+    pub(in crate::game) tab: usize,
+    pub(in crate::game) page: usize,
     /// What the left mouse button pressed on a mob turns.
     since: std::time::Instant,
 }
@@ -156,14 +174,18 @@ thread_local! {
     static TINTED: Cell<bool> = const { Cell::new(false) };
     /// The real pointer, while the screen under the window is told it is elsewhere.
     static HIDDEN_CURSOR: Cell<Option<(f32, f32)>> = const { Cell::new(None) };
+    /// A screen tooltip held back this frame, to be drawn over the panel (`defer_tooltip`), and the late pass itself.
+    static TIP_DEFERRED: Cell<bool> = const { Cell::new(false) };
+    static TIP_LATE: Cell<bool> = const { Cell::new(false) };
 }
 
-pub fn is_open() -> bool {
+/// Whether the recipe window is open.
+pub(in crate::game) fn is_open() -> bool {
     WINDOW.with_borrow(|w| w.is_some())
 }
 
 /// Shows a page, keeping the card page when it is the same one.
-pub fn show(title: String, tabs: Vec<Tab>, tab: usize) {
+pub(in crate::game) fn show(title: String, tabs: Vec<Tab>, tab: usize) {
     WINDOW.with_borrow_mut(|w| {
         let page = w.as_ref().filter(|o| o.title == title && o.tab == tab).map_or(0, |o| o.page);
         let since = w.as_ref().map_or_else(std::time::Instant::now, |o| o.since);
@@ -171,21 +193,25 @@ pub fn show(title: String, tabs: Vec<Tab>, tab: usize) {
     });
 }
 
-pub fn close() {
+/// Shuts the recipe window.
+pub(in crate::game) fn close() {
     WINDOW.with_borrow_mut(|w| *w = None);
     DRAGGING.with_borrow_mut(|d| *d = None);
 }
 
-pub fn tab_count() -> usize {
+/// How many tabs the open page has.
+pub(in crate::game) fn tab_count() -> usize {
     WINDOW.with_borrow(|w| w.as_ref().map_or(0, |w| w.tabs.len()))
 }
 
-pub fn take_acts() -> Vec<Act> {
+/// What the player did on the window since the last frame.
+pub(in crate::game) fn take_acts() -> Vec<Act> {
     ACTS.with_borrow_mut(std::mem::take)
 }
 
 /// The recipe at `index` of the shown tab, for its "+".
-pub fn recipe_view(index: usize) -> Option<View> {
+#[allow(dead_code)] // The mod API: other mods call it; JEI alone does not.
+pub(in crate::game) fn recipe_view(index: usize) -> Option<View> {
     WINDOW.with_borrow(|w| match w.as_ref()?.tabs.get(w.as_ref()?.tab)?.cards.get(index)? {
         Card::Recipe(v) => Some(v.clone()),
         _ => None,
@@ -193,7 +219,8 @@ pub fn recipe_view(index: usize) -> Option<View> {
 }
 
 /// The icon of the tab shown.
-pub fn shown_icon() -> Option<String> {
+#[allow(dead_code)] // The mod API: other mods call it; JEI alone does not.
+pub(in crate::game) fn shown_icon() -> Option<String> {
     WINDOW.with_borrow(|w| {
         let w = w.as_ref()?;
         w.tabs.get(w.tab).map(|t| t.icon.clone())
@@ -201,7 +228,7 @@ pub fn shown_icon() -> Option<String> {
 }
 
 /// A page turn of the window's own; the layer doesn't need to hear it.
-pub fn turn_page(by: i32, area: f32) {
+pub(in crate::game) fn turn_page(by: i32, area: f32) {
     WINDOW.with_borrow_mut(|w| {
         let Some(w) = w.as_mut() else { return };
         let Some(tab) = w.tabs.get(w.tab) else { return };
@@ -210,6 +237,7 @@ pub fn turn_page(by: i32, area: f32) {
     });
 }
 
+/// The window's left edge, top and height on this screen.
 fn geometry(game: &Game<'_>) -> (f32, f32, f32) {
     let (gw, gh) = game.gui_size();
     let height = (gh - 34.0).clamp(150.0, 250.0);
@@ -219,8 +247,45 @@ fn geometry(game: &Game<'_>) -> (f32, f32, f32) {
 }
 
 /// The area of the window's cards.
-pub fn cards_area(game: &Game<'_>) -> f32 {
+pub(in crate::game) fn cards_area(game: &Game<'_>) -> f32 {
     geometry(game).2 - CARDS_TOP - 6.0
+}
+
+// Cards: the helpers mods build theirs with.
+
+/// Fits a text to the window's cards.
+pub(in crate::game) fn wrap(game: &Game<'_>, text: &str) -> Vec<String> {
+    let font = &game.gui.atlas.font;
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    for word in text.split_whitespace() {
+        let longer = if line.is_empty() { word.to_owned() } else { format!("{line} {word}") };
+        if font.width(&longer) > TEXT_WIDTH && !line.is_empty() {
+            lines.push(std::mem::take(&mut line));
+            line = word.to_owned();
+        } else {
+            line = longer;
+        }
+    }
+    if !line.is_empty() {
+        lines.push(line);
+    }
+    lines
+}
+
+/// Text broken into lines that fit a card.
+pub(in crate::game) fn wrap_text(game: &Game<'_>, text: &str) -> Vec<String> {
+    wrap(game, text)
+}
+
+/// A slot, an arrow, the item, and a note under them.
+pub(in crate::game) fn source(game: &Game<'_>, from: &str, item: &str, count: u32, note: &str) -> Card {
+    Card::Source { from: vec![Stack::item(from)], item: Stack { item: item.to_owned(), count: count.max(1), components: String::new() }, lines: wrap(game, note) }
+}
+
+/// A tab: its icon, title, catalysts and cards.
+pub(in crate::game) fn tab(icon: &str, title: &str, catalysts: &[&str], cards: Vec<Card>) -> Tab {
+    Tab { icon: icon.to_owned(), title: title.to_owned(), catalysts: catalysts.iter().map(|c| (*c).to_owned()).collect(), cards }
 }
 
 /// The first card of each page.
@@ -238,16 +303,18 @@ fn pages(tab: &Tab, area: f32) -> Vec<usize> {
     starts
 }
 
-pub fn inside(p: (f32, f32), r: [f32; 4]) -> bool {
+/// Whether a point is in a rectangle.
+pub(in crate::game) fn inside(p: (f32, f32), r: [f32; 4]) -> bool {
     p.0 >= r[0] && p.1 >= r[1] && p.0 < r[0] + r[2] && p.1 < r[1] + r[3]
 }
 
+/// A stack as the game's native stack.
 fn native(stack: &Stack) -> NativeStack {
     NativeStack { item: stack.item.clone(), count: stack.count, components: stack.components.clone() }
 }
 
 /// `hud`'s start: over the window, the screen under it has no pointer (no highlights, no tooltips).
-pub fn hud_before(game: &mut Game<'_>) {
+pub(in crate::game) fn hud_before(game: &mut Game<'_>) {
     TINTED.set(false);
     if !is_open() {
         return;
@@ -259,7 +326,8 @@ pub fn hud_before(game: &mut Game<'_>) {
     }
 }
 
-pub fn hud_after(game: &mut Game<'_>, batch: &mut HudBatch) {
+/// Draws the window over the screen.
+pub(in crate::game) fn hud_after(game: &mut Game<'_>, batch: &mut HudBatch) {
     if let Some(cursor) = HIDDEN_CURSOR.take() {
         game.cursor = cursor;
     }
@@ -267,18 +335,43 @@ pub fn hud_after(game: &mut Game<'_>, batch: &mut HudBatch) {
         tint(game, batch);
     }
     crate::game::hz_kit_creative_ae2::draw(game, batch);
+    // The tooltips the screen held back, now over the panel (JEI's are drawn last, as vanilla defers them).
+    // (Not under the guide: it is over the screen, and the screen's tooltip would be drawn on its page.)
+    if TIP_DEFERRED.take() && !is_open() && !guide_is_open() {
+        TIP_LATE.set(true);
+        game.draw_slot_tooltip(batch);
+        game.draw_native_screen_tooltip(batch);
+        TIP_LATE.set(false);
+    }
     if is_open() && !guide_is_open() {
         draw(game, batch);
     }
 }
 
+/// Horizon draws a container screen's tooltips (the hovered slot's, a mod screen's own) before the item panel, which
+/// then covers them where they reach it. On the screens the panel is drawn on, they are held back here and drawn by
+/// `hud_after`, over it.
+pub(in crate::game) fn defer_tooltip(game: &Game<'_>) -> bool {
+    if TIP_LATE.get() {
+        return false;
+    }
+    let panel = game.screen == crate::game::Screen::Inventory
+        || (game.screen == crate::game::Screen::Creative && game.native_on("jei"))
+        ;
+    if panel {
+        TIP_DEFERRED.set(true);
+    }
+    panel
+}
+
 /// With the window open the screen steps back, all of it: called before the panel draws, so its items stay bright.
-pub fn tint(game: &Game<'_>, batch: &mut HudBatch) {
+pub(in crate::game) fn tint(game: &Game<'_>, batch: &mut HudBatch) {
     if is_open() && !TINTED.replace(true) {
         batch.fill(&game.gui.atlas, 0.0, 0.0, batch.width, batch.height, rgba(16, 16, 16, 200));
     }
 }
 
+/// A raised or sunken box, as Minecraft's buttons.
 fn bevel(game: &Game<'_>, batch: &mut HudBatch, [x, y, w, h]: [f32; 4], fill: u32, dark: u32, light: u32) {
     let atlas = &game.gui.atlas;
     batch.fill(atlas, x, y, w, h, fill);
@@ -288,6 +381,7 @@ fn bevel(game: &Game<'_>, batch: &mut HudBatch, [x, y, w, h]: [f32; 4], fill: u3
     batch.fill(atlas, x + w - 1.0, y, 1.0, h, light);
 }
 
+/// A button of the window.
 fn button(game: &Game<'_>, batch: &mut HudBatch, rect: [f32; 4], label: &str, hits: &mut Hits, act: Act, id: &str) {
     let hover = inside(game.cursor, rect);
     let atlas = &game.gui.atlas;
@@ -315,6 +409,117 @@ fn slot(game: &Game<'_>, batch: &mut HudBatch, x: f32, y: f32, stacks: &[Stack],
     }
     let name = game.pack.names.display_item(&stack.item);
     horizon_client::widgets::record_as(&format!("{name} {}", hits.slots.len()), [x + 1.0, y + 1.0, 16.0, 16.0], true, horizon_client::widgets::Kind::Button);
+    hits.slots.push((rect, shown.clone(), extra.to_vec()));
+}
+
+/// A line a picture card writes, its colours as Java gives them (0xAARRGGBB). `right`: `at` is where the line ends.
+/// Under the pointer it is drawn in `hover` and
+/// shows `tip` (lines with `§` codes).
+#[allow(dead_code)] // Mods build it.
+#[derive(Clone, Debug, Default)]
+pub(in crate::game) struct PictureText {
+    pub at: [f32; 2],
+    pub text: String,
+    pub color: u32,
+    pub hover: u32,
+    pub right: bool,
+    pub tip: Vec<String>,
+}
+
+/// A fluid in a picture card's fluid slot (JEI's fluid ingredient): its still texture, tinted, and its name and
+/// amount under the pointer. A fluid slot draws the fluid only, never a bucket, as JEI's fluid renderer does; `bucket`
+/// is kept so older mods that set it still build, and isn't drawn.
+///
+/// JEI's `setFluidRenderer(capacity, showCapacity, width, height)`: `size` is the slot (16x16 when None), and with a
+/// `capacity` the fluid fills it from the bottom by `amount / capacity` (full when 0), its texture tiled 16 px at a time
+/// as JEI's tank renderer tiles it. `sprite` is the still texture's GUI atlas name and its tint (0xAARRGGBB) for a mod's
+/// own fluid (vanilla's and `<ns>:block/<path>_still` are found without it); `tip` replaces the name and amount lines.
+#[allow(dead_code)] // Mods build it.
+#[derive(Clone, Debug, Default)]
+pub(in crate::game) struct PictureFluid {
+    pub at: [f32; 2],
+    pub fluid: String,
+    pub amount: i32,
+    pub bucket: Option<String>,
+    pub size: Option<[f32; 2]>,
+    pub capacity: i32,
+    pub sprite: Option<(String, u32)>,
+    pub tip: Vec<String>,
+}
+
+/// `sprite` tiled over `[x, y, w, h]` in 16 px squares, each cut from its top where the area ends (JEI's
+/// `drawTiledSprite`: the fluid's surface is the cut edge).
+fn tiled_sprite(batch: &mut HudBatch, r: horizon_client::hud::Rect, [x, y, w, h]: [f32; 4], color: u32) {
+    let mut row = 0.0;
+    while row < h {
+        let th = (h - row).min(16.0);
+        let mut col = 0.0;
+        while col < w {
+            let tw = (w - col).min(16.0);
+            let part = horizon_client::hud::Rect {
+                u1: r.u0 + (r.u1 - r.u0) * tw / 16.0,
+                v0: r.v1 - (r.v1 - r.v0) * th / 16.0,
+                ..r
+            };
+            batch.rect_uv(x + col, y + h - row - th, tw, th, part, color);
+            col += 16.0;
+        }
+        row += 16.0;
+    }
+}
+
+/// A fluid's still texture in the GUI atlas and its tint (0xAARRGGBB): water's blue, lava as it is.
+fn fluid_sprite(fluid: &str) -> (String, u32) {
+    match fluid {
+        "minecraft:water" => ("block/water_still".to_owned(), 0xFF3F_76E4),
+        "minecraft:lava" => ("block/lava_still".to_owned(), 0xFFFF_FFFF),
+        other => {
+            let (ns, path) = other.split_once(':').unwrap_or(("minecraft", other));
+            (format!("{ns}:block/{path}_still"), 0xFFFF_FFFF)
+        }
+    }
+}
+
+/// The GUI atlas rect of a fluid's still texture: the name given (or `fluid_sprite`'s), then the places mods keep a
+/// fluid's still texture under `block/` (`<path>_still`, `fluid/<path>_still`, `fluid/<path>/still`, `<path>/still`),
+/// then the missing texture, as JEI draws a fluid whose sprite isn't stitched. Never a bucket.
+fn fluid_rect(atlas: &horizon_client::hud::HudAtlas, name: &str, fluid: &str) -> Option<horizon_client::hud::Rect> {
+    let find = |n: &str| atlas.sprites.get(n).or_else(|| atlas.sprites.get(n.strip_prefix("minecraft:").unwrap_or(n))).copied();
+    if let Some(r) = find(name) {
+        return Some(r);
+    }
+    let (ns, path) = fluid.split_once(':').unwrap_or(("minecraft", fluid));
+    [format!("{ns}:block/{path}_still"), format!("{ns}:block/fluid/{path}_still"), format!("{ns}:block/fluid/{path}/still"), format!("{ns}:block/{path}/still")]
+        .iter()
+        .find_map(|n| find(n))
+        .or_else(|| atlas.sprites.get(horizon_client::hud::MISSING_SPRITE).copied())
+}
+
+/// A place on a picture card with a tooltip (lines with `§` codes) and, under the pointer, a part of the sprite laid
+/// over it (`cover`: src, at).
+#[allow(dead_code)] // Mods build it.
+#[derive(Clone, Debug, Default)]
+pub(in crate::game) struct PictureHover {
+    pub rect: [f32; 4],
+    pub tip: Vec<String>,
+    pub cover: Option<([f32; 4], [f32; 2])>,
+}
+
+/// A stack where its category's background already draws the slot: the item at `x`, `y` (its slot's inside).
+#[allow(clippy::too_many_arguments)]
+fn stack_at(game: &Game<'_>, batch: &mut HudBatch, x: f32, y: f32, stacks: &[Stack], extra: &[String], seconds: u64, hits: &mut Hits) {
+    if stacks.is_empty() {
+        return;
+    }
+    let shown = &stacks[seconds as usize % stacks.len()];
+    let Some(stack) = crate::game::native_panel::browser_stack(game.res.items(), &native(shown)) else { return };
+    game.draw_item(batch, &stack, x, y);
+    let rect = [x - 1.0, y - 1.0, SLOT, SLOT];
+    if inside(game.cursor, rect) {
+        batch.fill(&game.gui.atlas, x, y, 16.0, 16.0, rgba(255, 255, 255, 128));
+    }
+    let name = game.pack.names.display_item(&stack.item);
+    horizon_client::widgets::record_as(&format!("{name} {}", hits.slots.len()), [x, y, 16.0, 16.0], true, horizon_client::widgets::Kind::Button);
     hits.slots.push((rect, shown.clone(), extra.to_vec()));
 }
 
@@ -413,7 +618,7 @@ fn draw(game: &mut Game<'_>, batch: &mut HudBatch) {
         }
     }
     if let Some(lines) = hits.tip.take() {
-        hover_lines = Some(lines.iter().map(|(text, color)| (horizon_client::text::Text::literal(text), *color)).collect());
+        hover_lines = Some(lines.iter().map(|(text, color)| (horizon_client::text::Text::legacy(text), *color)).collect());
     }
     if let Some(lines) = hover_lines {
         game.draw_tooltip_lines(batch, &lines, cursor.0, cursor.1);
@@ -498,6 +703,73 @@ fn draw_card(game: &Game<'_>, batch: &mut HudBatch, card: &Card, index: usize, x
             slot(game, batch, rx + 4.0, y + 8.0, std::slice::from_ref(item), &[], seconds, hits);
             for (i, line) in lines.iter().enumerate() {
                 batch.text(atlas, line, x + 4.0, y + 32.0 + i as f32 * 10.0, TEXT, false);
+            }
+        }
+        Card::Picture { sprite, src, covers, slots, items, texts, hovers, fluids } => {
+            // The background, as wide as it is drawn in JEI, in the middle of the card.
+            let (ox, oy) = (x + ((width - src[2]) / 2.0).floor(), y + 3.0);
+            let (mx, my) = (game.cursor.0 - ox, game.cursor.1 - oy);
+            let under = |r: [f32; 4]| mx >= r[0] && mx < r[0] + r[2] && my >= r[1] && my < r[1] + r[3];
+            game.native_sprite(batch, sprite, *src, [ox, oy, src[2], src[3]]);
+            for (part, at) in covers {
+                game.native_sprite(batch, sprite, *part, [ox + at[0], oy + at[1], part[2], part[3]]);
+            }
+            // The first place under the pointer wins, as the category's if/else does.
+            let hovered = hovers.iter().find(|h| under(h.rect));
+            if let Some((part, at)) = hovered.and_then(|h| h.cover) {
+                game.native_sprite(batch, sprite, part, [ox + at[0], oy + at[1], part[2], part[3]]);
+            }
+            for (at, stacks, extra) in slots {
+                stack_at(game, batch, ox + at[0], oy + at[1], stacks, extra, seconds, hits);
+            }
+            let mut fluid_tip = None;
+            for f in fluids {
+                let [fx, fy] = [ox + f.at[0], oy + f.at[1]];
+                let (name, tint) = f.sprite.clone().unwrap_or_else(|| fluid_sprite(&f.fluid));
+                let rect = fluid_rect(atlas, &name, &f.fluid);
+                let [fw, fh] = f.size.unwrap_or([16.0, 16.0]);
+                // Filled from the bottom; at least a pixel of a fluid there is, as JEI keeps one.
+                let filled = if f.capacity > 0 && f.amount > 0 {
+                    (fh * (f.amount.min(f.capacity) as f32) / f.capacity as f32).max(1.0)
+                } else if f.capacity > 0 {
+                    0.0
+                } else {
+                    fh
+                };
+                if let Some(r) = rect.filter(|_| filled > 0.0) {
+                    let [a, rr, g, b] = tint.to_be_bytes();
+                    tiled_sprite(batch, r, [fx, fy + fh - filled, fw, filled], rgba(rr, g, b, a));
+                }
+                if inside(game.cursor, [fx, fy, fw, fh]) {
+                    batch.fill(atlas, fx, fy, fw, fh, rgba(255, 255, 255, 128));
+                    fluid_tip = Some(if f.tip.is_empty() {
+                        let (ns, path) = f.fluid.split_once(':').unwrap_or(("minecraft", &f.fluid));
+                        let shown = horizon_client::lang::get_or(&format!("block.{ns}.{path}"), path).to_string();
+                        vec![shown, format!("§7{} mB", f.amount)]
+                    } else {
+                        f.tip.clone()
+                    });
+                }
+            }
+            for (at, item) in items {
+                if let Some(stack) = crate::game::native_panel::browser_stack(game.res.items(), &native(&Stack::item(item))) {
+                    game.draw_item(batch, &stack, ox + at[0], oy + at[1]);
+                }
+            }
+            let mut tip = hovered.map(|h| h.tip.clone()).or(fluid_tip);
+            for line in texts {
+                let w = HudBatch::text_width(atlas, &line.text);
+                let left = if line.right { line.at[0] - w } else { line.at[0] };
+                let over = hovered.is_none() && under([left, line.at[1], w, 10.0]);
+                let argb = if over { line.hover } else { line.color };
+                let [a, r, g, b] = argb.to_be_bytes();
+                batch.text(atlas, &line.text, ox + left, oy + line.at[1], rgba(r, g, b, a), false);
+                if over && tip.is_none() {
+                    tip = Some(line.tip.clone());
+                }
+            }
+            if let Some(lines) = tip.filter(|l| !l.is_empty()) {
+                hits.tip = Some(lines.into_iter().map(|l| (l, u32::MAX)).collect());
             }
         }
         Card::Text(lines) => {
@@ -684,12 +956,12 @@ fn turn(cursor: (f32, f32)) {
 }
 
 /// Once a frame, while the left button is held on a mob.
-pub fn frame(game: &Game<'_>) {
+pub(in crate::game) fn frame(game: &Game<'_>) {
     turn(game.cursor);
 }
 
 /// `native_screen_mouse_button_pressed_pre`.
-pub fn press(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
+pub(in crate::game) fn press(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool) {
     if !is_open() {
         return;
     }
@@ -712,28 +984,48 @@ pub fn press(game: &Game<'_>, mouse: [f32; 2], button: i32, canceled: &mut bool)
 }
 
 /// An act from a provider's own screen hook: the window does it on its next frame.
-pub fn push_act(act: Act) {
+#[allow(dead_code)] // The mod API: other mods call it; JEI alone does not.
+pub(in crate::game) fn push_act(act: Act) {
     ACTS.with_borrow_mut(|a| a.push(act));
 }
 
 /// `native_screen_mouse_button_released_pre`.
-pub fn release(mouse: [f32; 2]) {
+pub(in crate::game) fn release(mouse: [f32; 2]) {
     turn((mouse[0], mouse[1]));
     DRAGGING.with_borrow_mut(|d| *d = None);
 }
 
 /// `native_screen_mouse_scrolled_pre`: the wheel turns the pages.
-pub fn scroll(by: f64, canceled: &mut bool) {
+pub(in crate::game) fn scroll(by: f64, canceled: &mut bool) {
     if is_open() {
         *canceled = true;
-        ACTS.with_borrow_mut(|a| a.push(Act::Page(if by > 0.0 { -1 } else { 1 })));
+        // A sideways-only scroll comes as 0: it turns no page.
+        if by != 0.0 {
+            ACTS.with_borrow_mut(|a| a.push(Act::Page(if by > 0.0 { -1 } else { 1 })));
+        }
     }
+}
+
+/// Whether keys go to the window: it is open, no panel search has the keyboard, and the pointer is on it.
+pub(in crate::game) fn takes_keys(game: &Game<'_>) -> bool {
+    if !is_open() || game.mod_browser_typing() {
+        return false;
+    }
+    if crate::game::hz_kit_creative_ae2::typing() {
+        return false;
+    }
+    let (x0, _, _) = geometry(game);
+    game.cursor.0 < x0 + WIDTH + 2.0
 }
 
 /// `native_screen_key_pressed_pre`: Escape and the inventory key close it, Backspace goes back a page; a key over a
 /// slot looks that stack up.
-pub fn key(game: &Game<'_>, mouse: [f32; 2], key: &str, canceled: &mut bool) {
+pub(in crate::game) fn key(game: &Game<'_>, mouse: [f32; 2], key: &str, canceled: &mut bool) {
     if !is_open() || game.mod_browser_typing() {
+        return;
+    }
+    // The creative screen's panel search has the keyboard: E and Backspace are its letters and its edits.
+    if crate::game::hz_kit_creative_ae2::typing() {
         return;
     }
     let (x0, _, _) = geometry(game);

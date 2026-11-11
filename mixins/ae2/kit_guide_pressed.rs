@@ -5,5 +5,5 @@ fn kit_guide_pressed_ae2(game: &crate::game::Game<'_>, screen: &crate::game::nat
     }
     let _ = button;
     crate::game::hz_kit_guide_ae2::click(game, screen.mouse, canceled);
-} else { () })
+} else { let _ = (game, screen, button, canceled); () })
 }

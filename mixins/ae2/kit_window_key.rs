@@ -7,5 +7,5 @@ fn jei_window_key(game: &crate::game::Game<'_>, screen: &crate::game::native_hoo
     if !*canceled {
         crate::game::hz_kit_creative_ae2::key(game, screen.mouse, key, canceled);
     }
-} else { () })
+} else { let _ = (game, screen, key, canceled); () })
 }

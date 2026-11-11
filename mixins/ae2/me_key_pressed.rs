@@ -1,4 +1,5 @@
 fn ae2_key_pressed(game: &crate::game::Game<'_>, screen: &crate::game::native_hooks::NativeScreenView<'_>, key: &str, repeat: bool, canceled: &mut bool) {
+    let _ = repeat;
     if game.player.is_none() {
         return;
     }

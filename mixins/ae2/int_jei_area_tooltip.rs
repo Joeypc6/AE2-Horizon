@@ -3,5 +3,5 @@ fn ae2_area_tooltip(game: &crate::game::Game<'_>, batch: &mut horizon_client::hu
     if game.player.is_some() {
         crate::game::port_ae2_jei::area_tooltip(game, batch, screen);
     }
-} else { () })
+} else { let _ = (game, batch, screen); () })
 }

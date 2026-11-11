@@ -4,5 +4,5 @@ fn kit_guide_key_ae2(game: &crate::game::Game<'_>, screen: &crate::game::native_
         return;
     }
     crate::game::hz_kit_guide_ae2::key(game, screen.menu, key, repeat, canceled);
-} else { () })
+} else { let _ = (game, screen, key, repeat, canceled); () })
 }

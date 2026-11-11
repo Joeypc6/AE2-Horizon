@@ -16,34 +16,37 @@ const CRAFTING: &str = "minecraft:crafting_table";
 
 /// What a mod adds to the pages. Every field has a "nothing" (`Provider::new`).
 #[derive(Clone, Copy)]
-pub struct Provider {
-    pub id: &'static str,
+pub(in crate::game) struct Provider {
+    #[allow(dead_code)] // Read by the mods that register providers.
+    pub(in crate::game) id: &'static str,
     /// What U on this item opens whole: it is the catalyst of one of the mod's categories.
-    pub is_catalyst: fn(&str) -> bool,
+    pub(in crate::game) is_catalyst: fn(&str) -> bool,
     /// More blocks that do a vanilla station's recipes, by the station's icon.
-    pub station_catalysts: fn(&str) -> &'static [&'static str],
+    pub(in crate::game) station_catalysts: fn(&str) -> &'static [&'static str],
     /// More recipes for the Crafting tab of a page (`uses`: the item's uses).
-    pub crafting_views: fn(&Stack, bool) -> Vec<View>,
+    pub(in crate::game) crafting_views: fn(&Stack, bool) -> Vec<View>,
     /// The mod's tabs for a page, after vanilla's.
-    pub tabs: fn(&Game<'_>, &Stack, bool) -> Vec<Tab>,
+    pub(in crate::game) tabs: fn(&Game<'_>, &Stack, bool) -> Vec<Tab>,
     /// How an item comes from the mod's world generation.
-    pub sources: fn(&Game<'_>, &str) -> Vec<Tab>,
+    pub(in crate::game) sources: fn(&Game<'_>, &str) -> Vec<Tab>,
     /// What to say of an item no table gives.
-    pub note: fn(&str) -> Option<&'static str>,
+    pub(in crate::game) note: fn(&str) -> Option<&'static str>,
     /// One of the mod's screens takes recipes ("+").
-    pub takes_recipes: fn(&Game<'_>) -> bool,
+    pub(in crate::game) takes_recipes: fn(&Game<'_>) -> bool,
     /// What a recipe's "+" says on that screen.
-    pub transfer_state: fn(&Game<'_>, &View) -> Option<Transfer>,
+    pub(in crate::game) transfer_state: fn(&Game<'_>, &View) -> Option<Transfer>,
     /// Marks the recipes that get a "+" there.
-    pub mark_recipes: fn(&Game<'_>, &mut Vec<Tab>),
+    pub(in crate::game) mark_recipes: fn(&Game<'_>, &mut Vec<Tab>),
     /// The "+" pressed there.
-    pub plus: fn(&mut Game<'_>, usize),
+    pub(in crate::game) plus: fn(&mut Game<'_>, usize),
     /// A click on this stack opens its recipes even when JEI's clicks give items.
-    pub opens_on_click: fn(&Stack) -> bool,
+    pub(in crate::game) opens_on_click: fn(&Stack) -> bool,
 }
 
 impl Provider {
-    pub fn new(id: &'static str) -> Self {
+    /// A provider with nothing but its id: every callback does nothing.
+    #[allow(dead_code)] // The mod API: other mods call it; JEI alone does not.
+    pub(in crate::game) fn new(id: &'static str) -> Self {
         Self {
             id,
             is_catalyst: |_| false,
@@ -95,7 +98,8 @@ thread_local! {
 }
 
 /// A mod's provider; each mod calls this every frame, and only the first time does anything.
-pub fn register(provider: Provider) {
+#[allow(dead_code)] // The mod API: other mods call it; JEI alone does not.
+pub(in crate::game) fn register(provider: Provider) {
     PROVIDERS.with_borrow_mut(|p| {
         if !p.iter().any(|x| x.id == provider.id) {
             p.push(provider);
@@ -103,20 +107,24 @@ pub fn register(provider: Provider) {
     });
 }
 
+/// The registered providers, copied (so none is borrowed while they run).
 fn providers() -> Vec<Provider> {
     PROVIDERS.with_borrow(Clone::clone)
 }
 
-pub fn provider_sources(game: &Game<'_>, item: &str) -> Vec<Tab> {
+/// The source tabs the mods add for an item.
+pub(in crate::game) fn provider_sources(game: &Game<'_>, item: &str) -> Vec<Tab> {
     providers().iter().flat_map(|p| (p.sources)(game, item)).collect()
 }
 
-pub fn provider_note(item: &str) -> Option<&'static str> {
+/// A mod's note on where an item comes from.
+pub(in crate::game) fn provider_note(item: &str) -> Option<&'static str> {
     providers().iter().find_map(|p| (p.note)(item))
 }
 
 /// The panel's list, for a provider that adds to it.
-pub fn set_listed(list: Vec<Stack>) {
+#[allow(dead_code)] // The mod API: other mods call it; JEI alone does not.
+pub(in crate::game) fn set_listed(list: Vec<Stack>) {
     LAYER.with_borrow_mut(|l| {
         if let Some(l) = l.as_mut() {
             l.listed = list;
@@ -125,19 +133,41 @@ pub fn set_listed(list: Vec<Stack>) {
 }
 
 /// The world's names, for a provider's search.
-pub fn with_names<R>(f: impl FnOnce(&std::collections::HashMap<String, String>) -> R) -> Option<R> {
+#[allow(dead_code)] // The mod API: other mods call it; JEI alone does not.
+pub(in crate::game) fn with_names<R>(f: impl FnOnce(&std::collections::HashMap<String, String>) -> R) -> Option<R> {
     LAYER.with_borrow(|l| l.as_ref().map(|l| f(&l.names)))
 }
 
 /// `Component.translatable`.
-pub fn tr(key: &str, english: &str) -> String {
+#[allow(dead_code)] // The mod API: other mods call it; JEI alone does not.
+pub(in crate::game) fn tr(key: &str, english: &str) -> String {
     horizon_client::lang::get_or(key, english)
 }
 
 /// `native_chat`: JEI's "No recipes for" and "No uses for" go, since the window has more than JEI's own recipes; true
 /// to let a line through.
-pub fn chat_allowed(text: &str) -> bool {
-    !["No recipes for", "No uses for", "Sin recetas para", "Sin usos para"].iter().any(|p| text.starts_with(p))
+pub(in crate::game) fn chat_allowed(text: &str) -> bool {
+    SAYING.get() || !["No recipes for", "No uses for", "Sin recetas para", "Sin usos para"].iter().any(|p| text.starts_with(p))
+}
+
+thread_local! {
+    /// The layer's own "No recipes for" is going to the chat: `chat_allowed` lets it through.
+    static SAYING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// JEI's line for a merged page with nothing on it (no recipes, uses, or mod and source tabs), in JEI's language.
+fn say_empty(game: &mut Game<'_>, item: &str, uses: bool) {
+    let es = game.native_setting(jei::ID, "language").as_deref() == Some("es");
+    let what = match (uses, es) {
+        (false, false) => "No recipes for",
+        (true, false) => "No uses for",
+        (false, true) => "Sin recetas para",
+        (true, true) => "Sin usos para",
+    };
+    let name = LAYER.with_borrow(|l| l.as_ref().and_then(|l| l.names.get(item).cloned())).unwrap_or_else(|| item.to_owned());
+    SAYING.set(true);
+    game.native_chat(&format!("{what}: {name}"));
+    SAYING.set(false);
 }
 
 /// The recipe and uses keys, as JEI reads them.
@@ -146,7 +176,7 @@ fn keys(game: &Game<'_>) -> (String, String) {
 }
 
 /// The layer, made once the world's tables are there.
-pub fn ensure(game: &mut Game<'_>) -> bool {
+pub(in crate::game) fn ensure(game: &mut Game<'_>) -> bool {
     if LAYER.with_borrow(|l| l.is_some()) {
         return true;
     }
@@ -188,6 +218,7 @@ pub fn ensure(game: &mut Game<'_>) -> bool {
     true
 }
 
+/// A Horizon recipe kind as JEI's.
 fn kind(kind: NativeRecipeKind) -> Kind {
     match kind {
         NativeRecipeKind::CraftingShaped => Kind::CraftingShaped,
@@ -202,17 +233,18 @@ fn kind(kind: NativeRecipeKind) -> Kind {
     }
 }
 
+/// Whether a mod's screen open now takes recipes (its "+" buttons).
 fn takes_recipes(game: &Game<'_>) -> bool {
     providers().iter().any(|p| (p.takes_recipes)(game))
 }
 
 /// What a recipe's "+" says on the open screen; none on a screen no mod takes recipes on.
-pub fn transfer_state(game: &Game<'_>, view: &View) -> Option<Transfer> {
+pub(in crate::game) fn transfer_state(game: &Game<'_>, view: &View) -> Option<Transfer> {
     providers().iter().find_map(|p| (p.transfer_state)(game, view))
 }
 
 /// `native_panel_event` on JEI's panel: follow the player through recipe pages as JEI does, with the mods' tabs.
-pub fn event(game: &mut Game<'_>, mod_id: &str, event: &NativePanelEvent) {
+pub(in crate::game) fn event(game: &mut Game<'_>, mod_id: &str, event: &NativePanelEvent) {
     if mod_id != jei::ID || !game.native_on(jei::ID) || !ensure(game) {
         return;
     }
@@ -236,7 +268,10 @@ pub fn event(game: &mut Game<'_>, mod_id: &str, event: &NativePanelEvent) {
             }
         }
         NativePanelEvent::Clicked { index, right } => {
-            let stack = LAYER.with_borrow(|l| l.as_ref().and_then(|l| l.listed.get(*index as usize).cloned()));
+            // The panel's own list says what was clicked (it has JEI's variants and sort; the layer's copy may not).
+            let stack = crate::game::native_panel::hz_kit_panel_ae2::listed_at(game, jei::ID, *index as usize)
+                .map(|s| Stack { item: s.item, count: 1, components: s.components })
+                .or_else(|| LAYER.with_borrow(|l| l.as_ref().and_then(|l| l.listed.get(*index as usize).cloned())));
             // In "click gives items" mode JEI gives it (or opens it in survival); otherwise its recipes. What a
             // provider added to the list is its own, so JEI has nothing to give: its recipe.
             let own = stack.as_ref().is_some_and(|s| providers().iter().any(|p| (p.opens_on_click)(s)));
@@ -252,10 +287,11 @@ pub fn event(game: &mut Game<'_>, mod_id: &str, event: &NativePanelEvent) {
 }
 
 /// Opens an item's recipes or uses, when anything has any (JEI says when nothing does).
-fn open(game: &Game<'_>, item: Stack, uses: bool, ctx: &Context<'_>) {
+fn open(game: &mut Game<'_>, item: Stack, uses: bool, ctx: &Context<'_>) {
     let mut page = Page { item, uses, tab: 0 };
     let shown = page_of(game, &page, ctx);
     if shown.tabs.is_empty() {
+        say_empty(game, &page.item.item, uses);
         return;
     }
     // A catalyst's uses open on the category it is the catalyst of.
@@ -407,8 +443,10 @@ fn station_views(catalog: &NativeRecipes, station: Station) -> Vec<View> {
 /// Vanilla's tabs for a page (from the layer's own JEI viewer), then the mods', then where it comes from.
 fn page_of(game: &Game<'_>, page: &Page, ctx: &Context<'_>) -> Shown {
     let providers = providers();
-    LAYER.with_borrow_mut(|l| {
-        let Some(l) = l.as_mut() else { return Shown { title: String::new(), tabs: Vec::new(), vanilla: 0 } };
+    // JEI's own tabs, with the layer borrowed; the mods' after it is let go (a provider may call `with_names` or
+    // `set_listed`, which borrow it again).
+    let Some((mut tabs, vanilla_tabs, name)) = LAYER.with_borrow_mut(|l| {
+        let l = l.as_mut()?;
         let key = if page.uses { ctx.uses_key } else { ctx.recipe_key };
         let mut tabs: Vec<Tab> = Vec::new();
         let first = l.query.handle(Event::Key { key: key.to_owned(), stack: page.item.clone() }, ctx);
@@ -433,6 +471,12 @@ fn page_of(game: &Game<'_>, page: &Page, ctx: &Context<'_>) -> Shown {
                 }
             }
         }
+        let name = l.names.get(&page.item.item).cloned().unwrap_or_else(|| page.item.item.clone());
+        Some((tabs, vanilla_tabs, name))
+    }) else {
+        return Shown { title: String::new(), tabs: Vec::new(), vanilla: 0 };
+    };
+    {
         for p in &providers {
             add_to_tab(&mut tabs, CRAFTING, (p.crafting_views)(&page.item, page.uses));
         }
@@ -442,14 +486,13 @@ fn page_of(game: &Game<'_>, page: &Page, ctx: &Context<'_>) -> Shown {
         if !page.uses
             && let Some(text) = crate::game::hz_kit_window_ae2::guide_summary(game, &page.item.item)
         {
-            let lines = crate::game::hz_kit_collection_ae2::wrap_text(game, &text);
+            let lines = crate::game::hz_kit_window_ae2::wrap_text(game, &text);
             tabs.push(Tab { icon: "minecraft:book".to_owned(), title: "Information".to_owned(), catalysts: Vec::new(), cards: vec![Card::Text(lines)] });
         }
         // Where it comes from when not crafted, or what a spawn egg's mob drops and who trades for it.
         tabs.extend(if page.uses { crate::game::hz_kit_collection_ae2::use_tabs(game, &page.item.item) } else { crate::game::hz_kit_collection_ae2::got_tabs(game, &page.item.item) });
-        let name = l.names.get(&page.item.item).cloned().unwrap_or_else(|| page.item.item.clone());
-        Shown { title: format!("{}: {name}", if page.uses { "Uses" } else { "Recipes" }), tabs, vanilla: vanilla_tabs }
-    })
+    }
+    Shown { title: format!("{}: {name}", if page.uses { "Uses" } else { "Recipes" }), tabs, vanilla: vanilla_tabs }
 }
 
 /// The merged page, in the window.
@@ -471,7 +514,7 @@ fn show(game: &Game<'_>, page: &Page, ctx: &Context<'_>) {
 }
 
 /// Empties the pages behind the window (a provider's "+" went back to the screen).
-pub fn clear_history() {
+pub(in crate::game) fn clear_history() {
     LAYER.with_borrow_mut(|l| {
         if let Some(l) = l.as_mut() {
             l.history.clear();
@@ -480,7 +523,7 @@ pub fn clear_history() {
 }
 
 /// Once a frame: what the player did on the window, and the panel keeps its items.
-pub fn frame(game: &mut Game<'_>) {
+pub(in crate::game) fn frame(game: &mut Game<'_>) {
     if game.native_player().is_none() {
         LAYER.with_borrow_mut(|l| *l = None);
         crate::game::hz_kit_window_ae2::close();
@@ -492,7 +535,8 @@ pub fn frame(game: &mut Game<'_>) {
         game.native_panel_recipes(jei::ID, "", Vec::new(), 0, Vec::new());
     }
     // The window goes with its screen.
-    if matches!(game.screen, crate::game::Screen::Playing) && crate::game::hz_kit_window_ae2::is_open() {
+    // (The Win screen has no draw hook the window is drawn on: it would be there unseen, taking the input.)
+    if matches!(game.screen, crate::game::Screen::Playing | crate::game::Screen::Win) && crate::game::hz_kit_window_ae2::is_open() {
         crate::game::hz_kit_window_ae2::close();
         clear_history();
     }
@@ -547,6 +591,7 @@ pub fn frame(game: &mut Game<'_>) {
     }
 }
 
+/// Shows another tab of the open page.
 fn go_to_tab(game: &Game<'_>, ctx: &Context<'_>, tab: impl Fn(usize) -> usize) {
     let page = LAYER.with_borrow_mut(|l| {
         let top = l.as_mut()?.history.last_mut()?;

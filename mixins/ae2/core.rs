@@ -92,6 +92,7 @@ pub enum KeyType {
     Fluids,
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl KeyType {
     /// The key type's registry id, written under `#c` in a generic key's tag.
     pub fn id(self) -> &'static str {
@@ -274,6 +275,7 @@ pub struct AeKey {
     max_damage: i32,
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl AeKey {
     /// `AEItemKey.of`: an item with its components, its current damage and its maximum
     /// damage (0 for an item without durability).
@@ -383,6 +385,7 @@ enum Variants {
     Fuzzy(BTreeMap<FuzzyOrder, i64>),
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl Variants {
     fn for_key(key: &AeKey) -> Self {
         if key.fuzzy_search_max_value() > 0 {
@@ -480,6 +483,7 @@ pub struct KeyCounter {
     lists: HashMap<PrimaryKey, Variants>,
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl KeyCounter {
     pub fn new() -> Self {
         Self::default()
@@ -591,6 +595,7 @@ pub enum PartitionList {
     Fuzzy(KeyCounter, FuzzyMode),
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl PartitionList {
     /// `IPartitionList.builder()...build()`.
     pub fn build<'a>(keys: impl IntoIterator<Item = &'a AeKey>, fuzzy: Option<FuzzyMode>) -> Self {
@@ -641,6 +646,7 @@ impl PartitionList {
 /// `CellState`: what a cell's light shows.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CellState {
+    #[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
     Absent,
     Empty,
     NotEmpty,
@@ -648,6 +654,7 @@ pub enum CellState {
     Full,
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl CellState {
     /// `getStateColor`: RGB.
     pub fn state_color(self) -> u32 {
@@ -670,6 +677,7 @@ pub struct StorageTier {
     pub idle_drain: f64,
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl StorageTier {
     pub const SIZE_1K: Self = Self { index: 1, name_prefix: "1k", bytes: 1024, idle_drain: 0.5 };
     pub const SIZE_4K: Self = Self { index: 2, name_prefix: "4k", bytes: 4096, idle_drain: 1.0 };
@@ -696,6 +704,7 @@ pub struct CellType {
     pub storable_in_storage_cell: bool,
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl CellType {
     /// The item cells (`ae2:item_storage_cell_1k`...): 8 bytes a type at 1k, 63 types.
     pub fn item_cell(tier: StorageTier) -> Self {
@@ -766,6 +775,7 @@ pub struct BasicCellInventory {
     pub accepts: Option<Box<dyn Fn(&AeKey) -> bool + Send + Sync>>,
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl BasicCellInventory {
     /// `BasicCellInventory(cellType, stack, container)`: the cell, its configured partition
     /// (`config`), fuzzy mode, cards, and what it saved last.

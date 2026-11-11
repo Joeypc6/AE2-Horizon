@@ -5,8 +5,13 @@ ae2_optional::if_kit_jei_items!("ae2", {
 // All of it is read once, on a thread of its own, the first time a screen with the panel opens.
 use crate::game::Game;
 use crate::game::jei::Stack;
-use crate::game::hz_kit_window_ae2::{Card, MobDrop, TEXT_WIDTH, Tab};
+use crate::game::hz_kit_window_ae2::{Card, MobDrop, Tab};
+// The card helpers mods call as kit_collection's (they are the window's now).
+#[allow(unused_imports)] // Mods call them; JEI alone does not.
+pub(in crate::game) use crate::game::hz_kit_window_ae2::{source, tab, wrap, wrap_text};
 use serde_json::Value;
+pub(in crate::game) use crate::game::hz_kit_math_ae2::percent;
+use crate::game::hz_kit_math_ae2::{average, range, height_shape, tries, vein_blocks, solid, title_case, trim_count};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -90,7 +95,7 @@ struct Index {
     spawns: HashMap<String, (String, [BTreeSet<String>; 3])>,
 }
 
-pub const DIMENSIONS: [&str; 3] = ["Overworld", "The Nether", "The End"];
+pub(in crate::game) const DIMENSIONS: [&str; 3] = ["Overworld", "The Nether", "The End"];
 /// Each dimension's lowest block and height.
 const WORLD: [(i32, i32); 3] = [(-64, 384), (0, 256), (0, 256)];
 
@@ -109,7 +114,7 @@ thread_local! {
 }
 
 /// Once a frame: starts reading when a screen first opens, so a page never waits for it in play.
-pub fn frame(game: &Game<'_>) {
+pub(in crate::game) fn frame(game: &Game<'_>) {
     if matches!(game.screen, crate::game::Screen::Playing) {
         return;
     }
@@ -152,44 +157,7 @@ struct Test {
 
 const YES: Test = Test { pass: true, chance: 1.0, flags: 0 };
 
-/// A number provider's middle, or a plain number.
-fn average(v: &Value) -> f64 {
-    if let Some(n) = v.as_f64() {
-        return n;
-    }
-    if let Some(n) = v.get("value").and_then(Value::as_f64) {
-        return n;
-    }
-    if let (Some(n), Some(p)) = (v.get("n").and_then(Value::as_f64), v.get("p").and_then(Value::as_f64)) {
-        return n * p;
-    }
-    match (v.get("min").map(average), v.get("max").map(average)) {
-        (Some(a), Some(b)) => (a + b) / 2.0,
-        _ => 1.0,
-    }
-}
-
-/// A count provider's least and most above 0, and the chance it is above 0.
-fn range(v: &Value) -> (u32, u32, f64) {
-    if let Some(n) = v.as_f64() {
-        return (n.max(0.0) as u32, n.max(0.0) as u32, 1.0);
-    }
-    if let Some(n) = v.get("value").and_then(Value::as_f64) {
-        return (n.max(0.0) as u32, n.max(0.0) as u32, 1.0);
-    }
-    if let (Some(n), Some(p)) = (v.get("n").and_then(Value::as_f64), v.get("p").and_then(Value::as_f64)) {
-        return (0, n as u32, 1.0 - (1.0 - p).powf(n));
-    }
-    let bound = |key: &str| v.get(key).map_or(1.0, average).floor() as i64;
-    let (low, high) = (bound("min"), bound("max"));
-    if low >= 1 {
-        return (low as u32, high.max(low) as u32, 1.0);
-    }
-    // A uniform count of integers: how often it is 1 or more.
-    let high = high.max(0);
-    (1.min(high) as u32, high as u32, high as f64 / (high - low + 1) as f64)
-}
-
+/// Whether a loot condition's tool predicate matches the tool a source is read for.
 fn tool_matches(v: &Value, tool: Tool) -> bool {
     let predicate = v.get("predicate").unwrap_or(&Value::Null);
     let text = predicate.to_string();
@@ -200,6 +168,7 @@ fn tool_matches(v: &Value, tool: Tool) -> bool {
     }
 }
 
+/// One loot condition, tested for the source's tool.
 fn condition(v: &Value, tool: Tool) -> Test {
     // A named predicate: the tools are all this page needs of them.
     if let Value::String(name) = v {
@@ -245,6 +214,7 @@ fn condition(v: &Value, tool: Tool) -> Test {
     }
 }
 
+/// All of a list of conditions (an `all_of`, or an entry's conditions).
 fn all(list: &[Value], tool: Tool) -> Test {
     let mut out = YES;
     for t in list.iter().map(|t| condition(t, tool)) {
@@ -255,6 +225,7 @@ fn all(list: &[Value], tool: Tool) -> Test {
     out
 }
 
+/// An entry's or pool's conditions, tested together.
 fn conditions(v: &Value, tool: Tool) -> Test {
     let mut out = v.get("conditions").and_then(Value::as_array).map_or(YES, |l| all(l, tool));
     match v.get("condition") {
@@ -327,7 +298,9 @@ fn entry(v: &Value, tables: &horizon_world::loot::LootTables, tool: Tool, depth:
         }
         // A tag's items are expanded later, on the game's thread.
         "tag" => {
-            if let Some(name) = v.get("name").and_then(Value::as_str) {
+            // The tag is `name` in the loot table format; some tables (and loot hooks) write it as `items`.
+            if let Some(name) = v.get("name").or_else(|| v.get("items")).and_then(Value::as_str) {
+                let name = name.trim_start_matches('#');
                 let mut got = Got { item: format!("#{name}"), chance: 1.0, low: 1, high: 1, flags: 0 };
                 count_of(v, &mut got);
                 out.push(got);
@@ -421,6 +394,7 @@ fn table_items(table: &Value, tables: &horizon_world::loot::LootTables, tool: To
     merged.into_values().collect()
 }
 
+/// Indexes every loot table: what each block, mob, chest and other source drops.
 fn loot(root_tables: &horizon_world::loot::LootTables, index: &mut Index) {
     let mut add = |item: String, drop: Drop| index.drops.entry(item).or_default().push(drop);
     for id in root_tables.hz_kit_ids_ae2() {
@@ -548,87 +522,7 @@ fn walk_blocks(v: &Value, maps: &[&HashMap<String, Value>], seen: &mut HashSet<S
     }
 }
 
-/// A height anchor as a Y in the dimension.
-fn anchor(v: &Value, (bottom, height): (i32, i32)) -> i32 {
-    if let Some(y) = v.get("absolute").and_then(Value::as_i64) {
-        y as i32
-    } else if let Some(y) = v.get("above_bottom").and_then(Value::as_i64) {
-        bottom + y as i32
-    } else if let Some(y) = v.get("below_top").and_then(Value::as_i64) {
-        bottom + height - 1 - y as i32
-    } else {
-        bottom
-    }
-}
-
-/// How a placed ore's veins spread over Y: the chance of each Y from the dimension's bottom up.
-fn height_shape(placement: &[Value], world: (i32, i32)) -> Vec<f64> {
-    let mut out = vec![0.0; world.1 as usize];
-    let Some(h) = placement.iter().find_map(|p| (p.get("type")?.as_str()? == "minecraft:height_range").then(|| p.get("height"))?) else {
-        out.fill(1.0 / f64::from(world.1));
-        return out;
-    };
-    let kind = h.get("type").and_then(Value::as_str).unwrap_or("minecraft:uniform");
-    let low = h.get("min_inclusive").map_or(world.0, |a| anchor(a, world));
-    let high = h.get("max_inclusive").map_or(world.0 + world.1 - 1, |a| anchor(a, world));
-    let width = (high - low).max(0);
-    let mut sum = 0.0;
-    for y in low..=high {
-        let weight = if kind == "minecraft:trapezoid" {
-            let plateau = h.get("plateau").and_then(Value::as_i64).unwrap_or(0) as f64;
-            let middle = f64::from(low + high) / 2.0;
-            let half = f64::from(width) / 2.0;
-            let d = (f64::from(y) - middle).abs();
-            if d <= plateau / 2.0 { 1.0 } else { (half - d + 1.0).max(0.0) / (half - plateau / 2.0 + 1.0).max(1.0) }
-        } else if kind.contains("biased") {
-            1.0 / (1.0 + f64::from(y - low))
-        } else {
-            1.0
-        };
-        sum += weight;
-        if let Some(i) = usize::try_from(y - world.0).ok().filter(|i| *i < out.len()) {
-            out[i] = weight;
-        }
-    }
-    if sum > 0.0 {
-        out.iter_mut().for_each(|w| *w /= sum);
-    }
-    out
-}
-
-/// A placed feature's tries per chunk.
-fn tries(placement: &[Value]) -> f64 {
-    let mut n = 1.0;
-    for p in placement {
-        match p.get("type").and_then(Value::as_str).unwrap_or("") {
-            "minecraft:count" => n *= p.get("count").map_or(1.0, |c| match c.get("min_inclusive") {
-                Some(lo) => (average(lo) + c.get("max_inclusive").map_or(0.0, average)) / 2.0,
-                None => average(c),
-            }),
-            "minecraft:rarity_filter" => n /= p.get("chance").and_then(Value::as_f64).unwrap_or(1.0).max(1.0),
-            _ => {}
-        }
-    }
-    n
-}
-
-/// The blocks a vein of `size` places on average: 0.6 of its size, measured from generated chunks.
-fn vein_blocks(size: f64) -> f64 {
-    size * 0.6
-}
-
-/// How much of a layer can hold ore in this dimension. The Overworld has bedrock under Y -59, and above Y 40 stone
-/// gives way to air, leaving only mountains (measured from generated chunks).
-fn solid(d: usize, y: i32) -> f64 {
-    if d != 0 {
-        return 1.0;
-    }
-    if y < -59 {
-        return f64::from(y + 64) / 5.0;
-    }
-    (f64::from(120 - y) / 80.0).clamp(0.02, 1.0)
-}
-
+/// Indexes world generation: where each ore and other feature is placed.
 fn worldgen(root: &std::path::Path, index: &mut Index) {
     let (features, placed, biomes, providers, rules, settings) = (
         bundle(root, "features.json"),
@@ -840,6 +734,7 @@ fn palette(path: &std::path::Path) -> Vec<String> {
     out
 }
 
+/// The whole index, built on the collection thread.
 fn build(root: &std::path::Path, tables: &horizon_world::loot::LootTables) -> Index {
     let started = std::time::Instant::now();
     let mut index = Index::default();
@@ -853,40 +748,12 @@ fn build(root: &std::path::Path, tables: &horizon_world::loot::LootTables) -> In
 // ---------------------------------------------------------------------------------------------------------
 // Pages.
 
-fn title_case(text: &str) -> String {
-    text.split(['_', '/', ' '])
-        .filter(|w| !w.is_empty())
-        .map(|w| {
-            let mut c = w.chars();
-            c.next().map_or_else(String::new, |f| f.to_uppercase().collect::<String>() + c.as_str())
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
-pub fn percent(chance: f64) -> String {
-    let p = chance * 100.0;
-    if p >= 99.95 {
-        "100%".to_owned()
-    } else if p >= 10.0 {
-        format!("{p:.0}%")
-    } else if p >= 0.1 {
-        format!("{p:.1}%")
-    } else if p >= 0.01 {
-        format!("{p:.2}%")
-    } else {
-        format!("{p:.3}%")
-    }
-}
-
-fn trim_count(n: f64) -> String {
-    if n >= 10.0 { format!("{n:.0}") } else { format!("{n:.1}") }
-}
-
+/// A drop's count range as JER writes it ("x1-3").
 fn amount(d: &Drop) -> String {
     if d.low == d.high { format!("x{}", d.high) } else { format!("x{}-{}", d.low, d.high) }
 }
 
+/// What a drop needs or gets besides: Silk Touch, shears, Looting, Fortune.
 fn extras(flags: u8) -> String {
     let mut out = String::new();
     for (bit, text) in [
@@ -904,35 +771,6 @@ fn extras(flags: u8) -> String {
     out
 }
 
-/// Fits a text to the window's cards.
-pub fn wrap(game: &Game<'_>, text: &str) -> Vec<String> {
-    let font = &game.gui.atlas.font;
-    let mut lines = Vec::new();
-    let mut line = String::new();
-    for word in text.split_whitespace() {
-        let longer = if line.is_empty() { word.to_owned() } else { format!("{line} {word}") };
-        if font.width(&longer) > TEXT_WIDTH && !line.is_empty() {
-            lines.push(std::mem::take(&mut line));
-            line = word.to_owned();
-        } else {
-            line = longer;
-        }
-    }
-    if !line.is_empty() {
-        lines.push(line);
-    }
-    lines
-}
-
-pub fn wrap_text(game: &Game<'_>, text: &str) -> Vec<String> {
-    wrap(game, text)
-}
-
-/// A slot, an arrow, the item, and a note under them.
-pub fn source(game: &Game<'_>, from: &str, item: &str, count: u32, note: &str) -> Card {
-    Card::Source { from: vec![Stack::item(from)], item: Stack { item: item.to_owned(), count: count.max(1), components: String::new() }, lines: wrap(game, note) }
-}
-
 /// An item's name, or a block's that has no item (a crop).
 fn label(game: &Game<'_>, id: &str) -> String {
     if game.res.items().get(id).is_some() {
@@ -942,16 +780,19 @@ fn label(game: &Game<'_>, id: &str) -> String {
     game.translate(&format!("block.{ns}.{path}"), &title_case(path))
 }
 
+/// A mob's name in the game's language.
 fn entity_name(game: &Game<'_>, id: &str) -> String {
     let (ns, path) = id.split_once(':').unwrap_or(("minecraft", id));
     game.translate(&format!("entity.{ns}.{path}"), &title_case(path))
 }
 
+/// A biome's name in the game's language.
 fn biome_name(game: &Game<'_>, id: &str) -> String {
     let (ns, path) = id.split_once(':').unwrap_or(("minecraft", id));
     game.translate(&format!("biome.{ns}.{path}"), &title_case(path))
 }
 
+/// A list of biomes as a card line: "All biomes" when it is every one of the dimension.
 fn biome_list(game: &Game<'_>, biomes: impl Iterator<Item = String>, of: usize) -> String {
     let list: Vec<String> = biomes.collect();
     if list.len() >= of && of > 0 {
@@ -962,6 +803,7 @@ fn biome_list(game: &Game<'_>, biomes: impl Iterator<Item = String>, of: usize) 
     if more > 0 { format!("{} and {more} more", names.join(", ")) } else { names.join(", ") }
 }
 
+/// A tag's items, expanded on the game's thread and kept.
 fn tag_items(game: &Game<'_>, tag: &str) -> Vec<String> {
     if let Some(list) = TAGS.with_borrow(|t| t.get(tag).cloned()) {
         return list;
@@ -998,6 +840,7 @@ fn given_by(game: &Game<'_>, index: &Index, wanted: impl Fn(&Source) -> bool) ->
     list
 }
 
+/// World Gen cards for a block: each placement with its heights, chances and drops.
 fn ore_cards(game: &Game<'_>, index: &Index, block: &str, cards: &mut Vec<Card>) {
     let Some(ores) = index.ores.get(block) else { return };
     let mut ores = ores.clone();
@@ -1008,7 +851,9 @@ fn ore_cards(game: &Game<'_>, index: &Index, block: &str, cards: &mut Vec<Card>)
             .filter(|(_, d)| d.flags & (SILK | SHEARS) == 0)
             .map(|(i, _)| i)
             .collect();
-        list.dedup();
+        // Once each, in chance order: an item named both on its own and through a tag can be apart in the list.
+        let mut seen = HashSet::new();
+        list.retain(|i| seen.insert(i.clone()));
         list
     };
     for ore in ores {
@@ -1075,6 +920,7 @@ fn experience(mob: &str, category: &str) -> &'static str {
     }
 }
 
+/// A Mob Drops card: the mob, its spawn info and every drop of its table.
 fn mob_card(game: &Game<'_>, index: &Index, mob: &str, wanted: &str) -> Card {
     let list = given_by(game, index, |s| matches!(s, Source::Mob(m) if m == mob));
     let mut seen = HashSet::new();
@@ -1111,6 +957,7 @@ struct Trade {
     gives: Stack,
 }
 
+/// The villager trades, read once from the game's stations.
 fn trades(game: &Game<'_>) -> Arc<Vec<Trade>> {
     if let Some(t) = TRADES.with_borrow(Clone::clone) {
         return t;
@@ -1133,6 +980,7 @@ fn trades(game: &Game<'_>) -> Arc<Vec<Trade>> {
     list
 }
 
+/// One trade as a card: what the villager wants and gives.
 fn trade_card(t: &Trade) -> Card {
     let wandering = t.who == "wandering_trader";
     let profession = horizon_client::mobs::render::PROFESSIONS.iter().position(|p| *p == t.who).map(|p| p as u8);
@@ -1148,12 +996,8 @@ fn trade_card(t: &Trade) -> Card {
     }
 }
 
-pub fn tab(icon: &str, title: &str, catalysts: &[&str], cards: Vec<Card>) -> Tab {
-    Tab { icon: icon.to_owned(), title: title.to_owned(), catalysts: catalysts.iter().map(|c| (*c).to_owned()).collect(), cards }
-}
-
 /// The tabs of how `item` is got.
-pub fn got_tabs(game: &Game<'_>, item: &str) -> Vec<Tab> {
+pub(in crate::game) fn got_tabs(game: &Game<'_>, item: &str) -> Vec<Tab> {
     let mut tabs = Vec::new();
     let Some(index) = index() else { return tabs };
     let mut drops = drops_of(game, &index, item);
@@ -1203,15 +1047,26 @@ pub fn got_tabs(game: &Game<'_>, item: &str) -> Vec<Tab> {
     }
 
     // Mobs.
+    // One card per mob: its table's drops, and what its code drops besides (a creeper's discs) on the same card.
     let mut cards = Vec::new();
+    let mut mobs = HashSet::new();
     for d in &drops {
         if let Source::Mob(mob) = &d.source
             && game.res.mob_types().contains_key(mob.as_str())
+            && mobs.insert(mob.clone())
         {
             cards.push(mob_card(game, &index, mob, item));
         }
     }
     for (_, mob, note) in CODE_DROPS.iter().filter(|(i, _, _)| *i == item) {
+        let card = cards.iter_mut().find(|c| matches!(c, Card::Mob { mob: m, .. } if m == mob));
+        if let Some(Card::Mob { drops, .. }) = card {
+            match drops.iter_mut().find(|x| x.item == item) {
+                Some(x) => x.line = format!("{} ({note})", x.line),
+                None => drops.push(MobDrop { item: item.to_owned(), count: 1, line: (*note).to_owned() }),
+            }
+            continue;
+        }
         cards.push(Card::Mob {
             mob: (*mob).to_owned(),
             name: entity_name(game, mob),
@@ -1268,7 +1123,7 @@ pub fn got_tabs(game: &Game<'_>, item: &str) -> Vec<Tab> {
 }
 
 /// An item's uses from here: what a spawn egg's mob drops, and the trades that want it.
-pub fn use_tabs(game: &Game<'_>, item: &str) -> Vec<Tab> {
+pub(in crate::game) fn use_tabs(game: &Game<'_>, item: &str) -> Vec<Tab> {
     let mut tabs = Vec::new();
     let Some(index) = index() else { return tabs };
     if let Some(mob) = item.strip_suffix("_spawn_egg")

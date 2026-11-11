@@ -66,7 +66,7 @@ fn tr(key: &str, english: &str) -> String {
 }
 
 /// The kit's page flow asks here.
-pub fn provider() -> Provider {
+pub(in crate::game) fn provider() -> Provider {
     Provider {
         is_catalyst: |item| CATALYSTS.contains(&item),
         // JEIPlugin.registerRecipeCatalysts: the crafting terminals craft too.
@@ -90,7 +90,7 @@ fn station_catalysts(icon: &str) -> &'static [&'static str] {
 }
 
 /// `native_frame`.
-pub fn frame(game: &mut Game<'_>) {
+pub(in crate::game) fn frame(game: &mut Game<'_>) {
     kit_layer::register(provider());
     if game.native_player().is_none() {
         CATEGORIES.with_borrow_mut(|c| *c = None);
@@ -232,7 +232,7 @@ fn on_inscriber_area(game: &Game<'_>, screen: &NativeScreenView<'_>) -> bool {
 }
 
 /// `native_screen_mouse_button_pressed_pre`: a click on the area opens its category.
-pub fn press_area(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i32, canceled: &mut bool) {
+pub(in crate::game) fn press_area(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i32, canceled: &mut bool) {
     if button == 0 && on_inscriber_area(game, screen) {
         *canceled = true;
         kit_window::push_act(Act::Category("ae2:inscriber".to_owned()));
@@ -240,7 +240,7 @@ pub fn press_area(game: &Game<'_>, screen: &NativeScreenView<'_>, button: i32, c
 }
 
 /// `native_screen_render_post`: the area says what a click on it does (IGuiClickableArea's tooltip).
-pub fn area_tooltip(game: &Game<'_>, batch: &mut HudBatch, screen: &NativeScreenView<'_>) {
+pub(in crate::game) fn area_tooltip(game: &Game<'_>, batch: &mut HudBatch, screen: &NativeScreenView<'_>) {
     if on_inscriber_area(game, screen) {
         let lines = vec![(horizon_client::text::Text::literal("Show Recipes"), u32::MAX)];
         game.draw_tooltip_lines(batch, &lines, screen.mouse[0], screen.mouse[1]);
@@ -383,7 +383,7 @@ fn red_slot() -> u32 {
 }
 
 /// What a recipe's "+" says on the open AE2 terminal; none on any other screen.
-pub fn transfer_state(game: &Game<'_>, view: &View) -> Option<Transfer> {
+pub(in crate::game) fn transfer_state(game: &Game<'_>, view: &View) -> Option<Transfer> {
     if !ae2_terminal_open(game) {
         return None;
     }

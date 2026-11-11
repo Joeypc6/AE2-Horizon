@@ -3,5 +3,5 @@ fn ae2_area_pressed(game: &crate::game::Game<'_>, screen: &crate::game::native_h
     if game.player.is_some() && !*canceled {
         crate::game::port_ae2_jei::press_area(game, screen, button, canceled);
     }
-} else { () })
+} else { let _ = (game, screen, button, canceled); () })
 }

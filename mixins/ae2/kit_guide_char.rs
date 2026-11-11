@@ -4,5 +4,5 @@ fn kit_guide_char_ae2(game: &crate::game::Game<'_>, c: char, canceled: &mut bool
     if game.player.is_some() && crate::game::hz_kit_guide_ae2::is_open() {
         *canceled = true;
     }
-} else { () })
+} else { let _ = (game, c, canceled); () })
 }

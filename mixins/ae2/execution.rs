@@ -268,6 +268,7 @@ pub struct CraftingCpu {
     events: Vec<CpuEvent>,
 }
 
+#[allow(dead_code)] // AE2's API, ported whole: what this port does not call yet stays as AE2 has it.
 impl CraftingCpu {
     pub fn new(storage_bytes: i64, co_processors: i32) -> Self {
         Self { storage_bytes, co_processors, active: true, ..Self::default() }
@@ -532,12 +533,16 @@ impl CraftingCpu {
         }
         let mut owed = std::collections::VecDeque::from(owed);
         let longest = tasks.iter().map(|t| t.left / t.rate).sum::<f64>() + owed.back().map_or(0.0, |o| o.0);
-        let step = (longest / 500.0).max(1.0);
+        // Tick by tick up to 2 000 ticks (the push limit below counts whole ticks); longer jobs in coarser steps.
+        let step = (longest / 2000.0).max(1.0);
         // `tick`: pushes in the last three ticks count against the CPU's limit, so a push frees its place on the
         // fourth tick after it: co-processors + 1 pushes every four ticks (one a tick at three co-processors).
         let ops_per_tick = f64::from(self.co_processors + 1) / 4.0;
+        let cap = f64::from(self.co_processors + 1);
+        // The pushes still holding a place: (when, how many).
+        let mut pushed: std::collections::VecDeque<(f64, f64)> = std::collections::VecDeque::new();
         let mut now = 0.0f64;
-        let mut ops = 0.0f64;
+        let mut ops;
         // Long jobs' steps split crafts: what's left of one is nothing.
         const DONE: f64 = 1e-6;
         for _ in 0..4000 {
@@ -562,8 +567,16 @@ impl CraftingCpu {
                     }
                 }
             }
-            // The CPU's allowance builds up over ticks: at most what it may push at once.
-            ops = (ops + ops_per_tick * step).min(f64::from(self.co_processors + 1).max(ops_per_tick * step));
+            // The CPU's allowance: its places not held by a push of the last three ticks (exact tick by tick; in coarser
+            // steps, the rate over the step).
+            if step <= 1.0 {
+                while pushed.front().is_some_and(|p| p.0 <= now - 4.0) {
+                    pushed.pop_front();
+                }
+                ops = (cap - pushed.iter().map(|p| p.1).sum::<f64>()).max(0.0);
+            } else {
+                ops = cap.max(ops_per_tick * step);
+            }
             for t in &mut tasks {
                 t.credit = (t.credit + t.rate * step).min((t.rate * t.latency).max(1.0) + t.rate * step);
                 if t.left <= DONE {
@@ -593,6 +606,9 @@ impl CraftingCpu {
                 t.left -= n;
                 t.credit -= n;
                 ops -= n;
+                if step <= 1.0 {
+                    pushed.push_back((now, n));
+                }
                 t.flying.push_back((now + t.latency, n));
                 moved = true;
             }

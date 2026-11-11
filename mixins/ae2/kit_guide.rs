@@ -108,16 +108,18 @@ thread_local! {
 }
 
 /// The frame's part: the recipes the guide draws from.
-pub fn set_recipes(recipes: Option<Arc<crate::game::native_hooks::NativeRecipes>>) {
+pub(in crate::game) fn set_recipes(recipes: Option<Arc<crate::game::native_hooks::NativeRecipes>>) {
     if recipes.is_some() {
         RECIPES.with_borrow_mut(|r| *r = recipes);
     }
 }
 
-pub fn needs_recipes() -> bool {
+/// Whether the guide still waits for the recipes (the frame fetches them).
+pub(in crate::game) fn needs_recipes() -> bool {
     RECIPES.with_borrow(|r| r.is_none())
 }
 
+/// Reads the open mod's index.json once: items, titles, navigation, without the pages whose other mods are missing.
 fn load_index(game: &Game<'_>) {
     if GUIDE.with_borrow(|g| g.loaded) {
         return;
@@ -133,10 +135,23 @@ fn load_index(game: &Game<'_>) {
             .filter_map(|(k, p)| Some((k.clone(), p.as_str()?.to_owned())))
             .collect()
     };
+    // A page about working with other mods (`requires:` in its front matter) is there only when they all are.
+    let hidden: Vec<String> = v
+        .get("requires")
+        .and_then(|o| o.as_object())
+        .into_iter()
+        .flatten()
+        .filter(|(_, ids)| !present(game, ids.as_array().into_iter().flatten().filter_map(|x| x.as_str())))
+        .map(|(page, _)| page.clone())
+        .collect();
     GUIDE.with_borrow_mut(|g| {
         g.loaded = true;
         g.items = map("items");
         g.titles = map("titles");
+        // The page titles in the game's language, where the index has them (`titles_<lang>`).
+        for (page, title) in map(&format!("titles_{}", horizon_client::lang::code())) {
+            g.titles.insert(page, title);
+        }
         g.parents = map("parents");
         g.icons = map("icons");
         g.positions = map("positions").into_iter().filter_map(|(k, p)| Some((k, p.parse().ok()?))).collect();
@@ -147,16 +162,70 @@ fn load_index(game: &Game<'_>) {
             .flatten()
             .map(|(k, c)| (k.clone(), c.as_array().into_iter().flatten().filter_map(|x| x.as_str().map(str::to_owned)).collect()))
             .collect();
+        for page in &hidden {
+            g.titles.remove(page);
+            g.parents.remove(page);
+            g.positions.remove(page);
+            g.icons.remove(page);
+            g.items.retain(|_, p| p != page);
+            g.parents.retain(|_, p| p != page);
+            for list in g.categories.values_mut() {
+                list.retain(|p| p != page);
+            }
+        }
     });
 }
 
+/// A page of the open mod in the game's language (`ae2guide/_<lang>/<page>`, as AE2's guide keeps its translations),
+/// else as written.
+fn page_data(game: &Game<'_>, page: &str) -> Option<Vec<u8>> {
+    let ns = current_ns();
+    let lang = horizon_client::lang::code();
+    if lang != "en_us"
+        && let Some(bytes) = game.native_data(&format!("data/{ns}/ae2guide/_{lang}/{page}"))
+    {
+        return Some(bytes);
+    }
+    game.native_data(&format!("data/{ns}/ae2guide/{page}"))
+}
+
+/// Whether every item of `ids` is in the game with its mod running: an item of another mod stands for that mod (its
+/// namespace is its native id). The item alone isn't enough: a content pack can bring the items without the mod.
+fn present<'a>(game: &Game<'_>, ids: impl IntoIterator<Item = &'a str>) -> bool {
+    ids.into_iter().all(|id| {
+        let id = item_id(id);
+        let ns = id.split_once(':').map_or("", |(ns, _)| ns);
+        game.res.items().get(&id).is_some() && (ns == "minecraft" || game.native_on(ns))
+    })
+}
+
+/// A page's `<IfMods items="a:x,b:y">...</IfMods>` parts: kept (without the tags) when those items are all in the game,
+/// dropped when one is missing, so a page shows how mods work together only when they are installed together.
+fn only_present(game: &Game<'_>, text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find("<IfMods") {
+        out.push_str(&rest[..at]);
+        let tag_end = rest[at..].find('>').map_or(rest.len(), |e| at + e + 1);
+        let tag = &rest[at..tag_end];
+        let body_end = rest[tag_end..].find("</IfMods>").map_or(rest.len(), |e| tag_end + e);
+        let ids = attr(tag, "items").unwrap_or_default();
+        if present(game, ids.split(',').map(str::trim).filter(|s| !s.is_empty())) {
+            out.push_str(&rest[tag_end..body_end]);
+        }
+        rest = rest.get(body_end + "</IfMods>".len()..).unwrap_or("");
+    }
+    out.push_str(rest);
+    out
+}
+
 /// Whether a page is about `item` (the tooltip's hint).
-pub fn has_page(item: &str) -> bool {
+pub(in crate::game) fn has_page(item: &str) -> bool {
     GUIDE.with_borrow(|g| g.all_items.contains_key(item))
 }
 
 /// The tooltip saw `item` under the pointer.
-pub fn hovered(item: &str) {
+pub(in crate::game) fn hovered(item: &str) {
     let now = std::time::Instant::now();
     GUIDE.with_borrow_mut(|g| {
         // How long this one has been under the pointer, without a gap.
@@ -169,7 +238,7 @@ pub fn hovered(item: &str) {
 }
 
 /// A frame of an open screen: when this screen came up, which the W key waits on.
-pub fn screen_frame(id: &str, menu: Option<&str>) {
+pub(in crate::game) fn screen_frame(id: &str, menu: Option<&str>) {
     let now = std::time::Instant::now();
     let which = format!("{id} {}", menu.unwrap_or(""));
     GUIDE.with_borrow_mut(|g| {
@@ -181,12 +250,13 @@ pub fn screen_frame(id: &str, menu: Option<&str>) {
     });
 }
 
-pub fn is_open() -> bool {
+/// Whether a guide page is open.
+pub(in crate::game) fn is_open() -> bool {
     GUIDE.with_borrow(|g| g.open.is_some())
 }
 
 /// Opens the page about `item`, if there is one.
-pub fn open_item(game: &Game<'_>, item: &str) -> bool {
+pub(in crate::game) fn open_item(game: &Game<'_>, item: &str) -> bool {
     load_all(game);
     let Some((ns, page)) = GUIDE.with_borrow(|g| g.all_items.get(item).cloned()) else { return false };
     use_mod(&ns);
@@ -200,10 +270,11 @@ fn panel_size(game: &Game<'_>) -> [f32; 2] {
     [(w - 24.0).clamp(220.0, 430.0), (h - 24.0).clamp(140.0, 330.0)]
 }
 
+/// Opens a page of the open mod, laid out for the window (`push`: Back returns to the page before).
 fn open_page(game: &Game<'_>, page: &str, push: bool) {
     load_index(game);
-    let Some(bytes) = game.native_data(&format!("data/{}/ae2guide/{page}", current_ns())) else { return };
-    let text = String::from_utf8_lossy(&bytes).into_owned();
+    let Some(bytes) = page_data(game, &page) else { return };
+    let text = only_present(game, &String::from_utf8_lossy(&bytes));
     let size = panel_size(game);
     let (lines, _) = layout(game, page, &text, size[0] - 2.0 * PAD - 8.0);
     GUIDE.with_borrow_mut(|g| {
@@ -217,6 +288,48 @@ fn open_page(game: &Game<'_>, page: &str, push: bool) {
     });
 }
 
+/// The open mod's first page: `index.md`, else the page no other page is under, first in the index's order.
+fn root_page() -> Option<String> {
+    GUIDE.with_borrow(|g| {
+        if g.titles.contains_key("index.md") {
+            return Some("index.md".to_owned());
+        }
+        g.titles.keys().filter(|p| !g.parents.contains_key(*p)).min_by_key(|p| (g.positions.get(*p).copied().unwrap_or(i64::MAX), (*p).clone())).cloned()
+    })
+}
+
+/// The title bar's "< Back" and "Contents", in the game's language, each with its left edge: right-aligned before the
+/// close cross, so a longer word in another language moves the buttons rather than overlapping them.
+fn header_buttons(game: &Game<'_>, x: f32, pw: f32) -> ((String, f32), (String, f32)) {
+    let back = format!("< {}", horizon_client::lang::get_or("gui.back", "Back"));
+    let contents = horizon_client::lang::get_or("gui.ae2guide.contents", contents_word()).to_string();
+    let back_x = x + pw - 22.0 - game.native_text_width(&back);
+    let contents_x = back_x - 14.0 - game.native_text_width(&contents);
+    ((back, back_x), (contents, contents_x))
+}
+
+/// "Contents" in the languages the ports' guides are written in (vanilla has no such word; a pack's
+/// `gui.ae2guide.contents` wins).
+fn contents_word() -> &'static str {
+    match horizon_client::lang::code().as_str() {
+        "de_de" => "Inhalt",
+        "fr_fr" | "fr_ca" => "Sommaire",
+        "es_es" | "es_mx" | "es_ar" => "Índice",
+        "it_it" => "Indice",
+        "pt_br" | "pt_pt" => "Conteúdo",
+        "nl_nl" => "Inhoud",
+        "pl_pl" => "Spis treści",
+        "ru_ru" => "Содержание",
+        "uk_ua" => "Зміст",
+        "tr_tr" => "İçindekiler",
+        "ja_jp" => "目次",
+        "ko_kr" => "목차",
+        "zh_cn" => "目录",
+        "zh_tw" | "zh_hk" => "目錄",
+        _ => "Contents",
+    }
+}
+
 /// Back a page, or shut the guide on the first.
 fn back(game: &Game<'_>) {
     let prev = GUIDE.with_borrow_mut(|g| g.history.pop());
@@ -226,6 +339,7 @@ fn back(game: &Game<'_>) {
     }
 }
 
+/// Shuts the guide and forgets its history.
 fn close() {
     GUIDE.with_borrow_mut(|g| {
         g.open = None;
@@ -254,6 +368,7 @@ fn resolve(from: &str, target: &str) -> String {
     parts.join("/")
 }
 
+/// An item id as pages write it, with the open mod's namespace when it has none.
 fn item_id(id: &str) -> String {
     if id.contains(':') { id.to_owned() } else { format!("{}:{id}", current_ns()) }
 }
@@ -427,6 +542,7 @@ fn inline(game: &Game<'_>, page: &str, s: &str, base: u32, problems: &mut Vec<St
     out
 }
 
+/// A word with its bold and italic codes.
 fn styled(w: &Word) -> String {
     let mut s = String::new();
     if w.bold {
@@ -439,6 +555,7 @@ fn styled(w: &Word) -> String {
     s
 }
 
+/// A word's width in the font, styled.
 fn word_width(game: &Game<'_>, w: &Word) -> f32 {
     game.native_text_width(&w.text) + if w.bold { w.text.chars().count() as f32 } else { 0.0 }
 }
@@ -469,6 +586,7 @@ fn flow(game: &Game<'_>, words: &[Word], indent: f32, width: f32, out: &mut Vec<
     }
 }
 
+/// Vertical space between blocks of a page.
 fn gap(out: &mut Vec<Line>, h: f32) {
     if out.last().is_some_and(|l| l.texts.is_empty() && l.icons.is_empty() && l.fills.is_empty() && l.sprites.is_empty() && l.scene.is_empty()) {
         return;
@@ -490,6 +608,7 @@ fn ingredient_ids(game: &Game<'_>, v: &serde_json::Value) -> Vec<String> {
     horizon_client::crafting::Ingredient::parse(v, game.res.items()).map(|i| i.order).unwrap_or_default()
 }
 
+/// A recipe's result: item and count.
 fn result_of(v: &serde_json::Value) -> Option<(String, i64)> {
     let r = v.get("result")?;
     let id = r.get("id").or_else(|| r.get("item")).and_then(|x| x.as_str())?.to_owned();
@@ -1128,7 +1247,7 @@ fn draw_annotations(game: &Game<'_>, batch: &mut HudBatch, s: &Scene3d, origin: 
     let mut tip = None;
     for a in &s.annotations {
         let width = (a.thickness * s.unit).max(1.0);
-        let mut segment = |batch: &mut HudBatch, from: [f32; 2], to: [f32; 2]| -> bool {
+        let segment = |batch: &mut HudBatch, from: [f32; 2], to: [f32; 2]| -> bool {
             let length = (to[0] - from[0]).hypot(to[1] - from[1]);
             let steps = length.ceil().max(1.0) as usize;
             let mut near = false;
@@ -1226,6 +1345,12 @@ fn draw_block_state(game: &Game<'_>, batch: &mut HudBatch, block: &str, props: &
     let Some(id) = registry.id(&state) else { return false };
     let mut verts = Vec::new();
     game.block_model_vertices(id, 42, m, 0xF0F0, false, &mut verts);
+    // Faces whose texture isn't on the GUI atlas (a content mod's block textures) are left out there: then the
+    // block is drawn as its item is, which finds every texture, rather than with holes or not at all.
+    let faces: usize = game.pack.render.model_catalog.collect_seeded(id, 42).map(|ms| ms.iter().map(|(_, b)| b.faces.len()).sum()).unwrap_or(0);
+    if verts.is_empty() || verts.len() / 4 < faces {
+        return false;
+    }
     for q in verts.chunks_exact(4) {
         // The world's vertex colour is ABGR, the HUD's ARGB: red and blue trade places.
         let c = q[0].color;
@@ -1252,7 +1377,9 @@ fn draw_block_image(game: &Game<'_>, batch: &mut HudBatch, id: &str, at: [f32; 2
     }
 }
 
-fn draw_scene_block(game: &Game<'_>, batch: &mut HudBatch, s: &Scene3d, origin: [f32; 2], rel: [f32; 3], id: &str) {
+/// Draws one block of a 3D scene, turned as the scene is.
+/// None when drawn; else where its item icon goes (drawn after the scene's depth pass, which would hide it).
+fn draw_scene_block(game: &Game<'_>, batch: &mut HudBatch, s: &Scene3d, origin: [f32; 2], rel: [f32; 3], id: &str) -> Option<([f32; 2], f32, String)> {
     let (block, props) = split_state(id);
     let [cx, cy] = [origin[0] + s.center[0], origin[1] + s.center[1]];
     let m = glam::Mat4::from_translation(glam::Vec3::new(cx, cy, 0.0))
@@ -1260,36 +1387,18 @@ fn draw_scene_block(game: &Game<'_>, batch: &mut HudBatch, s: &Scene3d, origin: 
         * scene_rotation(s)
         * glam::Mat4::from_translation(glam::Vec3::from(rel) - glam::Vec3::splat(0.5));
     if draw_block_state(game, batch, block, &props, m) {
-        return;
+        return None;
     }
-    let id = block;
-    let stack = horizon_client::items::ItemStack::new(id, 1);
-    let owner = game.player_owner(Some(&stack));
-    let mut state = game.resolve_item(&stack, horizon_assets::item_model::DisplayContext::Gui, Some(&owner), 0);
-    let m = glam::Mat4::from_scale(glam::Vec3::splat(s.unit / 16.0))
-        * scene_rotation(s)
-        * glam::Mat4::from_translation(glam::Vec3::from(rel) - glam::Vec3::splat(0.5));
-    for layer in &mut state.layers {
-        layer.matrix = m;
-    }
-    state.oversized_in_gui = true;
-    let [cx, cy] = [origin[0] + s.center[0], origin[1] + s.center[1]];
-    horizon_client::item_render::gui::draw(
-        &state,
-        &game.pack.item_renderer,
-        &game.gui.atlas.sprites,
-        &game.item_host(),
-        batch,
-        cx - 8.0,
-        cy - 8.0,
-        0.0,
-        0.0,
-        0.0,
-    );
+    // A block whose textures the GUI atlas lacks (a content mod's): its item icon, the block seen from the scene's
+    // start view, centred where the block is. It keeps its place as the scene turns.
+    let q = scene_rotation(s).transform_point3(glam::Vec3::from(rel));
+    let size = s.unit * 1.5;
+    let at = [cx + q.x * s.unit - size / 2.0, cy - q.y * s.unit - size / 2.0];
+    Some((at, size, block.to_owned()))
 }
 
 /// `native_screen_mouse_dragged_pre`: dragging a scene turns it (left-right round, up-down over).
-pub fn drag(delta: [f32; 2], canceled: &mut bool) {
+pub(in crate::game) fn drag(delta: [f32; 2], canceled: &mut bool) {
     GUIDE.with_borrow_mut(|g| {
         let Some((line, moved, _)) = g.drag.as_mut() else { return };
         *canceled = true;
@@ -1305,7 +1414,7 @@ pub fn drag(delta: [f32; 2], canceled: &mut bool) {
 }
 
 /// `native_screen_mouse_button_released_pre`: the end of a drag; a press that didn't move opens the block's page.
-pub fn release(game: &Game<'_>, canceled: &mut bool) {
+pub(in crate::game) fn release(game: &Game<'_>, canceled: &mut bool) {
     let Some((_, moved, id)) = GUIDE.with_borrow_mut(|g| g.drag.take()) else { return };
     *canceled = true;
     if !moved && !id.is_empty() {
@@ -1325,7 +1434,7 @@ fn panel(game: &Game<'_>) -> [f32; 4] {
 }
 
 /// `native_screen_render_post`: the guide over the screen, the hovered item's tooltip over it.
-pub fn draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
+pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
     let Some(page) = GUIDE.with_borrow(|g| g.open.clone()) else { return };
     let [x, y, pw, ph] = panel(game);
     let (sw, sh) = game.gui_size();
@@ -1336,7 +1445,11 @@ pub fn draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
     let title = GUIDE.with_borrow(|g| g.titles.get(&page).cloned()).unwrap_or_else(|| page.clone());
     game.native_text(batch, &format!("{} — {title}", current_title()), [x + 6.0, y + 4.0], 0xFFFFFF, false);
     let can_back = GUIDE.with_borrow(|g| !g.history.is_empty());
-    game.native_text(batch, "< Back", [x + pw - 66.0, y + 4.0], if can_back { 0xFFFFA0 } else { 0x9090A0 }, false);
+    let ((back, back_x), (contents, contents_x)) = header_buttons(game, x, pw);
+    game.native_text(batch, &back, [back_x, y + 4.0], if can_back { 0xFFFFA0 } else { 0x9090A0 }, false);
+    // Contents: the guide's first page, from anywhere in it.
+    let home = root_page().is_some_and(|r| r != page);
+    game.native_text(batch, &contents, [contents_x, y + 4.0], if home { 0xFFFFA0 } else { 0x9090A0 }, false);
     game.native_text(batch, "x", [x + pw - 12.0, y + 4.0], 0xFFFFFF, false);
     let (lines, scroll) = GUIDE.with_borrow(|g| (g.lines.clone(), g.scroll));
     let top = y + 20.0;
@@ -1386,11 +1499,16 @@ pub fn draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
             if ly + line.height > top && ly < bottom && let Some(s) = &line.scene3d {
                 let projected = scene_projection(s);
                 let start = batch.vertices.len();
-                for (_, _, _, rel, id) in &projected {
-                    draw_scene_block(game, batch, s, [left, ly], *rel, id);
-                }
+                let icons: Vec<_> = projected.iter().filter_map(|(_, _, _, rel, id)| draw_scene_block(game, batch, s, [left, ly], *rel, id)).collect();
                 // One model: the scene's quads depth-tested together, kept to its band.
-                batch.depth_since(start, [left, ly.max(top), left + width_of(line), (ly + line.height).min(bottom)]);
+                let band = [left, ly.max(top), left + width_of(line), (ly + line.height).min(bottom)];
+                batch.depth_since(start, band);
+                // Blocks drawn as icons, far to near, then kept to the band too.
+                let icons_start = batch.vertices.len();
+                for (at, size, block) in icons {
+                    game.native_item(batch, &block, at, size);
+                }
+                batch.clip_since(icons_start, band[0], band[1], band[2], band[3]);
                 if let Some(text) = draw_annotations(game, batch, s, [left, ly], [ly.max(top), (ly + line.height).min(bottom)], mouse) {
                     annotation_tip = Some(text);
                 }
@@ -1436,16 +1554,21 @@ pub fn draw(game: &Game<'_>, batch: &mut HudBatch, mouse: [f32; 2]) {
 
 /// `native_screen_mouse_button_pressed_pre`: clicks on the guide (links, pictures, scene blocks, Back, close);
 /// none reach the screen under it while it is open.
-pub fn click(game: &Game<'_>, mouse: [f32; 2], canceled: &mut bool) {
+pub(in crate::game) fn click(game: &Game<'_>, mouse: [f32; 2], canceled: &mut bool) {
     let Some(page) = GUIDE.with_borrow(|g| g.open.clone()) else { return };
     *canceled = true;
     let [x, y, pw, _] = panel(game);
     let [mx, my] = mouse;
     if my >= y && my < y + 16.0 {
+        let ((_, back_x), (_, contents_x)) = header_buttons(game, x, pw);
         if mx >= x + pw - 14.0 {
             close();
-        } else if mx >= x + pw - 70.0 {
+        } else if mx >= back_x - 4.0 {
             back(game);
+        } else if mx >= contents_x - 4.0
+            && let Some(root) = root_page().filter(|r| *r != page)
+        {
+            open_page(game, &root, true);
         }
         return;
     }
@@ -1509,7 +1632,7 @@ pub fn click(game: &Game<'_>, mouse: [f32; 2], canceled: &mut bool) {
 }
 
 /// `native_screen_mouse_scrolled_pre`: the guide scrolls.
-pub fn scroll(by: f64, canceled: &mut bool) {
+pub(in crate::game) fn scroll(by: f64, canceled: &mut bool) {
     GUIDE.with_borrow_mut(|g| {
         if g.open.is_none() {
             return;
@@ -1523,7 +1646,7 @@ pub fn scroll(by: f64, canceled: &mut bool) {
 
 /// `native_screen_key_pressed_pre`: the guide key over a hovered item opens its page; with the guide open,
 /// Escape closes it, Backspace goes back, and no key reaches the screen.
-pub fn key(game: &Game<'_>, menu: Option<&str>, key: &str, repeat: bool, canceled: &mut bool) {
+pub(in crate::game) fn key(game: &Game<'_>, menu: Option<&str>, key: &str, repeat: bool, canceled: &mut bool) {
     if is_open() {
         *canceled = true;
         if key.ends_with("escape") {
@@ -1566,7 +1689,8 @@ pub fn key(game: &Game<'_>, menu: Option<&str>, key: &str, repeat: bool, cancele
 /// `/ae2guide open <page>` (a page, as the tests need) and `/ae2guide audit` (every page laid out: what in it
 /// couldn't be shown — tags, items, pictures, recipes, links — written to ae2-guide-audit.txt beside the game's
 /// options). Client-side.
-pub fn command(_game: &Game<'_>, args: &str) -> String {
+#[allow(dead_code)] // The guide's API: each mod calls the parts it needs.
+pub(in crate::game) fn command(_game: &Game<'_>, args: &str) -> String {
     // A command runs on the server's thread: the guide (its pictures, the window's recipes) is the render
     // thread's, which picks the request up on its next frame.
     *ASKED.lock().unwrap_or_else(|e| e.into_inner()) = Some(args.trim().to_owned());
@@ -1577,12 +1701,13 @@ pub fn command(_game: &Game<'_>, args: &str) -> String {
 static ASKED: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
 
 /// The frame's part (render thread): a waiting `/ae2guide` request runs here.
-pub fn frame(game: &Game<'_>) {
+pub(in crate::game) fn frame(game: &Game<'_>) {
     let Some(args) = ASKED.lock().unwrap_or_else(|e| e.into_inner()).take() else { return };
     let msg = run_command(game, &args);
     log::info!("{msg}");
 }
 
+/// The guide's debug commands (`open <page>`, `audit`).
 fn run_command(game: &Game<'_>, args: &str) -> String {
     load_all(game);
     // (The command is AE2's; another mod's pages open through their items.)
@@ -1604,11 +1729,11 @@ fn run_command(game: &Game<'_>, args: &str) -> String {
             let mut report = String::new();
             let mut total = 0;
             for p in &pages {
-                let Some(bytes) = game.native_data(&format!("data/{}/ae2guide/{p}", current_ns())) else {
+                let Some(bytes) = page_data(game, &p) else {
                     report.push_str(&format!("{p}: unreadable\n"));
                     continue;
                 };
-                let text = String::from_utf8_lossy(&bytes).into_owned();
+                let text = only_present(game, &String::from_utf8_lossy(&bytes));
                 let (lines, mut problems) = layout(game, p, &text, width);
                 for l in &lines {
                     for (_, _, t, _, link) in &l.texts {
@@ -1654,7 +1779,8 @@ fn run_command(game: &Game<'_>, args: &str) -> String {
 }
 
 /// An item's description: the first paragraph of its guide page, as plain text (AE2's JEI information pages).
-pub fn summary(game: &Game<'_>, item: &str) -> Option<String> {
+#[allow(dead_code)] // The guide's API: each mod calls the parts it needs.
+pub(in crate::game) fn summary(game: &Game<'_>, item: &str) -> Option<String> {
     load_all(game);
     let (ns, _) = GUIDE.with_borrow(|g| g.all_items.get(item).cloned())?;
     use_mod(&ns);
@@ -1668,8 +1794,8 @@ pub fn summary(game: &Game<'_>, item: &str) -> Option<String> {
     load_index(game);
     let found = (|| {
         let page = GUIDE.with_borrow(|g| g.items.get(item).cloned())?;
-        let bytes = game.native_data(&format!("data/{}/ae2guide/{page}", current_ns()))?;
-        let text = String::from_utf8_lossy(&bytes).into_owned();
+        let bytes = page_data(game, &page)?;
+        let text = only_present(game, &String::from_utf8_lossy(&bytes));
         let body = match text.strip_prefix("---").and_then(|r| r.find("\n---").map(|e| r[e + 4..].to_owned())) {
             Some(b) => b,
             None => text,
@@ -1723,7 +1849,8 @@ thread_local! {
 
 /// W over an item JEI knows of (its panel, a terminal's list, the recipe window): only on the press `key` let through, so
 /// held from walking, too soon after the screen came up, or typed into a box, it opens nothing. A press opens one page.
-pub fn open_from_key(game: &Game<'_>, item: &str) -> bool {
+#[allow(dead_code)] // The guide's API: each mod calls the parts it needs.
+pub(in crate::game) fn open_from_key(game: &Game<'_>, item: &str) -> bool {
     let fresh = ARMED.take().is_some_and(|at| at.elapsed().as_millis() < 300);
     // An item the pointer is only passing over waits for the next press.
     let passing = GUIDE.with_borrow(|g| {
@@ -1733,14 +1860,14 @@ pub fn open_from_key(game: &Game<'_>, item: &str) -> bool {
 }
 
 /// The key that opens a page: W, unless a mod with pages has its `guide` key set to another in Options > Mods.
-pub fn hotkey(game: &Game<'_>) -> String {
+pub(in crate::game) fn hotkey(game: &Game<'_>) -> String {
     const W: &str = "key.keyboard.w";
     let chosen = ROOTS.with_borrow(|r| r.iter().map(|(ns, _, _)| game.native_mod_key(ns, "guide", W)).find(|k| k != W));
     chosen.unwrap_or_else(|| W.to_owned())
 }
 
 /// A mod's pages, in data/<mod>/ae2guide (index.json and Markdown, as AE2's).
-pub fn register(ns: &'static str, title: &'static str, hint: &'static str) {
+pub(in crate::game) fn register(ns: &'static str, title: &'static str, hint: &'static str) {
     ROOTS.with_borrow_mut(|r| {
         if !r.iter().any(|(n, _, _)| *n == ns) {
             r.push((ns, title, hint));
@@ -1750,7 +1877,8 @@ pub fn register(ns: &'static str, title: &'static str, hint: &'static str) {
 }
 
 /// "A text box of this mod has the keyboard": W is a letter there.
-pub fn register_keyboard_taken(f: fn(&Game<'_>, Option<&str>) -> bool) {
+#[allow(dead_code)] // The guide's API: each mod calls the parts it needs.
+pub(in crate::game) fn register_keyboard_taken(f: fn(&Game<'_>, Option<&str>) -> bool) {
     KEYBOARD_TAKEN.with_borrow_mut(|t| {
         if !t.iter().any(|g| *g as usize == f as usize) {
             t.push(f);
@@ -1759,18 +1887,22 @@ pub fn register_keyboard_taken(f: fn(&Game<'_>, Option<&str>) -> bool) {
 }
 
 /// AEConfig.isGuideHotkeyEnabled, for a mod that has such an option.
-pub fn set_hotkey_enabled(on: bool) {
+#[allow(dead_code)] // The guide's API: each mod calls the parts it needs.
+pub(in crate::game) fn set_hotkey_enabled(on: bool) {
     HOTKEY.set(on);
 }
 
-pub fn hotkey_enabled() -> bool {
+/// Whether the guide key works (a mod can turn it off).
+pub(in crate::game) fn hotkey_enabled() -> bool {
     HOTKEY.get()
 }
 
+/// The mod whose pages are open.
 fn current_ns() -> String {
     GUIDE.with_borrow(|g| g.ns.clone())
 }
 
+/// The open mod's guide title.
 fn current_title() -> &'static str {
     let ns = current_ns();
     ROOTS.with_borrow(|r| r.iter().find(|(n, _, _)| *n == ns).map_or("Guide", |(_, title, _)| *title))
@@ -1811,7 +1943,7 @@ fn load_all(game: &Game<'_>) {
 }
 
 /// `native_tooltip`: the hint under an item that has a page.
-pub fn tooltip(stack: &horizon_client::items::ItemStack, lines: &mut Vec<(horizon_client::text::Text, u32)>) {
+pub(in crate::game) fn tooltip(stack: &horizon_client::items::ItemStack, lines: &mut Vec<(horizon_client::text::Text, u32)>) {
     if !hotkey_enabled() {
         return;
     }
@@ -1824,12 +1956,12 @@ pub fn tooltip(stack: &horizon_client::items::ItemStack, lines: &mut Vec<(horizo
 }
 
 /// The frame's part: what needs the game's `&mut`.
-pub fn frame_hook(game: &mut Game<'_>) {
+pub(in crate::game) fn frame_hook(game: &mut Game<'_>) {
     thread_local! {
         static SAID: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     }
     if !SAID.replace(true) {
-        log::info!("Horizon: the JEI kit in use is ae2's copy, version 3");
+        log::info!("Horizon: the JEI kit in use is ae2's copy, version 14");
     }
     load_all(game);
     {
@@ -1845,7 +1977,7 @@ pub fn frame_hook(game: &mut Game<'_>) {
 }
 
 /// An item's name, as the language files have it.
-pub fn item_words(id: &str) -> String {
+pub(in crate::game) fn item_words(id: &str) -> String {
     // The name in the player's language; these words only where the language files have none.
     let (ns, path) = id.split_once(':').unwrap_or(("minecraft", id));
     for kind in ["block", "item"] {

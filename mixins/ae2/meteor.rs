@@ -660,7 +660,7 @@ thread_local! {
 }
 
 /// `native_chunk_load`: a chunk just generated asks for the meteorite starts that reach it, and waits for them.
-pub fn chunk_load(game: &mut Game<'_>, dimension: &str, chunk: [i32; 2], new: bool) {
+pub(in crate::game) fn chunk_load(game: &mut Game<'_>, dimension: &str, chunk: [i32; 2], new: bool) {
     if !new || !game.native_on(ID) || dimension != game.dim.id() {
         return;
     }
@@ -698,7 +698,7 @@ pub fn chunk_load(game: &mut Game<'_>, dimension: &str, chunk: [i32; 2], new: bo
 }
 
 /// `native_level_tick_post`: the level is in place; the chunks whose starts are known get their part of each.
-pub fn level_tick(game: &mut Game<'_>, dimension: &str) {
+pub(in crate::game) fn level_tick(game: &mut Game<'_>, dimension: &str) {
     if !game.native_on(ID) || dimension != game.dim.id() {
         return;
     }
@@ -785,7 +785,7 @@ pub fn level_tick(game: &mut Game<'_>, dimension: &str) {
 
 /// For a debug command (`/ae2debug meteor`): the starts of the regions around `at`, as worked out so far.
 #[allow(dead_code)]
-pub fn report(game: &Game<'_>, dimension: &str, at: [i32; 3]) -> Vec<String> {
+pub(in crate::game) fn report(game: &Game<'_>, dimension: &str, at: [i32; 3]) -> Vec<String> {
     let seed = game.level.seed;
     let (rx, rz) = ((at[0] >> 4).div_euclid(SPACING), (at[2] >> 4).div_euclid(SPACING));
     let mut lines = Vec::new();
@@ -1202,7 +1202,7 @@ impl Placer<'_, '_> {
 
 /// CompassService.getDirection: the chunk of the nearest meteorite (its mysterious cube) within `range` chunks of
 /// `chunk`, the nearest ring out first, then the nearest in it. A cube mined out of a loaded chunk no longer counts.
-pub fn nearest(game: &Game<'_>, dimension: &str, chunk: [i32; 2], range: i32) -> Option<[i32; 2]> {
+pub(in crate::game) fn nearest(game: &Game<'_>, dimension: &str, chunk: [i32; 2], range: i32) -> Option<[i32; 2]> {
     SERVER.with_borrow(|s| {
         let level = s.levels.get(dimension)?;
         let mut best: Option<(i32, i32, [i32; 2])> = None;

@@ -5,7 +5,7 @@ priority = 100
 
 # The Horizon commit this bundle was built and tested on.
 [compatibility]
-horizon_revision = "6560641ba51a452f6bc2407baa4eb1b3be517ca8"
+horizon_revision = "fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca"
 
 [[module]]
 id = "bus-cells"
@@ -2156,6 +2156,12 @@ name = "hz_kit_collection_ae2"
 source = "kit_collection.rs"
 
 [[module]]
+id = "ae2-kit-math"
+file = "crates/horizon-client/src/game.rs"
+name = "hz_kit_math_ae2"
+source = "kit_math.rs"
+
+[[module]]
 id = "ae2-kit-collection-size"
 file = "crates/horizon-client/src/game/native_panel.rs"
 name = "hz_kit_panel_ae2"
@@ -2269,6 +2275,28 @@ bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
   { name = "scroll", ty = "[f64; 2]", value = "scroll" },
   { name = "canceled", ty = "&mut bool", value = "&mut *canceled" },
+]
+
+[[injection]]
+id = "ae2-kit-slot-tip"
+priority = 110
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::stations::Game<'_>::draw_slot_tooltip"
+helper = "kit_slot_tip.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+]
+
+[[injection]]
+id = "ae2-kit-screen-tip"
+priority = 110
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::native_hooks::Game<'_>::draw_native_screen_tooltip"
+helper = "kit_screen_tip.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
 ]
 
 [[injection]]
@@ -2439,6 +2467,16 @@ bindings = [
 ]
 
 [[injection]]
+id = "ae2-kit-guide-hide-tip"
+priority = 190
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip_render_pre"
+helper = "kit_guide_hide_tip.rs"
+bindings = [
+  { name = "cancel", ty = "&mut bool", value = "&mut *cancel" },
+]
+
+[[injection]]
 id = "ae2-kit-guide-shown"
 priority = 200
 kind = "HEAD"
@@ -2452,6 +2490,6 @@ bindings = [
 [[module]]
 id = "ae2-kit-marker"
 file = "crates/horizon-client/src/game.rs"
-name = "hz_kit_v3_ae2"
+name = "hz_kit_v14_ae2"
 source = "kit_marker.rs"
 # ---- END JEI KIT

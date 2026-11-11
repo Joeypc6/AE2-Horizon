@@ -3,5 +3,5 @@ fn kit_guide_frame_ae2(game: &mut crate::game::Game<'_>) {
     if game.player.is_some() {
         crate::game::hz_kit_guide_ae2::frame_hook(game);
     }
-} else { () })
+} else { let _ = game; () })
 }
