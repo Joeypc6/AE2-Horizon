@@ -10253,6 +10253,10 @@ pub(in crate::game) fn dispense(game: &mut Game<'_>, pos: Pos, facing: horizon_c
                     power: 4.0,
                     rotation: [0.0; 2],
                     block_state: None,
+                    fall_distance: 0.0,
+                    stuck: horizon_core::geometry::Vec3::ZERO,
+                    in_water: false,
+                    used_portal: false,
                 })
             });
             let mut rest = stack.clone();
@@ -20456,6 +20460,10 @@ fn tiny_tnt_tick(game: &mut Game<'_>) {
                 power: 4.0,
                 rotation: [0.0; 2],
                 block_state: None,
+                fall_distance: 0.0,
+                stuck: horizon_core::geometry::Vec3::ZERO,
+                in_water: false,
+                used_portal: false,
             })
         });
         game.audio.play("minecraft:entity.tnt.primed", Some([at.x, at.y, at.z]), 1.0, 1.0);
@@ -23771,7 +23779,7 @@ fn open_part_menu(game: &mut Game<'_>, part: Pos, canceled: &mut bool) {
             e.items.resize(container.slots, None);
         }
     });
-    game.world.block_names.insert(key, item_words(&id));
+    game.world.block_names.insert(key, horizon_world::nbt::Tag::String(item_words(&id).as_str().into()));
     game.container = Some(key);
     *canceled = true;
 }
