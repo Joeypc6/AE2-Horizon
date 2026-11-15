@@ -5,7 +5,7 @@ priority = 100
 
 # The Horizon commit this bundle was built and tested on.
 [compatibility]
-horizon_revision = "fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca"
+horizon_revision = "9f42064c11efe7ef3e5ed2baad7ddc2a3b36eea0"
 
 [[module]]
 id = "bus-cells"
@@ -1210,7 +1210,7 @@ bindings = [
 id = "me-clicked-outside"
 kind = "HEAD"
 cancellable = true
-target = "horizon_client::game::Game<'_>::clicked_outside"
+target = "horizon_client::game::inventory_input::Game<'_>::clicked_outside"
 helper = "me_clicked_outside.rs"
 bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
@@ -1564,7 +1564,7 @@ bindings = [
 id = "bus-hopper-eject"
 kind = "HEAD"
 cancellable = true
-target = "horizon_client::game::machines::Game<'_>::hopper_eject"
+target = "horizon_client::game::machines::Game<'_>::hopper_eject_with_state"
 helper = "bus_hopper_eject.rs"
 bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
@@ -2046,6 +2046,7 @@ helper = "me_embedded_content.rs"
 bindings = [
   { name = "root", ty = "&std::path::Path", value = "root" },
   { name = "enabled", ty = "&std::collections::BTreeSet<String>", value = "enabled" },
+  { name = "disabled", ty = "&std::collections::BTreeSet<String>", value = "disabled" },
   { name = "dev", ty = "&[std::path::PathBuf]", value = "dev" },
 ]
 

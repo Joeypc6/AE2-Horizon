@@ -254,7 +254,7 @@ fn facade_view(block: &str) -> View {
         slots[i] = one("ae2:cable_anchor");
     }
     slots[4] = one(block);
-    View { layout: Layout::Grid, width: 3, height: 3, slots, results: vec![facade_stack(block, 4)], note: String::new(), action: None }
+    View { layout: Layout::Grid, width: 3, height: 3, slots, results: vec![facade_stack(block, 4)], note: String::new(), action: None, ..Default::default() }
 }
 
 /// A facade of `block`, as FacadeItem.createFacadeForItem makes it.
@@ -338,7 +338,7 @@ fn ae2_view(game: &Game<'_>, c: &Category, r: &Ae2Recipe) -> View {
     }
     // The note as the card's width has it.
     let note = r.note.split('\n').flat_map(|line| kit_collection::wrap_text(game, line)).collect::<Vec<_>>().join("\n");
-    View { layout, width, height, slots: r.slots.clone(), results: r.results.clone(), note, action: None }
+    View { layout, width, height, slots: r.slots.clone(), results: r.results.clone(), note, action: None, ..Default::default() }
 }
 
 /// An AE2 terminal that takes recipes is open (`AEGuiContainerHandler`).

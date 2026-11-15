@@ -435,6 +435,7 @@ fn station_views(catalog: &NativeRecipes, station: Station) -> Vec<View> {
                 results: r.results.iter().take(jei::STACKS_MAX).map(&stack).collect(),
                 note,
                 action: None,
+                ..Default::default()
             }
         })
         .collect()
